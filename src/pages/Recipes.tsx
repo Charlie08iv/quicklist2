@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Heart, Clock, Plus, Share, Chef, Sparkles } from "lucide-react";
+import { Search, Heart, Clock, Plus, Share, Utensils, Sparkles } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -149,7 +148,7 @@ const Recipes: React.FC = () => {
             onClick={() => setViewMode("my-recipes")}
             className="flex-1"
           >
-            <Chef className="h-4 w-4 mr-1" />
+            <Utensils className="h-4 w-4 mr-1" />
             {t("myRecipes")}
           </Button>
           <Button
@@ -169,7 +168,7 @@ const Recipes: React.FC = () => {
             {filteredPersonalRecipes.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-10 text-center">
                 <div className="rounded-full bg-muted p-3 mb-3">
-                  <Chef className="h-8 w-8 text-muted-foreground" />
+                  <Utensils className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-medium text-lg">{t("noPersonalRecipes")}</h3>
                 <p className="text-muted-foreground mt-1 mb-4">
