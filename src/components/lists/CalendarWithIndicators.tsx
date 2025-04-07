@@ -74,7 +74,7 @@ const CalendarWithIndicators: React.FC<CalendarWithIndicatorsProps> = ({
           mode="single"
           selected={selectedDate}
           onSelect={onDateSelect}
-          className="rounded-md border w-full shadow-sm"
+          className="rounded-md border w-full shadow-sm pointer-events-auto"
           components={{
             Day: ({ date, ...props }) => (
               <div {...props}>
