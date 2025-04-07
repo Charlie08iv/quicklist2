@@ -39,12 +39,43 @@ export type Database = {
         }
         Relationships: []
       }
+      meals: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          name: string
+          recipe_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          recipe_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          recipe_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           email: string
           id: string
+          notifications_enabled: boolean | null
           updated_at: string
           username: string | null
         }
@@ -53,6 +84,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          notifications_enabled?: boolean | null
           updated_at?: string
           username?: string | null
         }
@@ -61,8 +93,80 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          notifications_enabled?: boolean | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      shopping_items: {
+        Row: {
+          category: string | null
+          checked: boolean | null
+          created_at: string
+          id: string
+          list_id: string
+          name: string
+          quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          category?: string | null
+          checked?: boolean | null
+          created_at?: string
+          id?: string
+          list_id: string
+          name: string
+          quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category?: string | null
+          checked?: boolean | null
+          created_at?: string
+          id?: string
+          list_id?: string
+          name?: string
+          quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          created_at: string
+          date: string | null
+          group_id: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          group_id?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          group_id?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          user_id?: string
         }
         Relationships: []
       }

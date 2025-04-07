@@ -1,6 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Meal, MealType, ShoppingList, ShoppingItem } from "@/types/lists";
+import { 
+  Meal, MealType, ShoppingList, ShoppingItem, 
+  mapMealFromRow, mapShoppingListFromRow, mapShoppingItemFromRow,
+  MealRow, ShoppingListRow, ShoppingItemRow
+} from "@/types/lists";
 import { toast } from "@/components/ui/use-toast";
 
 // Get meals for a specific date
@@ -13,7 +17,7 @@ export async function getMealsByDate(date: string) {
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
       
     if (error) throw error;
-    return data || [];
+    return (data as MealRow[]).map(mapMealFromRow);
   } catch (error: any) {
     console.error("Error fetching meals:", error);
     return [];
@@ -29,7 +33,7 @@ export async function getAllMeals() {
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
       
     if (error) throw error;
-    return data || [];
+    return (data as MealRow[]).map(mapMealFromRow);
   } catch (error: any) {
     console.error("Error fetching meals:", error);
     return [];
@@ -55,8 +59,7 @@ export async function createMeal(meal: Omit<Meal, 'id' | 'userId' | 'createdAt'>
         date: meal.date,
         recipe_id: meal.recipeId
       })
-      .select()
-      .single();
+      .select();
       
     if (error) throw error;
     
@@ -65,7 +68,7 @@ export async function createMeal(meal: Omit<Meal, 'id' | 'userId' | 'createdAt'>
       description: `${meal.name} has been added to your calendar.`
     });
     
-    return data;
+    return (data[0] as MealRow);
   } catch (error: any) {
     console.error("Error creating meal:", error);
     toast({
@@ -89,10 +92,26 @@ export async function getListsByDate(date?: string) {
       query = query.eq('date', date);
     }
       
-    const { data, error } = await query;
+    const { data: listData, error: listError } = await query;
     
-    if (error) throw error;
-    return data || [];
+    if (listError) throw listError;
+    
+    // For each list, get its items
+    const lists: ShoppingList[] = [];
+    
+    for (const list of (listData as ShoppingListRow[])) {
+      const { data: itemData, error: itemError } = await supabase
+        .from('shopping_items')
+        .select('*')
+        .eq('list_id', list.id);
+        
+      if (itemError) throw itemError;
+      
+      const items = (itemData as ShoppingItemRow[]).map(mapShoppingItemFromRow);
+      lists.push(mapShoppingListFromRow(list, items));
+    }
+    
+    return lists;
   } catch (error: any) {
     console.error("Error fetching lists:", error);
     return [];
@@ -102,14 +121,30 @@ export async function getListsByDate(date?: string) {
 // Get unscheduled shopping lists
 export async function getUnscheduledLists() {
   try {
-    const { data, error } = await supabase
+    const { data: listData, error: listError } = await supabase
       .from('shopping_lists')
       .select('*')
       .is('date', null)
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
       
-    if (error) throw error;
-    return data || [];
+    if (listError) throw listError;
+    
+    // For each list, get its items
+    const lists: ShoppingList[] = [];
+    
+    for (const list of (listData as ShoppingListRow[])) {
+      const { data: itemData, error: itemError } = await supabase
+        .from('shopping_items')
+        .select('*')
+        .eq('list_id', list.id);
+        
+      if (itemError) throw itemError;
+      
+      const items = (itemData as ShoppingItemRow[]).map(mapShoppingItemFromRow);
+      lists.push(mapShoppingListFromRow(list, items));
+    }
+    
+    return lists;
   } catch (error: any) {
     console.error("Error fetching unscheduled lists:", error);
     return [];
@@ -125,7 +160,7 @@ export async function getAllLists() {
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
       
     if (error) throw error;
-    return data || [];
+    return (data as ShoppingListRow[]).map(list => mapShoppingListFromRow(list));
   } catch (error: any) {
     console.error("Error fetching lists:", error);
     return [];
@@ -151,8 +186,7 @@ export async function createShoppingList(list: Partial<ShoppingList>) {
         is_shared: list.isShared || false,
         group_id: list.groupId
       })
-      .select()
-      .single();
+      .select();
       
     if (error) throw error;
     
@@ -161,7 +195,7 @@ export async function createShoppingList(list: Partial<ShoppingList>) {
       description: "Your shopping list has been created."
     });
     
-    return data;
+    return (data[0] as ShoppingListRow);
   } catch (error: any) {
     console.error("Error creating list:", error);
     toast({
@@ -174,7 +208,7 @@ export async function createShoppingList(list: Partial<ShoppingList>) {
 }
 
 // Get dates that have meals or shopping lists
-export async function getDatesWithItems() {
+export async function getDatesWithItems(): Promise<Date[]> {
   try {
     const [meals, lists] = await Promise.all([
       getAllMeals(),
@@ -240,8 +274,7 @@ export async function shareList(listId: string) {
       .from('shopping_lists')
       .update({ is_shared: true })
       .eq('id', listId)
-      .select()
-      .single();
+      .select();
       
     if (error) throw error;
     

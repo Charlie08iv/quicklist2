@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getDatesWithItems } from "@/services/listService";
+import { DateWithMarker } from "@/types/lists";
 
 interface CalendarWithIndicatorsProps {
   selectedDate: Date | undefined;
