@@ -14,10 +14,10 @@ export async function getMealsByDate(date: string) {
       .from('meals')
       .select('*')
       .eq('date', date)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
       
     if (error) throw error;
-    return (data as MealRow[]).map(mapMealFromRow);
+    return (data || []).map(row => mapMealFromRow(row as unknown as MealRow));
   } catch (error: any) {
     console.error("Error fetching meals:", error);
     return [];
@@ -30,10 +30,10 @@ export async function getAllMeals() {
     const { data, error } = await supabase
       .from('meals')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
       
     if (error) throw error;
-    return (data as MealRow[]).map(mapMealFromRow);
+    return (data || []).map(row => mapMealFromRow(row as unknown as MealRow));
   } catch (error: any) {
     console.error("Error fetching meals:", error);
     return [];
@@ -68,7 +68,7 @@ export async function createMeal(meal: Omit<Meal, 'id' | 'userId' | 'createdAt'>
       description: `${meal.name} has been added to your calendar.`
     });
     
-    return (data[0] as MealRow);
+    return mapMealFromRow(data[0] as unknown as MealRow);
   } catch (error: any) {
     console.error("Error creating meal:", error);
     toast({
@@ -86,7 +86,7 @@ export async function getListsByDate(date?: string) {
     let query = supabase
       .from('shopping_lists')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
     
     if (date) {
       query = query.eq('date', date);
@@ -99,7 +99,7 @@ export async function getListsByDate(date?: string) {
     // For each list, get its items
     const lists: ShoppingList[] = [];
     
-    for (const list of (listData as ShoppingListRow[])) {
+    for (const list of (listData || []) as unknown as ShoppingListRow[]) {
       const { data: itemData, error: itemError } = await supabase
         .from('shopping_items')
         .select('*')
@@ -107,7 +107,7 @@ export async function getListsByDate(date?: string) {
         
       if (itemError) throw itemError;
       
-      const items = (itemData as ShoppingItemRow[]).map(mapShoppingItemFromRow);
+      const items = (itemData || []).map(row => mapShoppingItemFromRow(row as unknown as ShoppingItemRow));
       lists.push(mapShoppingListFromRow(list, items));
     }
     
@@ -125,14 +125,14 @@ export async function getUnscheduledLists() {
       .from('shopping_lists')
       .select('*')
       .is('date', null)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
       
     if (listError) throw listError;
     
     // For each list, get its items
     const lists: ShoppingList[] = [];
     
-    for (const list of (listData as ShoppingListRow[])) {
+    for (const list of (listData || []) as unknown as ShoppingListRow[]) {
       const { data: itemData, error: itemError } = await supabase
         .from('shopping_items')
         .select('*')
@@ -140,7 +140,7 @@ export async function getUnscheduledLists() {
         
       if (itemError) throw itemError;
       
-      const items = (itemData as ShoppingItemRow[]).map(mapShoppingItemFromRow);
+      const items = (itemData || []).map(row => mapShoppingItemFromRow(row as unknown as ShoppingItemRow));
       lists.push(mapShoppingListFromRow(list, items));
     }
     
@@ -157,10 +157,10 @@ export async function getAllLists() {
     const { data, error } = await supabase
       .from('shopping_lists')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
       
     if (error) throw error;
-    return (data as ShoppingListRow[]).map(list => mapShoppingListFromRow(list));
+    return (data || []).map(list => mapShoppingListFromRow(list as unknown as ShoppingListRow));
   } catch (error: any) {
     console.error("Error fetching lists:", error);
     return [];
@@ -195,7 +195,7 @@ export async function createShoppingList(list: Partial<ShoppingList>) {
       description: "Your shopping list has been created."
     });
     
-    return (data[0] as ShoppingListRow);
+    return mapShoppingListFromRow(data[0] as unknown as ShoppingListRow);
   } catch (error: any) {
     console.error("Error creating list:", error);
     toast({
