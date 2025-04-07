@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown, ChevronUp, CalendarIcon } from "lucide-react";
 import { getDatesWithItems } from "@/services/listService";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 
 interface CalendarWithIndicatorsProps {
   selectedDate: Date | undefined;
@@ -15,8 +17,9 @@ const CalendarWithIndicators: React.FC<CalendarWithIndicatorsProps> = ({
   selectedDate, 
   onDateSelect 
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const { t } = useTranslation();
   const [datesWithItems, setDatesWithItems] = useState<Date[]>([]);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetchDatesWithItems = async () => {
@@ -27,7 +30,13 @@ const CalendarWithIndicators: React.FC<CalendarWithIndicatorsProps> = ({
     fetchDatesWithItems();
   }, []);
 
-  // Custom day renderer to show indicators
+  const formattedDate = selectedDate ? selectedDate.toLocaleDateString("en-US", { 
+    month: "long", 
+    day: "numeric", 
+    year: "numeric" 
+  }) : t("selectDate");
+
+  // Custom day renderer to show indicators for dates with items
   const renderDay = (day: Date) => {
     const hasItems = datesWithItems.some(d => 
       d.getDate() === day.getDate() && 
@@ -39,31 +48,28 @@ const CalendarWithIndicators: React.FC<CalendarWithIndicatorsProps> = ({
       <div className="relative w-full h-full flex items-center justify-center">
         {day.getDate()}
         {hasItems && (
-          <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full" />
+          <div className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full" />
         )}
       </div>
     );
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-      <CollapsibleTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button 
-          variant="ghost" 
-          className="flex items-center justify-between w-full p-2 text-left font-normal"
+          variant="outline" 
+          className="w-full flex items-center justify-between p-3 border rounded-lg shadow-sm hover:shadow-md transition-all"
         >
-          <span className="font-medium">
-            {selectedDate ? selectedDate.toLocaleDateString("en-US", { 
-              month: "long", 
-              day: "numeric", 
-              year: "numeric" 
-            }) : "Select a date"}
-          </span>
-          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-primary" />
+            <span>{formattedDate}</span>
+          </div>
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
-      </CollapsibleTrigger>
+      </PopoverTrigger>
       
-      <CollapsibleContent className="mt-2">
+      <PopoverContent className="w-auto p-2" align="center">
         <Calendar 
           mode="single"
           selected={selectedDate}
@@ -77,8 +83,8 @@ const CalendarWithIndicators: React.FC<CalendarWithIndicatorsProps> = ({
             )
           }}
         />
-      </CollapsibleContent>
-    </Collapsible>
+      </PopoverContent>
+    </Popover>
   );
 };
 

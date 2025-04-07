@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createShoppingList } from "@/services/listService";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Calendar } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 
 interface CreateListDialogProps {
@@ -44,16 +44,17 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className="w-full group flex items-center gap-2 hover:bg-primary hover:text-primary-foreground">
+          <Plus className="h-4 w-4 transition-transform group-hover:scale-125" />
           {t("createList")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t("createNewList")}</DialogTitle>
+          <DialogTitle className="text-center text-primary">{t("createNewList")}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="space-y-2">
             <Label htmlFor="list-name">{t("listName")}</Label>
             <Input
@@ -61,15 +62,19 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated
               value={listName}
               onChange={(e) => setListName(e.target.value)}
               placeholder={t("shoppingListName")}
+              className="border-primary/20 focus-visible:ring-primary"
               required
             />
           </div>
           
           {date && (
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="scheduled">{t("scheduleForDate")}</Label>
-                <p className="text-sm text-muted-foreground">{date.toLocaleDateString()}</p>
+            <div className="flex items-center justify-between space-x-2 p-4 rounded-lg bg-secondary/10">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <div>
+                  <Label htmlFor="scheduled" className="font-medium">{t("scheduleForDate")}</Label>
+                  <p className="text-sm text-muted-foreground">{date.toLocaleDateString()}</p>
+                </div>
               </div>
               <Switch
                 id="scheduled"
@@ -79,7 +84,11 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated
             </div>
           )}
           
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
