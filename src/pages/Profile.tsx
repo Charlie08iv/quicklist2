@@ -22,6 +22,8 @@ import {
 import { useTranslation } from "@/hooks/use-translation";
 import { useTheme } from "@/providers/ThemeProvider";
 import { type LanguageCode } from "@/hooks/use-translation";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/components/ui/use-toast";
 
 import {
   Select,
@@ -35,9 +37,18 @@ const Profile: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = React.useState(true);
+  const { user, signOut } = useAuth();
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value as LanguageCode);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
   };
 
   return (
@@ -50,8 +61,8 @@ const Profile: React.FC = () => {
           </AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-semibold">John Doe</h1>
-          <p className="text-muted-foreground">john.doe@example.com</p>
+          <h1 className="text-2xl font-semibold">{user?.email || 'User'}</h1>
+          <p className="text-muted-foreground">{user?.email}</p>
         </div>
       </div>
 
@@ -126,7 +137,11 @@ const Profile: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Button variant="outline" className="w-full flex items-center">
+      <Button 
+        variant="outline" 
+        className="w-full flex items-center"
+        onClick={handleSignOut}
+      >
         <LogOut className="h-4 w-4 mr-2" />
         {t("logout")}
       </Button>
