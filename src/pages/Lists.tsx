@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import {
@@ -29,7 +28,6 @@ const Lists: React.FC = () => {
   const [activeTab, setActiveTab] = useState("meals");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Format date for display (e.g., "Monday, April 8")
   const formattedDate = date
     ? date.toLocaleDateString("en-US", {
         weekday: "long",
@@ -38,12 +36,10 @@ const Lists: React.FC = () => {
       })
     : t("today");
 
-  // Load data based on the selected date
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Format date as YYYY-MM-DD for the API
         const dateString = date.toISOString().split('T')[0];
         
         const [mealsData, listsData, unscheduledListsData] = await Promise.all([
@@ -65,7 +61,6 @@ const Lists: React.FC = () => {
     loadData();
   }, [date]);
 
-  // Handle toggling notifications
   const handleToggleNotifications = async () => {
     const newState = !notificationsEnabled;
     const success = await toggleNotifications(newState);
@@ -75,7 +70,6 @@ const Lists: React.FC = () => {
     }
   };
 
-  // Refresh data after adding a meal or list
   const refreshData = () => {
     const dateString = date.toISOString().split('T')[0];
     
@@ -92,7 +86,6 @@ const Lists: React.FC = () => {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -136,7 +129,7 @@ const Lists: React.FC = () => {
           <ShareOptionsDialog 
             listId={activeTab === "shopping" && scheduledLists.length > 0 
               ? scheduledLists[0].id 
-              : undefined} 
+              : undefined}
           />
         </div>
       </div>
@@ -207,7 +200,6 @@ const Lists: React.FC = () => {
             initial="hidden"
             animate="visible"
           >
-            {/* Scheduled Lists Section */}
             {date && (
               <>
                 <motion.h3 
@@ -238,7 +230,6 @@ const Lists: React.FC = () => {
               </>
             )}
             
-            {/* Unplanned Lists Section */}
             <motion.h3 
               className="text-lg font-medium mt-6"
               variants={itemVariants}
@@ -271,11 +262,9 @@ const Lists: React.FC = () => {
   );
 };
 
-// MealCard Component
 const MealCard: React.FC<{ meal: Meal }> = ({ meal }) => {
   const { t } = useTranslation();
   
-  // Map meal type to localized string
   const mealTypeLabel = {
     breakfast: t("breakfast"),
     lunch: t("lunch"),
@@ -302,11 +291,9 @@ const MealCard: React.FC<{ meal: Meal }> = ({ meal }) => {
   );
 };
 
-// ShoppingListCard Component
 const ShoppingListCard: React.FC<{ list: ShoppingList }> = ({ list }) => {
   const { t } = useTranslation();
   
-  // Calculate progress if there are items
   const progress = list.items?.length > 0
     ? (list.items.filter(item => item.checked).length / list.items.length) * 100
     : 0;
