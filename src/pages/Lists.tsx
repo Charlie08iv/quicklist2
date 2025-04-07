@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import {
@@ -10,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Share, Plus, Calendar } from "lucide-react";
+import { Bell, BellOff, Plus, Calendar } from "lucide-react";
 import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications } from "@/services/listService";
 import { Meal, ShoppingList } from "@/types/lists";
 import CalendarWithIndicators from "@/components/lists/CalendarWithIndicators";
