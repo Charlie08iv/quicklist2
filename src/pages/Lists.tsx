@@ -309,7 +309,7 @@ const Lists: React.FC = () => {
   );
 };
 
-const MealCard: React.FC<{ meal: Meal }> = ({ meal }) => {
+const MealCard = ({ meal }: { meal: Meal }) => {
   const { t } = useTranslation();
   
   const mealTypeLabel = {
@@ -338,7 +338,7 @@ const MealCard: React.FC<{ meal: Meal }> = ({ meal }) => {
   );
 };
 
-const ShoppingListCard: React.FC<{ list: ShoppingList }> = ({ list }) => {
+const ShoppingListCard = ({ list }: { list: ShoppingList }) => {
   const { t } = useTranslation();
   
   const progress = list.items?.length > 0

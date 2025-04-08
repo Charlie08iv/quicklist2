@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { useToast } from "@/hooks/use-toast";
+import RecipeDetailsDialog from "@/components/recipes/RecipeDetails";
+import { RecipeDetails } from "@/types/recipes";
+import { getRecipeById } from "@/services/recipeService";
 
 interface Recipe {
   id: string;
@@ -90,6 +94,8 @@ const Recipes: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"my-recipes" | "inspiration">("my-recipes");
   const [personalRecipes, setPersonalRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   
   const handleCreateRecipe = (recipe: Recipe) => {
     setPersonalRecipes(prev => [recipe, ...prev]);
@@ -106,6 +112,20 @@ const Recipes: React.FC = () => {
           recipe.id === recipeId ? { ...recipe, liked: !recipe.liked } : recipe
         )
       );
+    }
+    
+    if (selectedRecipe?.id === recipeId) {
+      setSelectedRecipe(prev => prev ? {...prev, liked: !prev.liked} : null);
+    }
+  };
+  
+  const handleViewRecipe = async (recipeId: string) => {
+    try {
+      const recipeDetails = await getRecipeById(recipeId);
+      setSelectedRecipe(recipeDetails);
+      setDetailsDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching recipe details:", error);
     }
   };
 
@@ -184,7 +204,8 @@ const Recipes: React.FC = () => {
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe} 
-                  onLike={() => handleToggleLike(recipe.id, "personal")} 
+                  onLike={() => handleToggleLike(recipe.id, "personal")}
+                  onViewRecipe={() => handleViewRecipe(recipe.id)} 
                 />
               ))
             )}
@@ -208,7 +229,8 @@ const Recipes: React.FC = () => {
                     <RecipeCard 
                       key={recipe.id} 
                       recipe={recipe} 
-                      onLike={() => {}} 
+                      onLike={() => handleToggleLike(recipe.id, "inspiration")}
+                      onViewRecipe={() => handleViewRecipe(recipe.id)}
                       readOnly
                     />
                   ))}
@@ -222,7 +244,8 @@ const Recipes: React.FC = () => {
                         <RecipeCard
                           key={recipe.id}
                           recipe={recipe}
-                          onLike={() => {}}
+                          onLike={() => handleToggleLike(recipe.id, "inspiration")}
+                          onViewRecipe={() => handleViewRecipe(recipe.id)}
                           readOnly
                         />
                       ))}
@@ -238,6 +261,13 @@ const Recipes: React.FC = () => {
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen} 
         onCreateRecipe={handleCreateRecipe}
+      />
+      
+      <RecipeDetailsDialog
+        recipe={selectedRecipe}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        onLike={() => selectedRecipe && handleToggleLike(selectedRecipe.id, "inspiration")}
       />
 
       {isMobile && (
@@ -258,10 +288,11 @@ const Recipes: React.FC = () => {
 interface RecipeCardProps {
   recipe: Recipe;
   onLike: () => void;
+  onViewRecipe: () => void;
   readOnly?: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onLike, readOnly = false }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onLike, onViewRecipe, readOnly = false }) => {
   const [liked, setLiked] = useState(recipe.liked);
   const isMobile = useIsMobile();
   
@@ -317,7 +348,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onLike, readOnly = fals
         </div>
       </CardContent>
       <CardFooter className="flex justify-between pt-0 pb-3">
-        <Button variant="outline" size={isMobile ? "sm" : "default"}>
+        <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={onViewRecipe}>
           View Recipe
         </Button>
         <Button variant="ghost" size="icon">
