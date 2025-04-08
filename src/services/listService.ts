@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -95,13 +94,18 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
 
 export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
   try {
+    // First get the user session to extract the user ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id || 'anonymous';
+    
+    // Now use the userId directly (not as a Promise)
     const { data, error } = await supabase
       .from('shopping_lists')
-      .insert([{ 
+      .insert({ 
         name: list.name, 
         date: list.date,
-        user_id: supabase.auth.getSession().then(res => res.data?.session?.user?.id || 'anonymous')
-      }])
+        user_id: userId
+      })
       .select()
       .single();
 
