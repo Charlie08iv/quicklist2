@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -62,9 +62,14 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
               <h2 className="text-3xl font-semibold text-white">{recipe.title}</h2>
               <p className="text-white/90 mt-1">By {recipe.author}</p>
             </div>
-            <DialogClose className="absolute top-4 right-4 bg-black/30 rounded-full p-1 hover:bg-black/50 transition-colors">
-              <X className="h-6 w-6 text-white" />
-            </DialogClose>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="absolute top-4 right-4 bg-black/30 rounded-full p-1 hover:bg-black/50 transition-colors text-white"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
           </div>
         </DialogHeader>
         
