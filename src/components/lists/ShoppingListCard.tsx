@@ -19,8 +19,8 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onListUpdated
     : 0;
 
   return (
-    <Card className="overflow-hidden shadow-md border-0 hover:shadow-lg transition-all">
-      <CardHeader className="py-3 border-b bg-secondary/10">
+    <Card className="overflow-hidden shadow-md border-0 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+      <CardHeader className="py-3 border-b bg-gradient-to-r from-secondary/30 to-secondary/10">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium">{list.name}</CardTitle>
           <ListActionsMenu list={list} onListUpdated={onListUpdated} />
@@ -39,7 +39,7 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onListUpdated
               <span>{list.items.filter(item => item.checked).length} of {list.items.length} {t("itemsCompleted")}</span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2.5">
+            <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
               <div 
                 className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-in-out"
                 style={{ width: `${progress}%` }} 

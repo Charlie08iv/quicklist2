@@ -31,7 +31,7 @@ export const BottomNavigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-10">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-10 glass-effect">
       <div className="container max-w-5xl mx-auto">
         <div className="grid grid-cols-4">
           {navItems.map((item) => (
@@ -39,9 +39,9 @@ export const BottomNavigation = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center py-2 ${
+                `flex flex-col items-center justify-center py-3 ${
                   isActive
-                    ? "text-primary font-medium"
+                    ? "bottom-nav-active"
                     : "text-muted-foreground"
                 }`
               }
@@ -49,7 +49,7 @@ export const BottomNavigation = () => {
               <div className="flex items-center justify-center p-1">
                 {item.icon}
               </div>
-              <span className="text-xs">{item.label}</span>
+              <span className="text-xs mt-0.5">{item.label}</span>
             </NavLink>
           ))}
         </div>

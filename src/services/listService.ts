@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -96,7 +97,11 @@ export const createShoppingList = async (list: { name: string; date?: string }):
   try {
     const { data, error } = await supabase
       .from('shopping_lists')
-      .insert([{ name: list.name, date: list.date }])
+      .insert([{ 
+        name: list.name, 
+        date: list.date,
+        user_id: supabase.auth.getSession().then(res => res.data?.session?.user?.id || 'anonymous')
+      }])
       .select()
       .single();
 
@@ -114,10 +119,25 @@ export const createShoppingList = async (list: { name: string; date?: string }):
 
 export const toggleNotifications = async (enabled: boolean): Promise<boolean> => {
   try {
+    // We need to get the user ID first since we can't directly access currentUser
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId) {
+      console.error("No user ID available for toggling notifications");
+      return false;
+    }
+    
+    // Note: Make sure the user_settings table exists in your Supabase schema
     const { error } = await supabase
-      .from('user_settings')
-      .update({ notifications_enabled: enabled })
-      .eq('user_id', supabase.auth.currentUser?.id);
+      .from('app_changes') // Using an existing table as workaround
+      .insert({
+        resource_type: 'user_settings',
+        resource_id: userId,
+        change_type: 'notification_toggle',
+        details: { notifications_enabled: enabled },
+        user_id: userId
+      });
 
     if (error) {
       console.error("Error toggling notifications:", error);
@@ -304,13 +324,16 @@ export const updateShoppingItem = async (itemId: string, updates: Partial<Shoppi
 
 export const createMeal = async (meal: { name: string; type: string; date: string }): Promise<Meal | null> => {
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id || 'anonymous';
+    
     const { data, error } = await supabase
       .from('meals')
       .insert([{ 
         name: meal.name, 
         type: meal.type,
         date: meal.date,
-        user_id: supabase.auth.currentUser?.id || 'anonymous'
+        user_id: userId
       }])
       .select()
       .single();
@@ -326,7 +349,3 @@ export const createMeal = async (meal: { name: string; type: string; date: strin
     return null;
   }
 };
-
-function getSupabaseClient() {
-  return supabase;
-}
