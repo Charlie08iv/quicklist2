@@ -1,302 +1,316 @@
+import { getSupabaseClient } from "@/integrations/supabase";
+import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  Meal, MealType, ShoppingList, ShoppingItem, 
-  mapMealFromRow, mapShoppingListFromRow, mapShoppingItemFromRow,
-  MealRow, ShoppingListRow, ShoppingItemRow
-} from "@/types/lists";
-import { toast } from "@/components/ui/use-toast";
-
-// Get meals for a specific date
-export async function getMealsByDate(date: string) {
+export const getMealsByDate = async (date: string): Promise<Meal[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('meals')
       .select('*')
-      .eq('date', date)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
-      
-    if (error) throw error;
-    return (data || []).map(row => mapMealFromRow(row as unknown as MealRow));
-  } catch (error: any) {
-    console.error("Error fetching meals:", error);
-    return [];
-  }
-}
+      .eq('date', date);
 
-// Get all meals for the current user
-export async function getAllMeals() {
-  try {
-    const { data, error } = await supabase
-      .from('meals')
-      .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
-      
-    if (error) throw error;
-    return (data || []).map(row => mapMealFromRow(row as unknown as MealRow));
-  } catch (error: any) {
-    console.error("Error fetching meals:", error);
-    return [];
-  }
-}
-
-// Create a new meal
-export async function createMeal(meal: Omit<Meal, 'id' | 'userId' | 'createdAt'>) {
-  try {
-    const user = await supabase.auth.getUser();
-    const userId = user.data.user?.id;
-    
-    if (!userId) {
-      throw new Error("User not authenticated");
+    if (error) {
+      console.error("Error fetching meals by date:", error);
+      return [];
     }
-    
-    const { data, error } = await supabase
-      .from('meals')
-      .insert({
-        user_id: userId,
-        name: meal.name,
-        type: meal.type,
-        date: meal.date,
-        recipe_id: meal.recipeId
-      })
-      .select();
-      
-    if (error) throw error;
-    
-    toast({
-      title: "Meal added",
-      description: `${meal.name} has been added to your calendar.`
-    });
-    
-    return mapMealFromRow(data[0] as unknown as MealRow);
-  } catch (error: any) {
-    console.error("Error creating meal:", error);
-    toast({
-      title: "Failed to add meal",
-      description: error.message,
-      variant: "destructive"
-    });
-    throw error;
-  }
-}
 
-// Get shopping lists for a specific date
-export async function getListsByDate(date?: string) {
+    return data.map(row => mapMealFromRow(row as MealRow));
+  } catch (error) {
+    console.error("Error fetching meals by date:", error);
+    return [];
+  }
+};
+
+export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
   try {
-    let query = supabase
+    const supabase = getSupabaseClient();
+    const { data: lists, error: listsError } = await supabase
       .from('shopping_lists')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
-    
-    if (date) {
-      query = query.eq('date', date);
+      .eq('date', date);
+
+    if (listsError) {
+      console.error("Error fetching shopping lists by date:", listsError);
+      return [];
     }
-      
-    const { data: listData, error: listError } = await query;
-    
-    if (listError) throw listError;
-    
-    // For each list, get its items
-    const lists: ShoppingList[] = [];
-    
-    for (const list of (listData || []) as unknown as ShoppingListRow[]) {
-      const { data: itemData, error: itemError } = await supabase
-        .from('shopping_items')
-        .select('*')
-        .eq('list_id', list.id);
-        
-      if (itemError) throw itemError;
-      
-      const items = (itemData || []).map(row => mapShoppingItemFromRow(row as unknown as ShoppingItemRow));
-      lists.push(mapShoppingListFromRow(list, items));
-    }
-    
-    return lists;
-  } catch (error: any) {
-    console.error("Error fetching lists:", error);
+
+    // Fetch items for each list
+    const listsWithItems = await Promise.all(
+      lists.map(async (list) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('shopping_items')
+          .select('*')
+          .eq('list_id', list.id);
+
+        if (itemsError) {
+          console.error(`Error fetching items for list ${list.id}:`, itemsError);
+          return mapShoppingListFromRow(list as ShoppingListRow, []);
+        }
+
+        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+      })
+    );
+
+    return listsWithItems;
+  } catch (error) {
+    console.error("Error fetching shopping lists by date:", error);
     return [];
   }
-}
+};
 
-// Get unscheduled shopping lists
-export async function getUnscheduledLists() {
+export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
   try {
+    const supabase = getSupabaseClient();
+    const { data: lists, error: listsError } = await supabase
+      .from('shopping_lists')
+      .select('*')
+      .is('date', null);
+
+    if (listsError) {
+      console.error("Error fetching unscheduled shopping lists:", listsError);
+      return [];
+    }
+
+    // Fetch items for each list
+    const listsWithItems = await Promise.all(
+      lists.map(async (list) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('shopping_items')
+          .select('*')
+          .eq('list_id', list.id);
+
+        if (itemsError) {
+          console.error(`Error fetching items for list ${list.id}:`, itemsError);
+          return mapShoppingListFromRow(list as ShoppingListRow, []);
+        }
+
+        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+      })
+    );
+
+    return listsWithItems;
+  } catch (error) {
+    console.error("Error fetching unscheduled shopping lists:", error);
+    return [];
+  }
+};
+
+export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('shopping_lists')
+      .insert([{ name: list.name, date: list.date }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating shopping list:", error);
+      return null;
+    }
+
+    return mapShoppingListFromRow(data as ShoppingListRow, []);
+  } catch (error) {
+    console.error("Error creating shopping list:", error);
+    return null;
+  }
+};
+
+export const toggleNotifications = async (enabled: boolean): Promise<boolean> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ notifications_enabled: enabled })
+      .eq('user_id', supabase.auth.currentUser?.id);
+
+    if (error) {
+      console.error("Error toggling notifications:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error toggling notifications:", error);
+    return false;
+  }
+};
+
+export const getDatesWithItems = async (): Promise<Date[]> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('meals')
+      .select('date');
+
+    if (error) {
+      console.error("Error fetching dates with meals:", error);
+      return [];
+    }
+
+    // Extract unique dates from the meals data
+    const mealDates = data.map(item => new Date(item.date));
+
+    // Fetch dates from shopping lists
     const { data: listData, error: listError } = await supabase
       .from('shopping_lists')
-      .select('*')
-      .is('date', null)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
-      
-    if (listError) throw listError;
-    
-    // For each list, get its items
-    const lists: ShoppingList[] = [];
-    
-    for (const list of (listData || []) as unknown as ShoppingListRow[]) {
-      const { data: itemData, error: itemError } = await supabase
-        .from('shopping_items')
-        .select('*')
-        .eq('list_id', list.id);
-        
-      if (itemError) throw itemError;
-      
-      const items = (itemData || []).map(row => mapShoppingItemFromRow(row as unknown as ShoppingItemRow));
-      lists.push(mapShoppingListFromRow(list, items));
+      .select('date')
+      .not('date', 'is', null); // Exclude null dates
+
+    if (listError) {
+      console.error("Error fetching dates with shopping lists:", listError);
+      return mealDates; // Return meal dates even if list fetch fails
     }
-    
-    return lists;
-  } catch (error: any) {
-    console.error("Error fetching unscheduled lists:", error);
-    return [];
-  }
-}
 
-// Get all shopping lists
-export async function getAllLists() {
-  try {
-    const { data, error } = await supabase
-      .from('shopping_lists')
-      .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
-      
-    if (error) throw error;
-    return (data || []).map(list => mapShoppingListFromRow(list as unknown as ShoppingListRow));
-  } catch (error: any) {
-    console.error("Error fetching lists:", error);
-    return [];
-  }
-}
+    // Extract unique dates from the shopping lists data
+    const listDates = listData.map(item => new Date(item.date));
 
-// Create a new shopping list
-export async function createShoppingList(list: Partial<ShoppingList>) {
-  try {
-    const user = await supabase.auth.getUser();
-    const userId = user.data.user?.id;
-    
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
-    
-    const { data, error } = await supabase
-      .from('shopping_lists')
-      .insert({
-        user_id: userId,
-        name: list.name || 'New Shopping List',
-        date: list.date || null,
-        is_shared: list.isShared || false,
-        group_id: list.groupId
-      })
-      .select();
-      
-    if (error) throw error;
-    
-    toast({
-      title: "List created",
-      description: "Your shopping list has been created."
-    });
-    
-    return mapShoppingListFromRow(data[0] as unknown as ShoppingListRow);
-  } catch (error: any) {
-    console.error("Error creating list:", error);
-    toast({
-      title: "Failed to create list",
-      description: error.message,
-      variant: "destructive"
-    });
-    throw error;
-  }
-}
+    // Combine and filter dates to ensure uniqueness
+    const allDates = [...mealDates, ...listDates];
+    const uniqueDates = Array.from(new Set(allDates.map(date => date.toISOString().slice(0, 10))))
+      .map(dateString => new Date(dateString));
 
-// Get dates that have meals or shopping lists
-export async function getDatesWithItems(): Promise<Date[]> {
-  try {
-    const [meals, lists] = await Promise.all([
-      getAllMeals(),
-      getAllLists()
-    ]);
-    
-    // Combine and deduplicate dates
-    const dates = new Set<string>();
-    
-    meals.forEach(meal => {
-      if (meal.date) dates.add(meal.date);
-    });
-    
-    lists.forEach(list => {
-      if (list.date) dates.add(list.date);
-    });
-    
-    return Array.from(dates).map(dateStr => new Date(dateStr));
+    return uniqueDates;
   } catch (error) {
     console.error("Error fetching dates with items:", error);
     return [];
   }
-}
+};
 
-// Toggle notifications for a user
-export async function toggleNotifications(enabled: boolean) {
+export const shareList = async (listId: string): Promise<string | null> => {
   try {
-    const user = await supabase.auth.getUser();
-    const userId = user.data.user?.id;
-    
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ notifications_enabled: enabled })
-      .eq('id', userId);
-      
-    if (error) throw error;
-    
-    toast({
-      title: enabled ? "Notifications enabled" : "Notifications disabled",
-      description: enabled ? "You will now receive notifications." : "You will no longer receive notifications."
-    });
-    
-    return true;
-  } catch (error: any) {
-    console.error("Error toggling notifications:", error);
-    toast({
-      title: "Failed to update notifications",
-      description: error.message,
-      variant: "destructive"
-    });
-    return false;
-  }
-}
-
-// Share a list
-export async function shareList(listId: string) {
-  try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('shopping_lists')
       .update({ is_shared: true })
       .eq('id', listId)
+      .select('id');
+
+    if (error) {
+      console.error("Error sharing list:", error);
+      return null;
+    }
+
+    // Construct the shareable link using the list ID
+    const shareableLink = `${window.location.origin}/shared-list/${listId}`;
+    return shareableLink;
+  } catch (error) {
+    console.error("Error sharing list:", error);
+    return null;
+  }
+};
+
+export const renameShoppingList = async (listId: string, newName: string) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('shopping_lists')
+      .update({ name: newName })
+      .eq('id', listId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error renaming shopping list:', error);
+    return false;
+  }
+};
+
+export const archiveShoppingList = async (listId: string) => {
+  try {
+    // In a real app, you might have an archived field
+    // For now, we'll just record an archive action
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('app_changes')
+      .insert({
+        resource_type: 'shopping_list',
+        resource_id: listId,
+        change_type: 'archive',
+        details: { action: 'archived' }
+      });
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error archiving shopping list:', error);
+    return false;
+  }
+};
+
+export const planShoppingList = async (listId: string, date: string) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('shopping_lists')
+      .update({ date: date })
+      .eq('id', listId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error planning shopping list:', error);
+    return false;
+  }
+};
+
+export const addItemToList = async (listId: string, item: Omit<ShoppingItem, 'id' | 'checked'>) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .insert({
+        list_id: listId,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+        checked: false
+      })
       .select();
       
     if (error) throw error;
-    
-    // Generate a shareable link (this would typically involve creating a record in a shares table)
-    const shareLink = `${window.location.origin}/shared-list/${listId}`;
-    
-    toast({
-      title: "List shared",
-      description: "Share link has been copied to your clipboard."
-    });
-    
-    // Copy link to clipboard
-    navigator.clipboard.writeText(shareLink);
-    
-    return shareLink;
-  } catch (error: any) {
-    console.error("Error sharing list:", error);
-    toast({
-      title: "Failed to share list",
-      description: error.message,
-      variant: "destructive"
-    });
+    return mapShoppingItemFromRow(data[0] as ShoppingItemRow);
+  } catch (error) {
+    console.error('Error adding item to shopping list:', error);
+    throw error;
+  }
+};
+
+export const removeItemFromList = async (itemId: string) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('id', itemId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error removing item from shopping list:', error);
+    return false;
+  }
+};
+
+export const updateShoppingItem = async (itemId: string, updates: Partial<ShoppingItem>): Promise<ShoppingItem | null> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .update(updates)
+      .eq('id', itemId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating shopping item:", error);
+      return null;
+    }
+
+    return mapShoppingItemFromRow(data as ShoppingItemRow);
+  } catch (error) {
+    console.error("Error updating shopping item:", error);
     return null;
   }
-}
+};

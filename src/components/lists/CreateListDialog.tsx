@@ -8,18 +8,22 @@ import { Switch } from "@/components/ui/switch";
 import { createShoppingList } from "@/services/listService";
 import { Loader2, Plus, Calendar } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface CreateListDialogProps {
   date?: Date;
   onListCreated: () => void;
 }
 
-const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated }) => {
+const CreateListDialog: React.FC<CreateListDialogProps> = ({ date: initialDate, onListCreated }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [listName, setListName] = useState("");
-  const [isScheduled, setIsScheduled] = useState(Boolean(date));
+  const [isScheduled, setIsScheduled] = useState(Boolean(initialDate));
+  const [date, setDate] = useState<Date | undefined>(initialDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +44,8 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated
       setIsSubmitting(false);
     }
   };
+
+  const formattedDate = date ? date.toLocaleDateString() : t("selectDate");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -67,22 +73,50 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ date, onListCreated
             />
           </div>
           
-          {date && (
-            <div className="flex items-center justify-between space-x-2 p-4 rounded-lg bg-secondary/10">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <div>
-                  <Label htmlFor="scheduled" className="font-medium">{t("scheduleForDate")}</Label>
-                  <p className="text-sm text-muted-foreground">{date.toLocaleDateString()}</p>
-                </div>
+          <div className="flex items-center justify-between space-x-2 p-4 rounded-lg bg-secondary/10">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <div>
+                <Label htmlFor="scheduled" className="font-medium">{t("scheduleForDate")}</Label>
+                {isScheduled && (
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="mt-1 text-sm h-auto py-1 px-2 font-normal"
+                      >
+                        {formattedDate}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <div className="p-2">
+                        <input 
+                          type="date" 
+                          className="border rounded px-2 py-1"
+                          value={date ? date.toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                            setDate(newDate);
+                            setCalendarOpen(false);
+                          }}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
-              <Switch
-                id="scheduled"
-                checked={isScheduled}
-                onCheckedChange={setIsScheduled}
-              />
             </div>
-          )}
+            <Switch
+              id="scheduled"
+              checked={isScheduled}
+              onCheckedChange={(checked) => {
+                setIsScheduled(checked);
+                if (checked && !date) {
+                  setDate(new Date());
+                }
+              }}
+            />
+          </div>
           
           <Button 
             type="submit" 
