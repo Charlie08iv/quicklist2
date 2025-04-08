@@ -1,9 +1,8 @@
-import { getSupabaseClient } from "@/integrations/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
 export const getMealsByDate = async (date: string): Promise<Meal[]> => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('meals')
       .select('*')
@@ -23,7 +22,6 @@ export const getMealsByDate = async (date: string): Promise<Meal[]> => {
 
 export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
   try {
-    const supabase = getSupabaseClient();
     const { data: lists, error: listsError } = await supabase
       .from('shopping_lists')
       .select('*')
@@ -60,7 +58,6 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
 
 export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
   try {
-    const supabase = getSupabaseClient();
     const { data: lists, error: listsError } = await supabase
       .from('shopping_lists')
       .select('*')
@@ -97,7 +94,6 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
 
 export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('shopping_lists')
       .insert([{ name: list.name, date: list.date }])
@@ -118,7 +114,6 @@ export const createShoppingList = async (list: { name: string; date?: string }):
 
 export const toggleNotifications = async (enabled: boolean): Promise<boolean> => {
   try {
-    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('user_settings')
       .update({ notifications_enabled: enabled })
@@ -138,7 +133,6 @@ export const toggleNotifications = async (enabled: boolean): Promise<boolean> =>
 
 export const getDatesWithItems = async (): Promise<Date[]> => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('meals')
       .select('date');
@@ -179,7 +173,6 @@ export const getDatesWithItems = async (): Promise<Date[]> => {
 
 export const shareList = async (listId: string): Promise<string | null> => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('shopping_lists')
       .update({ is_shared: true })
@@ -202,7 +195,6 @@ export const shareList = async (listId: string): Promise<string | null> => {
 
 export const renameShoppingList = async (listId: string, newName: string) => {
   try {
-    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('shopping_lists')
       .update({ name: newName })
@@ -220,7 +212,6 @@ export const archiveShoppingList = async (listId: string) => {
   try {
     // In a real app, you might have an archived field
     // For now, we'll just record an archive action
-    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('app_changes')
       .insert({
@@ -240,7 +231,6 @@ export const archiveShoppingList = async (listId: string) => {
 
 export const planShoppingList = async (listId: string, date: string) => {
   try {
-    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('shopping_lists')
       .update({ date: date })
@@ -256,7 +246,6 @@ export const planShoppingList = async (listId: string, date: string) => {
 
 export const addItemToList = async (listId: string, item: Omit<ShoppingItem, 'id' | 'checked'>) => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('shopping_items')
       .insert({
@@ -279,7 +268,6 @@ export const addItemToList = async (listId: string, item: Omit<ShoppingItem, 'id
 
 export const removeItemFromList = async (itemId: string) => {
   try {
-    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('shopping_items')
       .delete()
@@ -295,7 +283,6 @@ export const removeItemFromList = async (itemId: string) => {
 
 export const updateShoppingItem = async (itemId: string, updates: Partial<ShoppingItem>): Promise<ShoppingItem | null> => {
   try {
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('shopping_items')
       .update(updates)
@@ -314,3 +301,32 @@ export const updateShoppingItem = async (itemId: string, updates: Partial<Shoppi
     return null;
   }
 };
+
+export const createMeal = async (meal: { name: string; type: string; date: string }): Promise<Meal | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('meals')
+      .insert([{ 
+        name: meal.name, 
+        type: meal.type,
+        date: meal.date,
+        user_id: supabase.auth.currentUser?.id || 'anonymous'
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating meal:", error);
+      return null;
+    }
+
+    return mapMealFromRow(data as MealRow);
+  } catch (error) {
+    console.error("Error creating meal:", error);
+    return null;
+  }
+};
+
+function getSupabaseClient() {
+  return supabase;
+}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import {
@@ -16,6 +17,7 @@ import CalendarWithIndicators from "@/components/lists/CalendarWithIndicators";
 import AddMealDialog from "@/components/lists/AddMealDialog";
 import CreateListDialog from "@/components/lists/CreateListDialog";
 import ShareOptionsDialog from "@/components/lists/ShareOptionsDialog";
+import ShoppingListCard from "@/components/lists/ShoppingListCard";
 import { motion } from "framer-motion";
 import {
   Collapsible,
