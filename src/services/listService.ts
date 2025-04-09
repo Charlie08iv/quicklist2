@@ -22,17 +22,27 @@ export const getMealsByDate = async (date: string): Promise<Meal[]> => {
 
 export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
   try {
-    const { data: lists, error: listsError } = await supabase
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    
+    let query = supabase
       .from('shopping_lists')
       .select('*')
       .eq('date', date);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.eq('is_shared', true);
+    }
+
+    const { data: lists, error: listsError } = await query;
 
     if (listsError) {
       console.error("Error fetching shopping lists by date:", listsError);
       return [];
     }
 
-    // Fetch items for each list
     const listsWithItems = await Promise.all(
       lists.map(async (list) => {
         const { data: items, error: itemsError } = await supabase
@@ -58,17 +68,27 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
 
 export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
   try {
-    const { data: lists, error: listsError } = await supabase
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    
+    let query = supabase
       .from('shopping_lists')
       .select('*')
       .is('date', null);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.eq('is_shared', true);
+    }
+
+    const { data: lists, error: listsError } = await query;
 
     if (listsError) {
       console.error("Error fetching unscheduled shopping lists:", listsError);
       return [];
     }
 
-    // Fetch items for each list
     const listsWithItems = await Promise.all(
       lists.map(async (list) => {
         const { data: items, error: itemsError } = await supabase
@@ -94,11 +114,9 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
 
 export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
   try {
-    // First get the user session to extract the user ID
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id || 'anonymous';
     
-    // Now use the userId directly (not as a Promise)
     const { data, error } = await supabase
       .from('shopping_lists')
       .insert({ 
@@ -123,7 +141,6 @@ export const createShoppingList = async (list: { name: string; date?: string }):
 
 export const toggleNotifications = async (enabled: boolean): Promise<boolean> => {
   try {
-    // We need to get the user ID first since we can't directly access currentUser
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
@@ -132,9 +149,8 @@ export const toggleNotifications = async (enabled: boolean): Promise<boolean> =>
       return false;
     }
     
-    // Note: Make sure the user_settings table exists in your Supabase schema
     const { error } = await supabase
-      .from('app_changes') // Using an existing table as workaround
+      .from('app_changes')
       .insert({
         resource_type: 'user_settings',
         resource_id: userId,
@@ -166,24 +182,20 @@ export const getDatesWithItems = async (): Promise<Date[]> => {
       return [];
     }
 
-    // Extract unique dates from the meals data
     const mealDates = data.map(item => new Date(item.date));
 
-    // Fetch dates from shopping lists
     const { data: listData, error: listError } = await supabase
       .from('shopping_lists')
       .select('date')
-      .not('date', 'is', null); // Exclude null dates
+      .not('date', 'is', null);
 
     if (listError) {
       console.error("Error fetching dates with shopping lists:", listError);
-      return mealDates; // Return meal dates even if list fetch fails
+      return mealDates;
     }
 
-    // Extract unique dates from the shopping lists data
     const listDates = listData.map(item => new Date(item.date));
 
-    // Combine and filter dates to ensure uniqueness
     const allDates = [...mealDates, ...listDates];
     const uniqueDates = Array.from(new Set(allDates.map(date => date.toISOString().slice(0, 10))))
       .map(dateString => new Date(dateString));
@@ -208,7 +220,6 @@ export const shareList = async (listId: string): Promise<string | null> => {
       return null;
     }
 
-    // Construct the shareable link using the list ID
     const shareableLink = `${window.location.origin}/shared-list/${listId}`;
     return shareableLink;
   } catch (error) {
@@ -234,8 +245,6 @@ export const renameShoppingList = async (listId: string, newName: string) => {
 
 export const archiveShoppingList = async (listId: string) => {
   try {
-    // In a real app, you might have an archived field
-    // For now, we'll just record an archive action
     const { error } = await supabase
       .from('app_changes')
       .insert({
