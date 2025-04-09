@@ -10,21 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Plus, Calendar, ChevronDown } from "lucide-react";
-import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications } from "@/services/listService";
+import { Bell, BellOff, Plus, Calendar } from "lucide-react";
+import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications, createShoppingList, createMeal } from "@/services/listService";
 import { Meal, ShoppingList } from "@/types/lists";
 import CalendarWithIndicators from "@/components/lists/CalendarWithIndicators";
-import AddMealDialog from "@/components/lists/AddMealDialog";
-import CreateListDialog from "@/components/lists/CreateListDialog";
-import ShareOptionsDialog from "@/components/lists/ShareOptionsDialog";
 import ShoppingListCard from "@/components/lists/ShoppingListCard";
 import { motion } from "framer-motion";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 const Lists: React.FC = () => {
   const { t } = useTranslation();
@@ -33,19 +27,16 @@ const Lists: React.FC = () => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [scheduledLists, setScheduledLists] = useState<ShoppingList[]>([]);
   const [unscheduledLists, setUnscheduledLists] = useState<ShoppingList[]>([]);
-  const [activeTab, setActiveTab] = useState("meals");
+  const [activeTab, setActiveTab] = useState("shopping");
   const [isLoading, setIsLoading] = useState(false);
-  const [isScheduledOpen, setIsScheduledOpen] = useState(true);
-  const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true);
-  const isMobile = useIsMobile();
+  const [newListName, setNewListName] = useState("");
+  const [newBreakfastMeal, setNewBreakfastMeal] = useState("");
+  const [newLunchMeal, setNewLunchMeal] = useState("");
+  const [newDinnerMeal, setNewDinnerMeal] = useState("");
 
-  const formattedDate = date
-    ? date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
-    : t("today");
+  const formattedMonth = date
+    ? format(date, "MMMM yyyy")
+    : "";
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,6 +88,51 @@ const Lists: React.FC = () => {
     }
   };
 
+  const handleCreateList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newListName.trim()) {
+      toast.error(t("Please enter a list name"));
+      return;
+    }
+    
+    try {
+      await createShoppingList({
+        name: newListName,
+        date: date.toISOString().split('T')[0],
+      });
+      setNewListName("");
+      toast.success(t("List created successfully"));
+      refreshData();
+    } catch (error) {
+      console.error("Error creating list:", error);
+      toast.error(t("Failed to create list"));
+    }
+  };
+
+  const handleCreateMeal = async (type: "breakfast" | "lunch" | "dinner", mealName: string) => {
+    if (!mealName.trim()) {
+      return;
+    }
+
+    try {
+      await createMeal({
+        name: mealName,
+        type,
+        date: date.toISOString().split('T')[0]
+      });
+      
+      if (type === "breakfast") setNewBreakfastMeal("");
+      else if (type === "lunch") setNewLunchMeal("");
+      else setNewDinnerMeal("");
+      
+      toast.success(`${t(type)} ${t("meal added")}`);
+      refreshData();
+    } catch (error) {
+      console.error(`Error creating ${type} meal:`, error);
+      toast.error(t("Failed to add meal"));
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -106,238 +142,264 @@ const Lists: React.FC = () => {
       }
     }
   };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { 
-        type: "spring",
-        stiffness: 300,
-        damping: 24
-      }
-    }
+
+  const getExistingMeal = (type: "breakfast" | "lunch" | "dinner") => {
+    return meals.find(meal => meal.type === type);
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto px-3 sm:px-4 pb-20">
+    <div className="space-y-6 max-w-4xl mx-auto px-3 sm:px-4 pb-20">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">{t("lists")}</h1>
+        <h1 className="text-3xl font-bold text-primary">{t("Shopping Lists")}</h1>
         <div className="flex space-x-2">
           <Button
             variant="outline"
             size="icon"
             onClick={handleToggleNotifications}
             title={notificationsEnabled ? t("disableNotifications") : t("enableNotifications")}
-            className="bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all"
           >
             {notificationsEnabled ? (
-              <Bell className="h-4 w-4 text-primary" />
+              <Bell className="h-4 w-4" />
             ) : (
-              <BellOff className="h-4 w-4 text-muted-foreground" />
+              <BellOff className="h-4 w-4" />
             )}
           </Button>
-          <ShareOptionsDialog listId={activeTab === "shopping" && scheduledLists.length > 0 ? scheduledLists[0].id : undefined} />
+          <Button className="flex items-center gap-2 bg-primary" onClick={() => {
+            setNewListName("");
+            const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+            if (dialogElement) dialogElement.showModal();
+          }}>
+            <Plus className="h-5 w-5" />
+            {t("New List")}
+          </Button>
+          <dialog id="new-list-dialog" className="modal p-6 rounded-lg shadow-lg bg-white w-[90%] max-w-md">
+            <h3 className="text-xl font-semibold mb-4">{t("Create New List")}</h3>
+            <form onSubmit={handleCreateList}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">{t("List Name")}</label>
+                <Input 
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  placeholder={t("Enter list name")}
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+                    if (dialogElement) dialogElement.close();
+                  }}
+                >
+                  {t("Cancel")}
+                </Button>
+                <Button type="submit">{t("Create")}</Button>
+              </div>
+            </form>
+          </dialog>
         </div>
       </div>
 
-      <Card className="overflow-hidden shadow-lg border-0 bg-white dark:bg-gray-800">
-        <CardHeader className="pb-2 border-b bg-secondary/20">
-          <CardTitle className="text-primary">{formattedDate}</CardTitle>
-          <CardDescription>{t("Plan Meals And Shopping")}</CardDescription>
-        </CardHeader>
-        <CardContent className={`pt-4 pb-6 ${isMobile ? 'px-2' : 'px-6'}`}>
-          <CalendarWithIndicators 
-            selectedDate={date} 
-            onDateSelect={(newDate) => newDate && setDate(newDate)} 
-          />
+      <Card className="rounded-xl shadow-md border">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-2 rounded-t-xl overflow-hidden">
+            <Button 
+              variant={activeTab === "shopping" ? "default" : "ghost"} 
+              onClick={() => setActiveTab("shopping")}
+              className="rounded-none py-4 h-auto text-lg font-medium"
+            >
+              {t("My Lists")}
+            </Button>
+            <Button 
+              variant={activeTab === "meals" ? "default" : "ghost"} 
+              onClick={() => setActiveTab("meals")}
+              className="rounded-none py-4 h-auto text-lg font-medium"
+            >
+              {t("Meal Schedule")}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <Tabs 
-        value={activeTab} 
-        onValueChange={setActiveTab} 
-        defaultValue="meals"
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="meals" className="text-base py-3">{t("meals")}</TabsTrigger>
-          <TabsTrigger value="shopping" className="text-base py-3">{t("shoppingList")}</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="meals" className="space-y-4">
-          <motion.div 
-            className="space-y-4"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {isLoading ? (
-              <Card className="p-8 flex justify-center">
-                <div className="animate-pulse flex space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-muted"></div>
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded w-5/6"></div>
-                    </div>
+      <Card className="rounded-xl shadow-md border">
+        <CardHeader className="pb-2">
+          <CardTitle>{t("Select Date")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="calendar-container">
+            <div className="flex justify-between items-center mb-4">
+              <button className="p-2 rounded-full hover:bg-gray-100">
+                &lt;
+              </button>
+              <h3 className="text-xl font-medium">{formattedMonth}</h3>
+              <button className="p-2 rounded-full hover:bg-gray-100">
+                &gt;
+              </button>
+            </div>
+            <CalendarWithIndicators 
+              selectedDate={date} 
+              onDateSelect={(newDate) => newDate && setDate(newDate)} 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {activeTab === "shopping" && (
+        <motion.div 
+          className="space-y-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {isLoading ? (
+            <Card className="p-8 flex justify-center">
+              <div className="animate-pulse flex space-x-4">
+                <div className="h-12 w-12 rounded-full bg-muted"></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded"></div>
+                    <div className="h-4 bg-muted rounded w-5/6"></div>
                   </div>
                 </div>
-              </Card>
-            ) : meals.length === 0 ? (
-              <Card className="overflow-hidden shadow-md border-0">
-                <CardHeader className="py-3 border-b bg-secondary/10">
-                  <CardTitle className="text-lg">{t("noMeals")}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-muted-foreground mb-4">
-                    {t("noMealsScheduled")}
-                  </p>
-                  <AddMealDialog date={date} onMealAdded={refreshData} />
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {meals.map((meal) => (
-                  <motion.div key={meal.id} variants={itemVariants}>
-                    <MealCard meal={meal} />
-                  </motion.div>
-                ))}
-                
-                <motion.div variants={itemVariants}>
-                  <Card className="overflow-hidden shadow-md border-0">
-                    <CardContent className="pt-6">
-                      <AddMealDialog date={date} onMealAdded={refreshData} />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </>
-            )}
-          </motion.div>
-        </TabsContent>
-        
-        <TabsContent value="shopping">
-          <motion.div 
-            className="space-y-4"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {isLoading ? (
-              <Card className="p-8 flex justify-center">
-                <div className="animate-pulse flex space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-muted"></div>
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded w-5/6"></div>
-                    </div>
-                  </div>
+              </div>
+            </Card>
+          ) : (
+            <>
+              {scheduledLists.length === 0 ? (
+                <Card className="overflow-hidden shadow-md rounded-xl">
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground mb-4">
+                      {t("No shopping lists for this date")}
+                    </p>
+                    <Button 
+                      className="w-full flex items-center gap-2" 
+                      onClick={() => {
+                        const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+                        if (dialogElement) dialogElement.showModal();
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {t("Create a Shopping List")}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {scheduledLists.map((list) => (
+                    <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </motion.div>
+      )}
+      
+      {activeTab === "meals" && (
+        <motion.div 
+          className="space-y-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">{t("Select a date")}</h2>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={handleToggleNotifications}
+            >
+              <Bell className="h-4 w-4" />
+              {t("Enable Reminders")}
+            </Button>
+          </div>
+
+          <Card className="rounded-xl shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">{t("Breakfast")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {getExistingMeal("breakfast") ? (
+                <div className="p-2 bg-secondary/10 rounded">
+                  <p>{getExistingMeal("breakfast")?.name}</p>
                 </div>
-              </Card>
-            ) : (
-              <>
-                {date && (
-                  <motion.div variants={itemVariants}>
-                    <Collapsible open={isScheduledOpen} onOpenChange={setIsScheduledOpen} className="mb-6">
-                      <CollapsibleTrigger className="flex justify-between items-center w-full p-3 bg-secondary/10 rounded-md">
-                        <h3 className="text-lg font-medium text-primary text-left">
-                          {t("Planned Lists")}
-                        </h3>
-                        <ChevronDown className={`h-5 w-5 transition-transform ${isScheduledOpen ? 'rotate-180' : ''}`} />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-3 space-y-3">
-                        {scheduledLists.length === 0 ? (
-                          <Card className="overflow-hidden shadow-md border-0">
-                            <CardContent className="py-6">
-                              <p className="text-muted-foreground mb-4 text-center">
-                                {t("noListsForDate")}
-                              </p>
-                              <CreateListDialog date={date} onListCreated={refreshData} />
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <>
-                            {scheduledLists.map((list) => (
-                              <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
-                            ))}
-                            <Card className="overflow-hidden shadow-md border-0">
-                              <CardContent className="py-4">
-                                <CreateListDialog date={date} onListCreated={refreshData} />
-                              </CardContent>
-                            </Card>
-                          </>
-                        )}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </motion.div>
-                )}
-                
-                <motion.div variants={itemVariants}>
-                  <Collapsible open={isUnscheduledOpen} onOpenChange={setIsUnscheduledOpen} className="mb-6">
-                    <CollapsibleTrigger className="flex justify-between items-center w-full p-3 bg-secondary/10 rounded-md">
-                      <h3 className="text-lg font-medium text-primary text-left">
-                        {t("Lists")}
-                      </h3>
-                      <ChevronDown className={`h-5 w-5 transition-transform ${isUnscheduledOpen ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3 space-y-3">
-                      {unscheduledLists.length === 0 ? (
-                        <Card className="overflow-hidden shadow-md border-0">
-                          <CardContent className="py-6">
-                            <p className="text-muted-foreground mb-4 text-center">
-                              {t("noUnplannedLists")}
-                            </p>
-                            <CreateListDialog onListCreated={refreshData} />
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <>
-                          {unscheduledLists.map((list) => (
-                            <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
-                          ))}
-                          <Card className="overflow-hidden shadow-md border-0">
-                            <CardContent className="py-4">
-                              <CreateListDialog onListCreated={refreshData} />
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                </motion.div>
-              </>
-            )}
-          </motion.div>
-        </TabsContent>
-      </Tabs>
+              ) : (
+                <div className="flex space-x-2">
+                  <Input
+                    value={newBreakfastMeal}
+                    onChange={(e) => setNewBreakfastMeal(e.target.value)}
+                    placeholder={t("What's for breakfast?")}
+                  />
+                  <Button 
+                    onClick={() => handleCreateMeal("breakfast", newBreakfastMeal)}
+                    disabled={!newBreakfastMeal.trim()}
+                  >
+                    {t("Add")}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">{t("Lunch")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {getExistingMeal("lunch") ? (
+                <div className="p-2 bg-secondary/10 rounded">
+                  <p>{getExistingMeal("lunch")?.name}</p>
+                </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <Input
+                    value={newLunchMeal}
+                    onChange={(e) => setNewLunchMeal(e.target.value)}
+                    placeholder={t("What's for lunch?")}
+                  />
+                  <Button 
+                    onClick={() => handleCreateMeal("lunch", newLunchMeal)}
+                    disabled={!newLunchMeal.trim()}
+                  >
+                    {t("Add")}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">{t("Dinner")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {getExistingMeal("dinner") ? (
+                <div className="p-2 bg-secondary/10 rounded">
+                  <p>{getExistingMeal("dinner")?.name}</p>
+                </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <Input
+                    value={newDinnerMeal}
+                    onChange={(e) => setNewDinnerMeal(e.target.value)}
+                    placeholder={t("What's for dinner?")}
+                  />
+                  <Button 
+                    onClick={() => handleCreateMeal("dinner", newDinnerMeal)}
+                    disabled={!newDinnerMeal.trim()}
+                  >
+                    {t("Add")}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
-  );
-};
-
-const MealCard = ({ meal }: { meal: Meal }) => {
-  const { t } = useTranslation();
-  
-  const mealTypeLabel = {
-    breakfast: t("breakfast"),
-    lunch: t("lunch"),
-    dinner: t("dinner")
-  }[meal.type];
-
-  return (
-    <Card className="overflow-hidden shadow-md border-0 hover:shadow-lg transition-all">
-      <CardHeader className="py-3 border-b bg-secondary/10">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-medium">{mealTypeLabel}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4">
-        <p className="text-base">{meal.name}</p>
-      </CardContent>
-    </Card>
   );
 };
 
