@@ -14,7 +14,9 @@ export const AppLayout = () => {
   // List of paths that can be accessed without authentication
   const publicPaths = ['/lists', '/recipes'];
   const isPublicPath = publicPaths.includes(location.pathname);
+  const isAuthPath = location.pathname === '/auth';
   const showLoginButton = !session && isPublicPath;
+  const showGuestButton = isAuthPath;
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-gradient-to-b from-background to-gray-50/50 dark:from-background dark:to-gray-950/30">
@@ -30,6 +32,20 @@ export const AppLayout = () => {
           </Button>
         </div>
       )}
+      
+      {showGuestButton && (
+        <div className="bg-secondary/10 p-2 text-center">
+          <span className="text-sm">You can try the app without an account. </span>
+          <Button 
+            variant="link" 
+            className="text-primary font-medium p-0 ml-1 h-auto"
+            onClick={() => navigate('/lists')}
+          >
+            Continue as guest
+          </Button>
+        </div>
+      )}
+      
       <main className="flex-1 container max-w-5xl mx-auto p-4 pb-20 animate-fade-in">
         <Outlet />
       </main>

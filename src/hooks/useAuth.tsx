@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   isLoggedIn: boolean;
   isLoading: boolean;
+  isGuest: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,20 +16,30 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoggedIn: false,
   isLoading: true,
+  isGuest: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
   
   useEffect(() => {
+    // Check if user is in guest mode
+    const checkGuestMode = () => {
+      const path = window.location.pathname;
+      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+      setIsGuest(!session && isGuestAccessiblePath);
+    };
+    
     // Setup auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
+        checkGuestMode();
       }
     );
 
@@ -37,15 +48,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
+      checkGuestMode();
     });
+
+    window.addEventListener('popstate', checkGuestMode);
 
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('popstate', checkGuestMode);
     };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user, isLoggedIn: !!user, isLoading }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      isLoggedIn: !!user, 
+      isLoading, 
+      isGuest: !user && !isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

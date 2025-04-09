@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -284,14 +285,18 @@ export const addItemToList = async (listId: string, item: Omit<ShoppingItem, 'id
       .insert({
         list_id: listId,
         name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        category: item.category,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'pcs',
+        category: item.category || 'Other',
         checked: false
       })
       .select();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error adding item to shopping list:', error);
+      throw error;
+    }
+    
     return mapShoppingItemFromRow(data[0] as ShoppingItemRow);
   } catch (error) {
     console.error('Error adding item to shopping list:', error);
