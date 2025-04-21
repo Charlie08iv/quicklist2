@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
+  defaultTheme?: Theme;
 };
 
 type Theme = "dark" | "light";
@@ -16,9 +17,12 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
   undefined
 );
 
-export function ThemeProvider({ children }: ThemeProviderProps) {
+export function ThemeProvider({ 
+  children,
+  defaultTheme = "light" 
+}: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("theme") as Theme) || "light"
+    () => (localStorage.getItem("theme") as Theme) || defaultTheme
   );
 
   useEffect(() => {

@@ -22,26 +22,33 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <ThemeProvider>
+      <ThemeProvider defaultTheme="dark">
         <TranslationProvider>
           <TooltipProvider>
             <AuthProvider>
               <Toaster />
-              <Sonner />
+              <Sonner position="top-center" />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/lists" element={<AppLayout />}>
+                  <Route index element={<Lists />} />
+                </Route>
+                <Route path="/recipes" element={<AppLayout />}>
+                  <Route index element={<Recipes />} />
+                </Route>
+                <Route path="/groups" element={<AppLayout />}>
+                  <Route index element={<Groups />} />
+                </Route>
                 <Route
+                  path="/profile"
                   element={
                     <ProtectedRoute>
                       <AppLayout />
                     </ProtectedRoute>
                   }
                 >
-                  <Route path="/lists" element={<Lists />} />
-                  <Route path="/recipes" element={<Recipes />} />
-                  <Route path="/groups" element={<Groups />} />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route index element={<Profile />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
