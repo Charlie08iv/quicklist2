@@ -2,6 +2,7 @@
 import React, { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pencil, User as UserIcon } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 type ProfileHeaderProps = {
   username: string;
@@ -16,7 +17,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   avatarUrl,
   onAvatarChange,
 }) => {
-  const [preview, setPreview] = useState(avatarUrl || "");
+  const [preview, setPreview] = useState<string | undefined>(avatarUrl || "");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleChooseFile = () => {
@@ -28,21 +29,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     if (file) {
       const url = URL.createObjectURL(file);
       setPreview(url);
-      onAvatarChange && onAvatarChange(file, url);
+      onAvatarChange?.(file, url);
+      toast.success("Profile picture updated!");
     }
   };
 
   return (
-    <div className="w-full flex flex-col items-center py-6">
-      <div className="relative mb-3">
-        <Avatar className="h-24 w-24 border-4 border-accent bg-muted">
-          <AvatarImage src={preview} alt="User avatar" />
-          <AvatarFallback>
-            <UserIcon className="h-12 w-12 text-muted-foreground" />
-          </AvatarFallback>
+    <div className="w-full flex flex-col items-center py-5">
+      <div className="relative mb-2">
+        <Avatar className="h-24 w-24 border-4 border-primary/30 bg-secondary/80 shadow-xl">
+          {preview ? (
+            <AvatarImage src={preview} alt="User avatar" />
+          ) : (
+            <AvatarFallback>
+              <UserIcon className="h-12 w-12 text-primary/60" />
+            </AvatarFallback>
+          )}
         </Avatar>
         <button
-          className="absolute bottom-1 right-1 bg-primary rounded-full p-1 shadow border border-white/10 hover:bg-accent transition"
+          className="absolute bottom-2 right-2 bg-primary rounded-full p-2 shadow border border-white/10 hover:bg-accent transition"
           aria-label="Change avatar"
           onClick={handleChooseFile}
         >
@@ -57,9 +62,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         />
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-2xl font-bold text-white">
-          Hello! <span className="font-light text-foreground/60">{username}</span>
-        </span>
+        <span className="text-2xl font-bold">{username}</span>
         {email && (
           <span className="text-sm text-muted-foreground mt-0.5">{email}</span>
         )}
@@ -69,4 +72,3 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 export default ProfileHeader;
-
