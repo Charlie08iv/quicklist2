@@ -8,11 +8,13 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Profile: React.FC = () => {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useTranslation();
+  const navigate = useNavigate();
 
   const username = user?.email?.split("@")[0] || "username";
   const email = user?.email || "";
@@ -47,7 +49,7 @@ const Profile: React.FC = () => {
   };
 
   const handlePrivacy = () => {
-    window.open("https://yourdomain.com/privacy", "_blank");
+    navigate("/privacy"); // Navigate to internal privacy page
   };
 
   const handleAvatarChange = async (file: File, url: string) => {
