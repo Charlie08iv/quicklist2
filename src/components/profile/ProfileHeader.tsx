@@ -30,7 +30,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       const url = URL.createObjectURL(file);
       setPreview(url);
       onAvatarChange?.(file, url);
-      toast.success("Profile picture updated!");
+      toast({
+        title: "Success",
+        description: "Profile picture updated!",
+      });
     }
   };
 

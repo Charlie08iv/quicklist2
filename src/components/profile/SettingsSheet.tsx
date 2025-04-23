@@ -17,7 +17,7 @@ const languages = [
 ];
 
 const SettingsSheet: React.FC<SettingsSheetProps> = ({ open, setOpen }) => {
-  const { t, locale, setLocale } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useTheme();
 
   const handleThemeToggle = (checked: boolean) => {
@@ -39,8 +39,8 @@ const SettingsSheet: React.FC<SettingsSheetProps> = ({ open, setOpen }) => {
                 {languages.map(lang => (
                   <Button
                     key={lang.code}
-                    onClick={() => setLocale(lang.code)}
-                    variant={locale === lang.code ? "default" : "outline"}
+                    onClick={() => setLanguage(lang.code)}
+                    variant={language === lang.code ? "default" : "outline"}
                     className="px-2 rounded-lg"
                   >
                     {lang.label}
