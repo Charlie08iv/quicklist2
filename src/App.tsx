@@ -16,6 +16,7 @@ import Groups from "./pages/Groups";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/privacy" element={<Privacy />} />
                 <Route path="/lists" element={<AppLayout />}>
                   <Route index element={<Lists />} />
                 </Route>

@@ -1,22 +1,24 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Navigate } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
+import { Navigate, Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Auth: React.FC = () => {
   const { user, signIn, signUp, signInWithGoogle, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   if (user) {
     return <Navigate to="/lists" replace />;
@@ -31,10 +33,19 @@ const Auth: React.FC = () => {
       return;
     }
 
+    if (activeTab === "register" && !acceptedTerms) {
+      setError("You must accept the Terms of Service and Privacy Policy to continue");
+      return;
+    }
+
     try {
       if (activeTab === "login") {
         await signIn(email, password);
       } else {
+        if (!username) {
+          setError("Username is required");
+          return;
+        }
         await signUp(email, password);
       }
     } catch (error: any) {
@@ -55,7 +66,7 @@ const Auth: React.FC = () => {
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-xl">Grocer Share Sync</CardTitle>
+          <CardTitle className="text-xl">Quick List</CardTitle>
           <CardDescription>
             {activeTab === "login" ? "Sign in to your account" : "Create a new account"}
           </CardDescription>
@@ -160,6 +171,17 @@ const Auth: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
@@ -170,6 +192,24 @@ const Auth: React.FC = () => {
                     required
                   />
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="terms" 
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                  />
+                  <label 
+                    htmlFor="terms" 
+                    className="text-sm text-muted-foreground"
+                  >
+                    I accept the{" "}
+                    <Link to="/privacy" className="text-primary hover:underline" target="_blank">
+                      Privacy Policy
+                    </Link>
+                  </label>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
