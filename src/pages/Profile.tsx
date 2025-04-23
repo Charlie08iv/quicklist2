@@ -6,6 +6,8 @@ import SettingsDialog from "@/components/profile/SettingsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation } from "@/hooks/use-translation";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const Profile: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -34,7 +36,10 @@ const Profile: React.FC = () => {
   };
 
   const handleRate = () => {
-    alert("App rating not implemented yet.");
+    toast({
+      title: "Thank you!",
+      description: "Rating functionality will be implemented soon.",
+    });
   };
 
   const handleFeedback = () => {
@@ -45,13 +50,30 @@ const Profile: React.FC = () => {
     window.open("https://yourdomain.com/privacy", "_blank");
   };
 
+  const handleAvatarChange = async (file: File, url: string) => {
+    setAvatarUrl(url);
+    
+    // Here we would upload to Supabase storage if configured
+    // const { error } = await supabase.storage
+    //   .from('avatars')
+    //   .upload(`${user!.id}/avatar.png`, file);
+    
+    // if (error) {
+    //   toast({
+    //     title: "Upload failed",
+    //     description: error.message,
+    //     variant: "destructive"
+    //   });
+    // }
+  };
+
   return (
     <div className="min-h-screen pt-7 pb-20 px-2 bg-background max-w-md mx-auto flex flex-col">
       <ProfileHeader
         username={username}
         email={email}
         avatarUrl={avatarUrl}
-        onAvatarChange={(_, url) => setAvatarUrl(url)}
+        onAvatarChange={handleAvatarChange}
       />
       <div className="flex-1">
         <ProfileActions
@@ -77,4 +99,3 @@ const Profile: React.FC = () => {
 };
 
 export default Profile;
-

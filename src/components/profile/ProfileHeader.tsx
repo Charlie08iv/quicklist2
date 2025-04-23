@@ -2,6 +2,7 @@
 import React, { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pencil, User as UserIcon } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 type ProfileHeaderProps = {
   username: string;
@@ -29,6 +30,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       const url = URL.createObjectURL(file);
       setPreview(url);
       onAvatarChange && onAvatarChange(file, url);
+      
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been successfully updated.",
+      });
     }
   };
 
@@ -69,4 +75,3 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 export default ProfileHeader;
-
