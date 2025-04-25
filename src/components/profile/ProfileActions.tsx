@@ -1,7 +1,7 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Star, Share, Mail, FileText, Settings } from "lucide-react";
+import { User, Share, Mail, FileText, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type ProfileActionsProps = {
   onOpenSettings: () => void;
@@ -18,6 +18,8 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   onFeedback,
   onPrivacy,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col gap-3 w-full px-3 max-w-md mx-auto">
       <Button
@@ -29,11 +31,15 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         <Settings className="mr-2 w-5 h-5" />
         Settings
       </Button>
-      <div className="rounded-xl bg-card border shadow flex items-center justify-between p-3">
-        <span className="font-medium">Light mode</span>
-        <span className="text-muted-foreground text-xs">Switch to dark mode</span>
-        {/* Switch handled in settings */}
-      </div>
+      <Button
+        className="rounded-xl bg-card text-lg border shadow hover:bg-accent/30 transition"
+        onClick={() => navigate('/account')}
+        variant="outline"
+        type="button"
+      >
+        <User className="mr-2 w-5 h-5" />
+        Account
+      </Button>
       <Button
         className="rounded-xl bg-primary text-white text-lg font-medium shadow hover:bg-primary/80 transition"
         onClick={onShare}
@@ -72,4 +78,3 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 };
 
 export default ProfileActions;
-

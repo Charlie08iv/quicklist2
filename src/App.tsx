@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import Privacy from "./pages/Privacy";
 import ListDetails from "./pages/ListDetails";
+import Account from "./pages/Account";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,16 @@ const App = () => (
                   }
                 >
                   <Route index element={<Profile />} />
+                </Route>
+                <Route
+                  path="/account"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Account />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
