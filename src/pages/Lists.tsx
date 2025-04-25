@@ -1,25 +1,24 @@
+
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Plus, Calendar } from "lucide-react";
+import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications, createShoppingList, createMeal } from "@/services/listService";
+import { Meal, ShoppingList } from "@/types/lists";
+import CalendarWithIndicators from "@/components/lists/CalendarWithIndicators";
+import ShoppingListCard from "@/components/lists/ShoppingListCard";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { format } from "date-fns";
-
-import CalendarWithIndicators from "@/components/lists/CalendarWithIndicators";
-import ShoppingListCard from "@/components/lists/ShoppingListCard";
-import CreateListDialog from "@/components/lists/CreateListDialog";
-import EmptyListState from "@/components/lists/EmptyListState";
-import ListActionsMenu from "@/components/lists/ListActionsMenu";
-import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications, createShoppingList, createMeal } from "@/services/listService";
-import { Meal, ShoppingList } from "@/types/lists";
 
 const Lists: React.FC = () => {
   const { t } = useTranslation();
@@ -30,11 +29,11 @@ const Lists: React.FC = () => {
   const [unscheduledLists, setUnscheduledLists] = useState<ShoppingList[]>([]);
   const [activeTab, setActiveTab] = useState("shopping");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newListName, setNewListName] = useState("");
   const [newBreakfastMeal, setNewBreakfastMeal] = useState("");
   const [newLunchMeal, setNewLunchMeal] = useState("");
   const [newDinnerMeal, setNewDinnerMeal] = useState("");
-  
+
   const formattedMonth = date
     ? format(date, "MMMM yyyy")
     : "";
@@ -89,9 +88,25 @@ const Lists: React.FC = () => {
     }
   };
 
-  const handleListCreated = () => {
-    refreshData();
-    toast.success(t("List created successfully"));
+  const handleCreateList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newListName.trim()) {
+      toast.error(t("Please enter a list name"));
+      return;
+    }
+    
+    try {
+      await createShoppingList({
+        name: newListName,
+        date: date.toISOString().split('T')[0],
+      });
+      setNewListName("");
+      toast.success(t("List created successfully"));
+      refreshData();
+    } catch (error) {
+      console.error("Error creating list:", error);
+      toast.error(t("Failed to create list"));
+    }
   };
 
   const handleCreateMeal = async (type: "breakfast" | "lunch" | "dinner", mealName: string) => {
@@ -149,13 +164,41 @@ const Lists: React.FC = () => {
               <BellOff className="h-4 w-4" />
             )}
           </Button>
-          <Button 
-            className="flex items-center gap-2 bg-primary" 
-            onClick={() => setIsCreateDialogOpen(true)}
-          >
+          <Button className="flex items-center gap-2 bg-primary" onClick={() => {
+            setNewListName("");
+            const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+            if (dialogElement) dialogElement.showModal();
+          }}>
             <Plus className="h-5 w-5" />
             {t("New List")}
           </Button>
+          <dialog id="new-list-dialog" className="modal p-6 rounded-lg shadow-lg bg-white w-[90%] max-w-md">
+            <h3 className="text-xl font-semibold mb-4">{t("Create New List")}</h3>
+            <form onSubmit={handleCreateList}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">{t("List Name")}</label>
+                <Input 
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  placeholder={t("Enter list name")}
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+                    if (dialogElement) dialogElement.close();
+                  }}
+                >
+                  {t("Cancel")}
+                </Button>
+                <Button type="submit">{t("Create")}</Button>
+              </div>
+            </form>
+          </dialog>
         </div>
       </div>
 
@@ -225,13 +268,26 @@ const Lists: React.FC = () => {
             </Card>
           ) : (
             <>
-              {scheduledLists.length === 0 && unscheduledLists.length === 0 ? (
-                <EmptyListState onCreateList={() => setIsCreateDialogOpen(true)} />
+              {scheduledLists.length === 0 ? (
+                <Card className="overflow-hidden shadow-md rounded-xl">
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground mb-4">
+                      {t("No shopping lists for this date")}
+                    </p>
+                    <Button 
+                      className="w-full flex items-center gap-2" 
+                      onClick={() => {
+                        const dialogElement = document.getElementById("new-list-dialog") as HTMLDialogElement;
+                        if (dialogElement) dialogElement.showModal();
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {t("Create a Shopping List")}
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : (
                 <>
-                  {unscheduledLists.map((list) => (
-                    <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
-                  ))}
                   {scheduledLists.map((list) => (
                     <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
                   ))}
@@ -343,13 +399,6 @@ const Lists: React.FC = () => {
           </Card>
         </motion.div>
       )}
-
-      <CreateListDialog 
-        open={isCreateDialogOpen} 
-        onOpenChange={setIsCreateDialogOpen} 
-        onListCreated={handleListCreated}
-        selectedDate={date}
-      />
     </div>
   );
 };

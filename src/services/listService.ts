@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -364,20 +365,5 @@ export const createMeal = async (meal: { name: string; type: string; date: strin
   } catch (error) {
     console.error("Error creating meal:", error);
     return null;
-  }
-};
-
-export const deleteShoppingList = async (listId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('shopping_lists')
-      .delete()
-      .eq('id', listId);
-    
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error deleting shopping list:', error);
-    return false;
   }
 };

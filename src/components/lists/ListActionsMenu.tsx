@@ -16,22 +16,16 @@ import {
   Edit, 
   Share, 
   Archive, 
-  Calendar,
-  Loader2, 
-  Copy, 
-  Trash,
-  Search,
-  SortAsc 
+  Calendar, 
+  Loader2 
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   renameShoppingList, 
   archiveShoppingList, 
-  planShoppingList,
-  deleteShoppingList 
+  planShoppingList 
 } from "@/services/listService";
 import ShareOptionsDialog from "./ShareOptionsDialog";
 
@@ -44,15 +38,12 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const { t } = useTranslation();
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [isManageOpen, setIsManageOpen] = useState(false);
   const [newName, setNewName] = useState(list.name);
   const [planDate, setPlanDate] = useState<Date | undefined>(
     list.date ? new Date(list.date) : undefined
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [showPrices, setShowPrices] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleRename = async () => {
     if (newName.trim() === "" || newName === list.name) {
@@ -80,15 +71,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
       console.error("Failed to archive list:", error);
     }
   };
-  
-  const handleDelete = async () => {
-    try {
-      await deleteShoppingList(list.id);
-      onListUpdated();
-    } catch (error) {
-      console.error("Failed to delete list:", error);
-    }
-  };
 
   const handlePlan = async () => {
     if (!planDate) return;
@@ -103,21 +85,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  const handleCopy = () => {
-    // In a real app this would copy the list
-    navigator.clipboard.writeText(`List: ${list.name} with ${list.items?.length || 0} items`);
-  };
-  
-  const handleUncheckAll = () => {
-    // In a real app this would uncheck all items
-    onListUpdated();
-  };
-  
-  const handleSort = () => {
-    // In a real app this would sort the items
-    onListUpdated();
   };
 
   return (
@@ -138,26 +105,14 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
             <Share className="mr-2 h-4 w-4" />
             {t("Share")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleCopy}>
-            <Copy className="mr-2 h-4 w-4" />
-            {t("Duplicate")}
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsPlanOpen(true)}>
             <Calendar className="mr-2 h-4 w-4" />
-            {t("Schedule")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsManageOpen(true)}>
-            <Search className="mr-2 h-4 w-4" />
-            {t("Manage List")}
+            {t("Plan")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleArchive} className="text-amber-500">
+          <DropdownMenuItem onClick={handleArchive} className="text-destructive">
             <Archive className="mr-2 h-4 w-4" />
             {t("Archive")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-            <Trash className="mr-2 h-4 w-4" />
-            {t("Delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -201,7 +156,7 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
       <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("Schedule List")}</DialogTitle>
+            <DialogTitle>{t("Plan List")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -247,75 +202,9 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         </DialogContent>
       </Dialog>
       
-      {/* Manage List Dialog */}
-      <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("Manage List")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label className="sr-only" htmlFor="search-items">{t("Search Items")}</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search-items"
-                  placeholder={t("Search items")}
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="show-prices" className="cursor-pointer">{t("Show Prices")}</Label>
-                <Checkbox 
-                  id="show-prices" 
-                  checked={showPrices} 
-                  onCheckedChange={() => setShowPrices(!showPrices)} 
-                />
-              </div>
-              
-              <Button 
-                variant="outline" 
-                className="justify-start"
-                onClick={handleSort}
-              >
-                <SortAsc className="mr-2 h-4 w-4" />
-                {t("Sort Items")}
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="justify-start"
-                onClick={handleUncheckAll}
-              >
-                <Checkbox className="mr-2 h-4 w-4" checked={false} />
-                {t("Uncheck All Items")}
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="justify-start text-destructive hover:text-destructive"
-                onClick={handleDelete}
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                {t("Delete List")}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
       {/* Share Dialog */}
       {showShareDialog && (
-        <ShareOptionsDialog 
-          listId={list.id} 
-          listName={list.name} 
-          onClose={() => setShowShareDialog(false)} 
-        />
+        <ShareOptionsDialog listId={list.id} />
       )}
     </>
   );
