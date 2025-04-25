@@ -26,14 +26,41 @@ const Profile: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Action handlers
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: "Grocery App",
-        url: window.location.origin,
-      });
-    } else {
-      window.open(window.location.origin, "_blank");
+  const handleShare = async () => {
+    const shareData = {
+      title: "Quicklist2",
+      text: "Check out this awesome grocery list app!",
+      url: window.location.origin,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({
+          title: "Success",
+          description: "Thanks for sharing!",
+        });
+      } else {
+        // Fallback for browsers that don't support native sharing
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareData.url);
+          toast({
+            title: "Link copied!",
+            description: "The app link has been copied to your clipboard",
+          });
+        } else {
+          window.open(shareData.url, "_blank");
+        }
+      }
+    } catch (error) {
+      // Don't show error for user cancellation
+      if (error instanceof Error && error.name !== "AbortError") {
+        toast({
+          title: "Couldn't share",
+          description: "Please try copying the link instead",
+          variant: "destructive",
+        });
+      }
     }
   };
 
