@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
+import { Loader, RefreshCcw } from "lucide-react";
 import { getListsByDate, getUnscheduledLists } from "@/services/listService";
 import { ShoppingList } from "@/types/lists";
 import ShoppingListCard from "@/components/lists/ShoppingListCard";
@@ -176,7 +177,7 @@ const Lists: React.FC = () => {
 
       {isRefreshing && (
         <div className="flex justify-center py-2">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <Loader className="h-5 w-5 animate-spin text-primary" />
         </div>
       )}
 
