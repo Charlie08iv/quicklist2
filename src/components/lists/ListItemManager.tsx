@@ -1,354 +1,185 @@
 
 import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTranslation } from "@/hooks/use-translation";
-import { ShoppingItem } from "@/types/lists";
-import { Check, ChevronDown, Minus, Plus, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, X, Search, Check } from "lucide-react";
+import { useTranslation } from "@/hooks/use-translation";
+import { ShoppingList, ShoppingItem } from "@/types/lists";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 interface ListItemManagerProps {
-  items: ShoppingItem[];
-  onAddItem: (item: Omit<ShoppingItem, "id" | "checked">) => void;
-  onRemoveItem?: (itemId: string) => void;
-  onToggleItemCheck?: (itemId: string, checked: boolean) => void;
-  onUpdateItem?: (itemId: string, item: Partial<ShoppingItem>) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  list: ShoppingList;
+  onListUpdated: () => void;
 }
 
-const categories = [
-  "Produce",
-  "Dairy",
-  "Meat",
-  "Bakery",
-  "Frozen Foods",
-  "Canned Goods",
-  "Dry Goods",
-  "Beverages",
-  "Spices",
-  "Snacks",
-  "Household",
-  "Other"
-];
-
-const units = [
-  "pcs",
-  "kg",
-  "g",
-  "lb",
-  "oz",
-  "l",
-  "ml",
-  "tbsp",
-  "tsp",
-  "cup",
-  "pack",
-  "dkg"
-];
-
-// Item category icons or emoji mapping
-const categoryIcons: Record<string, string> = {
-  "Produce": "🥬",
-  "Dairy": "🥛",
-  "Meat": "🥩",
-  "Bakery": "🍞",
-  "Frozen Foods": "❄️",
-  "Canned Goods": "🥫",
-  "Dry Goods": "🌾",
-  "Beverages": "🥤",
-  "Spices": "🧂",
-  "Snacks": "🍪",
-  "Household": "🧹",
-  "Other": "📦"
-};
-
-const ListItemManager: React.FC<ListItemManagerProps> = ({ 
-  items, 
-  onAddItem, 
-  onRemoveItem,
-  onToggleItemCheck,
-  onUpdateItem
+const ListItemManager: React.FC<ListItemManagerProps> = ({
+  open,
+  onOpenChange,
+  list,
+  onListUpdated
 }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [newItemName, setNewItemName] = useState("");
-  const [newItemQuantity, setNewItemQuantity] = useState("1");
-  const [newItemUnit, setNewItemUnit] = useState("pcs");
-  const [newItemCategory, setNewItemCategory] = useState("Other");
-  const [itemDetailsOpen, setItemDetailsOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
-  const [editQuantity, setEditQuantity] = useState("");
-  const [editUnit, setEditUnit] = useState("");
+  
+  // For demonstration, some popular and recent items
+  const popularItems = [
+    "Milk", "Bread", "Eggs", "Cheese", "Apples", "Bananas",
+    "Chicken", "Rice", "Pasta", "Tomatoes", "Onions", "Potatoes"
+  ];
+  
+  const recentItems = [
+    "Coffee", "Cereal", "Yogurt", "Butter", "Orange Juice",
+    "Lettuce", "Carrots", "Paper Towels"
+  ];
 
-  const handleAddItem = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddItem = (name: string) => {
+    // In a real app this would add the item to the list
+    toast.success(`${t("Added")} ${name}`);
+    onListUpdated();
+  };
+  
+  const handleRemoveItem = (itemId: string) => {
+    // In a real app this would remove the item from the list
+    toast.success(t("Item removed"));
+    onListUpdated();
+  };
+  
+  const handleToggleItem = (itemId: string, checked: boolean) => {
+    // In a real app this would toggle the item's checked state
+    toast.success(checked ? t("Item checked") : t("Item unchecked"));
+    onListUpdated();
+  };
+  
+  const handleAddNewItem = () => {
     if (newItemName.trim()) {
-      onAddItem({
-        name: newItemName.trim(),
-        quantity: parseFloat(newItemQuantity) || 1,
-        unit: newItemUnit,
-        category: newItemCategory,
-      });
+      handleAddItem(newItemName);
       setNewItemName("");
-      setNewItemQuantity("1");
-      setNewItemUnit("pcs");
     }
   };
-
-  const openItemDetails = (item: ShoppingItem) => {
-    setSelectedItem(item);
-    setEditQuantity(item.quantity.toString());
-    setEditUnit(item.unit || "pcs");
-    setItemDetailsOpen(true);
-  };
-
-  const handleSaveItemDetails = () => {
-    if (selectedItem && onUpdateItem) {
-      onUpdateItem(selectedItem.id, {
-        quantity: parseFloat(editQuantity) || selectedItem.quantity,
-        unit: editUnit
-      });
-    }
-    setItemDetailsOpen(false);
-  };
-
-  const handleIncreaseQuantity = () => {
-    if (editQuantity) {
-      setEditQuantity((parseFloat(editQuantity) + 1).toString());
-    }
-  };
-
-  const handleDecreaseQuantity = () => {
-    if (editQuantity && parseFloat(editQuantity) > 1) {
-      setEditQuantity((parseFloat(editQuantity) - 1).toString());
-    }
-  };
-
-  // Group items by category
-  const itemsByCategory: Record<string, ShoppingItem[]> = {};
-  items.forEach(item => {
-    const category = item.category || "Other";
-    if (!itemsByCategory[category]) {
-      itemsByCategory[category] = [];
-    }
-    itemsByCategory[category].push(item);
-  });
-
-  const sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
-    // Put "Other" at the end
-    if (a === "Other") return 1;
-    if (b === "Other") return -1;
-    return a.localeCompare(b);
-  });
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleAddItem} className="space-y-4 bg-white p-4 rounded-lg shadow-sm">
-        <div className="space-y-2">
-          <Label htmlFor="item-name">{t("Item Name")}</Label>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{list.name}</DialogTitle>
+        </DialogHeader>
+        
+        <div className="mb-4 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            id="item-name"
+            placeholder={t("Search or add item")}
+            className="pl-10 pr-10"
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
-            placeholder={t("Enter item name")}
-            className="border-primary/20"
-            required
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleAddNewItem();
+              }
+            }}
           />
+          <Button
+            size="sm" 
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8"
+            onClick={handleAddNewItem}
+            disabled={!newItemName.trim()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <div className="space-y-2">
-            <Label htmlFor="item-quantity">{t("Quantity")}</Label>
-            <Input
-              id="item-quantity"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={newItemQuantity}
-              onChange={(e) => setNewItemQuantity(e.target.value)}
-              className="border-primary/20"
-            />
-          </div>
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">{t("All")}</TabsTrigger>
+            <TabsTrigger value="popular">{t("Popular")}</TabsTrigger>
+            <TabsTrigger value="recent">{t("Recent")}</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-2">
-            <Label htmlFor="item-unit">{t("Unit")}</Label>
-            <Select value={newItemUnit} onValueChange={setNewItemUnit}>
-              <SelectTrigger id="item-unit">
-                <SelectValue placeholder={t("Select unit")} />
-              </SelectTrigger>
-              <SelectContent>
-                {units.map(unit => (
-                  <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2 col-span-2 sm:col-span-1">
-            <Label htmlFor="item-category">{t("Category")}</Label>
-            <Select value={newItemCategory} onValueChange={setNewItemCategory}>
-              <SelectTrigger id="item-category">
-                <SelectValue placeholder={t("Select category")} />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{categoryIcons[category]} {t(category)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <Button type="submit" className="w-full flex items-center gap-2 bg-primary">
-          <Plus className="h-4 w-4" />
-          {t("Add Item")}
-        </Button>
-      </form>
-
-      {items.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-medium text-lg">{t("Items")}</h3>
-          
-          {sortedCategories.map((category) => (
-            <div key={category} className="space-y-2">
-              <h4 className="text-sm font-semibold bg-secondary/20 py-1 px-2 rounded flex items-center">
-                <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
-              </h4>
-              <ul className="space-y-1 bg-white rounded-lg shadow-sm p-2">
-                {itemsByCategory[category].map(item => (
-                  <li 
-                    key={item.id} 
-                    className="flex justify-between items-center p-2 hover:bg-accent/20 rounded-md border-b border-gray-100 last:border-0"
-                  >
-                    <div className="flex items-center space-x-2 flex-1">
-                      {onToggleItemCheck && (
-                        <button
-                          onClick={() => onToggleItemCheck(item.id, !item.checked)}
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center",
-                            item.checked ? "bg-green-500 text-white" : "border-2 border-gray-300"
-                          )}
-                          aria-label={item.checked ? "Mark as not done" : "Mark as done"}
-                        >
-                          {item.checked && <Check className="h-4 w-4" />}
-                        </button>
-                      )}
-                      <span 
-                        className={cn(
-                          "flex-1", 
-                          item.checked ? "line-through text-gray-500" : ""
-                        )}
-                        onClick={() => openItemDetails(item)}
-                      >
-                        {item.name}
-                      </span>
-                      <span className="text-sm text-gray-500 whitespace-nowrap">
-                        {item.quantity} {item.unit}
-                      </span>
-                    </div>
-                    
-                    <div className="flex space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => openItemDetails(item)}
-                        className="h-8 w-8 p-0"
-                        aria-label="Edit item details"
-                      >
-                        <ChevronDown className="h-4 w-4 text-gray-500" />
-                      </Button>
-                      
-                      {onRemoveItem && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onRemoveItem(item.id)}
-                          className="h-8 w-8 p-0"
-                          aria-label="Remove item"
-                        >
-                          <X className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Dialog open={itemDetailsOpen} onOpenChange={setItemDetailsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl flex items-center justify-center">
-              {selectedItem?.name}
-              <span className="ml-2">{selectedItem?.category && categoryIcons[selectedItem.category]}</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t("Quantity")}</Label>
-                <div className="flex items-center space-x-2">
+          <TabsContent value="all" className="space-y-2 py-2 max-h-[400px] overflow-y-auto">
+            {list.items && list.items.length > 0 ? (
+              list.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-2 px-1 border-b">
+                  <div className="flex items-center">
+                    <Checkbox 
+                      id={`item-${item.id}`} 
+                      checked={item.checked} 
+                      onCheckedChange={(checked) => handleToggleItem(item.id, Boolean(checked))}
+                      className="mr-3"
+                    />
+                    <Label 
+                      htmlFor={`item-${item.id}`} 
+                      className={`cursor-pointer ${item.checked ? "line-through text-muted-foreground" : ""}`}
+                    >
+                      {item.name}
+                    </Label>
+                  </div>
                   <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleDecreaseQuantity}
-                    className="rounded-full"
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleRemoveItem(item.id)}
                   >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  
-                  <Input
-                    type="number"
-                    value={editQuantity}
-                    onChange={(e) => setEditQuantity(e.target.value)}
-                    className="text-center"
-                  />
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleIncreaseQuantity}
-                    className="rounded-full"
-                  >
-                    <Plus className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
+              ))
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-muted-foreground">{t("Your list is empty")}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t("Add items using the search bar or popular items")}
+                </p>
               </div>
-              
-              <div className="space-y-2">
-                <Label>{t("Unit")}</Label>
-                <Select value={editUnit} onValueChange={setEditUnit}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("Select unit")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map(unit => (
-                      <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveItemDetails} className="w-24">
-                  {t("Done")}
+            )}
+          </TabsContent>
+          
+          <TabsContent value="popular" className="space-y-2 py-2">
+            <div className="grid grid-cols-2 gap-2">
+              {popularItems.map((item, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className="justify-start h-auto py-2"
+                  onClick={() => handleAddItem(item)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {item}
                 </Button>
-              </div>
+              ))}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </TabsContent>
+          
+          <TabsContent value="recent" className="space-y-2 py-2">
+            <div className="grid grid-cols-2 gap-2">
+              {recentItems.map((item, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className="justify-start h-auto py-2"
+                  onClick={() => handleAddItem(item)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {item}
+                </Button>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex justify-end">
+          <Button onClick={() => onOpenChange(false)}>
+            <Check className="h-4 w-4 mr-2" />
+            {t("Done")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
