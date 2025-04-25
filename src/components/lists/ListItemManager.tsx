@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ListItemManagerProps {
+  listId: string; // Add the listId property to the interface
   items: ShoppingItem[];
   onAddItem: (item: Omit<ShoppingItem, "id" | "checked">) => void;
   onRemoveItem?: (itemId: string) => void;
@@ -70,6 +71,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 const ListItemManager: React.FC<ListItemManagerProps> = ({ 
+  listId, // Add listId to the component props
   items, 
   onAddItem, 
   onRemoveItem,
