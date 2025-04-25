@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { User, Share, Mail, FileText, Settings } from "lucide-react";
+import { User, Share, Mail, FileText, Settings, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type ProfileActionsProps = {
