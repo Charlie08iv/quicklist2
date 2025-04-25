@@ -71,7 +71,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 const ListItemManager: React.FC<ListItemManagerProps> = ({ 
-  listId, // Add listId to the component props
+  listId, 
   items, 
   onAddItem, 
   onRemoveItem,
@@ -151,22 +151,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleAddItem} className="space-y-4 bg-white p-4 rounded-lg shadow-sm">
+      <form onSubmit={handleAddItem} className="space-y-4 bg-[#2D7A46]/10 p-4 rounded-lg shadow-sm border border-[#2D7A46]/20">
         <div className="space-y-2">
-          <Label htmlFor="item-name">{t("Item Name")}</Label>
+          <Label htmlFor="item-name" className="text-foreground">{t("Item Name")}</Label>
           <Input
             id="item-name"
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
             placeholder={t("Enter item name")}
-            className="border-primary/20"
+            className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
             required
           />
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <div className="space-y-2">
-            <Label htmlFor="item-quantity">{t("Quantity")}</Label>
+            <Label htmlFor="item-quantity" className="text-foreground">{t("Quantity")}</Label>
             <Input
               id="item-quantity"
               type="number"
@@ -174,40 +174,61 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
               step="0.01"
               value={newItemQuantity}
               onChange={(e) => setNewItemQuantity(e.target.value)}
-              className="border-primary/20"
+              className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="item-unit">{t("Unit")}</Label>
+            <Label htmlFor="item-unit" className="text-foreground">{t("Unit")}</Label>
             <Select value={newItemUnit} onValueChange={setNewItemUnit}>
-              <SelectTrigger id="item-unit">
+              <SelectTrigger 
+                id="item-unit" 
+                className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
+              >
                 <SelectValue placeholder={t("Select unit")} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#2D7A46]/10 border-[#2D7A46]/20">
                 {units.map(unit => (
-                  <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                  <SelectItem 
+                    key={unit} 
+                    value={unit}
+                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30"
+                  >
+                    {unit}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
           <div className="space-y-2 col-span-2 sm:col-span-1">
-            <Label htmlFor="item-category">{t("Category")}</Label>
+            <Label htmlFor="item-category" className="text-foreground">{t("Category")}</Label>
             <Select value={newItemCategory} onValueChange={setNewItemCategory}>
-              <SelectTrigger id="item-category">
+              <SelectTrigger 
+                id="item-category" 
+                className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
+              >
                 <SelectValue placeholder={t("Select category")} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#2D7A46]/10 border-[#2D7A46]/20">
                 {categories.map(category => (
-                  <SelectItem key={category} value={category}>{categoryIcons[category]} {t(category)}</SelectItem>
+                  <SelectItem 
+                    key={category} 
+                    value={category}
+                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30"
+                  >
+                    {categoryIcons[category]} {t(category)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
         
-        <Button type="submit" className="w-full flex items-center gap-2 bg-primary">
+        <Button 
+          type="submit" 
+          className="w-full flex items-center gap-2 bg-[#2D7A46] hover:bg-[#1E5631] text-white"
+        >
           <Plus className="h-4 w-4" />
           {t("Add Item")}
         </Button>
@@ -215,18 +236,18 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 
       {items.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-medium text-lg">{t("Items")}</h3>
+          <h3 className="font-medium text-lg text-foreground">{t("Items")}</h3>
           
           {sortedCategories.map((category) => (
             <div key={category} className="space-y-2">
-              <h4 className="text-sm font-semibold bg-secondary/20 py-1 px-2 rounded flex items-center">
+              <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
                 <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
               </h4>
-              <ul className="space-y-1 bg-white rounded-lg shadow-sm p-2">
+              <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
                 {itemsByCategory[category].map(item => (
                   <li 
                     key={item.id} 
-                    className="flex justify-between items-center p-2 hover:bg-accent/20 rounded-md border-b border-gray-100 last:border-0"
+                    className="flex justify-between items-center p-2 hover:bg-[#2D7A46]/20 rounded-md border-b border-[#2D7A46]/10 last:border-0"
                   >
                     <div className="flex items-center space-x-2 flex-1">
                       {onToggleItemCheck && (
@@ -234,7 +255,9 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                           onClick={() => onToggleItemCheck(item.id, !item.checked)}
                           className={cn(
                             "w-6 h-6 rounded-full flex items-center justify-center",
-                            item.checked ? "bg-green-500 text-white" : "border-2 border-gray-300"
+                            item.checked 
+                              ? "bg-[#2D7A46] text-white" 
+                              : "border-2 border-[#2D7A46]/50 text-[#2D7A46]"
                           )}
                           aria-label={item.checked ? "Mark as not done" : "Mark as done"}
                         >
@@ -243,14 +266,14 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                       )}
                       <span 
                         className={cn(
-                          "flex-1", 
-                          item.checked ? "line-through text-gray-500" : ""
+                          "flex-1 text-white", 
+                          item.checked ? "line-through text-[#2D7A46]/70" : ""
                         )}
                         onClick={() => openItemDetails(item)}
                       >
                         {item.name}
                       </span>
-                      <span className="text-sm text-gray-500 whitespace-nowrap">
+                      <span className="text-sm text-[#2D7A46] whitespace-nowrap">
                         {item.quantity} {item.unit}
                       </span>
                     </div>
@@ -260,10 +283,10 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                         variant="ghost" 
                         size="sm"
                         onClick={() => openItemDetails(item)}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
                         aria-label="Edit item details"
                       >
-                        <ChevronDown className="h-4 w-4 text-gray-500" />
+                        <ChevronDown className="h-4 w-4" />
                       </Button>
                       
                       {onRemoveItem && (
@@ -271,10 +294,10 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                           variant="ghost" 
                           size="sm"
                           onClick={() => onRemoveItem(item.id)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-destructive hover:bg-destructive/20"
                           aria-label="Remove item"
                         >
-                          <X className="h-4 w-4 text-destructive" />
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -355,3 +378,4 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 };
 
 export default ListItemManager;
+
