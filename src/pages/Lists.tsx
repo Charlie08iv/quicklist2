@@ -71,7 +71,7 @@ const Lists: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto px-3 sm:px-4 pb-20">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">{t("Shopping Lists")}</h1>
+        <h1 className="text-3xl font-bold text-primary">{t("Lists")}</h1>
         <div className="flex space-x-2">
           <Button
             variant="outline"
