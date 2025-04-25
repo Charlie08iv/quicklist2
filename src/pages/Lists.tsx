@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Loader2, RefreshCcw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import { getListsByDate, getUnscheduledLists } from "@/services/listService";
 import { ShoppingList } from "@/types/lists";
 import ShoppingListCard from "@/components/lists/ShoppingListCard";
@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 const Lists: React.FC = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [archivedLists, setArchivedLists] = useState<ShoppingList[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
@@ -150,29 +149,16 @@ const Lists: React.FC = () => {
               <RefreshCcw className="h-4 w-4" />
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            title={notificationsEnabled ? t("disableNotifications") : t("enableNotifications")}
-            disabled={isRefreshing}
-          >
-            {notificationsEnabled ? (
-              <Bell className="h-4 w-4" />
-            ) : (
-              <BellOff className="h-4 w-4" />
-            )}
-          </Button>
           <CreateListDialog onListCreated={handleListUpdated} />
         </div>
       </div>
 
       <Card className="rounded-xl shadow-md border">
-        <div className="grid grid-cols-2 rounded-t-xl overflow-hidden">
+        <div className="grid grid-cols-2 rounded-xl overflow-hidden">
           <Button 
             variant={activeTab === "active" ? "default" : "ghost"} 
             onClick={() => setActiveTab("active")}
-            className="rounded-none py-4 h-auto text-lg font-medium"
+            className="rounded-l-xl rounded-r-none py-4 h-auto text-lg font-medium"
             disabled={isRefreshing}
           >
             {t("My Lists")}
@@ -180,7 +166,7 @@ const Lists: React.FC = () => {
           <Button 
             variant={activeTab === "archived" ? "default" : "ghost"} 
             onClick={() => setActiveTab("archived")}
-            className="rounded-none py-4 h-auto text-lg font-medium"
+            className="rounded-r-xl rounded-l-none py-4 h-auto text-lg font-medium"
             disabled={isRefreshing}
           >
             {t("Archived")}
