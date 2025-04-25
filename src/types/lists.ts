@@ -1,4 +1,3 @@
-
 import { Database } from "@/integrations/supabase/types";
 
 export type MealType = "breakfast" | "lunch" | "dinner";
@@ -92,7 +91,7 @@ export const mapShoppingListFromRow = (row: ShoppingListRow, items: ShoppingItem
   isShared: row.is_shared,
   groupId: row.group_id,
   createdAt: row.created_at,
-  archived: row.archived || false // Provide default value of false
+  archived: row.archived
 });
 
 export const mapShoppingItemFromRow = (row: ShoppingItemRow): ShoppingItem => ({

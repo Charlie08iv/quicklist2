@@ -142,6 +142,7 @@ export type Database = {
       }
       shopping_lists: {
         Row: {
+          archived: boolean | null
           created_at: string
           date: string | null
           group_id: string | null
@@ -151,6 +152,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean | null
           created_at?: string
           date?: string | null
           group_id?: string | null
@@ -160,6 +162,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived?: boolean | null
           created_at?: string
           date?: string | null
           group_id?: string | null
