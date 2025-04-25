@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
         ) : createdList && (
           <div className="space-y-4">
             <ListItemManager 
+              listId={createdList.id}
               items={[]}
               onAddItem={async (item) => {
                 // This will be handled by ListItemManager's onAddItem prop
