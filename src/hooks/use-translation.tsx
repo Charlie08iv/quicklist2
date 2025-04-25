@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useCallback } from 'react';
 
 // Define available languages and translations
@@ -33,6 +34,15 @@ const languages = {
     sharedWith: "Shared with",
     createRecipe: "Create Recipe",
     createList: "Create List",
+    connectionIssue: "Unable to connect to the server",
+    tryAgain: "Try Again",
+    refresh: "Refresh",
+    emptyList: "No items in this list yet",
+    itemsCompleted: "items completed",
+    No_shopping_lists: "No shopping lists",
+    No_archived_lists: "No archived lists",
+    disableNotifications: "Disable Notifications",
+    enableNotifications: "Enable Notifications"
   },
   sv: {
     lists: "Listor",
@@ -65,6 +75,15 @@ const languages = {
     sharedWith: "Delad med",
     createRecipe: "Skapa recept",
     createList: "Skapa lista",
+    connectionIssue: "Kan inte ansluta till servern",
+    tryAgain: "Försök igen",
+    refresh: "Uppdatera",
+    emptyList: "Denna lista har inga varor än",
+    itemsCompleted: "varor klara",
+    No_shopping_lists: "Inga inköpslistor",
+    No_archived_lists: "Inga arkiverade listor",
+    disableNotifications: "Inaktivera aviseringar",
+    enableNotifications: "Aktivera aviseringar"
   }
 };
 
