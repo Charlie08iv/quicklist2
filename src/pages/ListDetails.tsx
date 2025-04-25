@@ -13,6 +13,7 @@ const ListDetails: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [list, setList] = useState<ShoppingList | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (listId) {
@@ -22,16 +23,53 @@ const ListDetails: React.FC = () => {
 
   const loadList = async () => {
     if (!listId) return;
-    const listData = await getListById(listId);
-    if (listData) {
-      setList(listData);
+    setIsLoading(true);
+    try {
+      const listData = await getListById(listId);
+      if (listData) {
+        setList(listData);
+      } else {
+        // List not found, navigate back to lists page
+        navigate('/lists');
+      }
+    } catch (error) {
+      console.error("Error loading list:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleBackClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate('/lists');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 bg-muted rounded w-48 mb-4"></div>
+          <div className="h-32 bg-muted rounded w-full max-w-md"></div>
+        </div>
+      </div>
+    );
+  }
+
   if (!list) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-pulse">Loading...</div>
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackClick}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+          <h1 className="text-2xl font-bold">{t("List not found")}</h1>
+        </div>
+        <p>{t("The shopping list you're looking for doesn't exist or has been deleted.")}</p>
       </div>
     );
   }
@@ -42,30 +80,32 @@ const ListDetails: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/lists')}
+          onClick={handleBackClick}
           className="rounded-full"
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-2xl font-bold">{list.name}</h1>
+        {list.archived && (
+          <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+            {t("Archived")}
+          </span>
+        )}
       </div>
 
       <ListItemManager
+        listId={list.id}
         items={list.items || []}
-        onAddItem={async (item) => {
-          // Implementation will be handled by ListItemManager
+        onAddItem={async () => {
           await loadList();
         }}
-        onRemoveItem={async (itemId) => {
-          // Implementation will be handled by ListItemManager
+        onRemoveItem={async () => {
           await loadList();
         }}
-        onToggleItemCheck={async (itemId, checked) => {
-          // Implementation will be handled by ListItemManager
+        onToggleItemCheck={async () => {
           await loadList();
         }}
-        onUpdateItem={async (itemId, updates) => {
-          // Implementation will be handled by ListItemManager
+        onUpdateItem={async () => {
           await loadList();
         }}
       />

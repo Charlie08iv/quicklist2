@@ -20,7 +20,7 @@ const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onListUpdated
     ? (list.items.filter(item => item.checked).length / list.items.length) * 100
     : 0;
     
-  const handleCardClick = () => {
+  const handleCardClick = (e: React.MouseEvent) => {
     navigate(`/lists/${list.id}`);
   };
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,11 +20,7 @@ const Lists: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [listsData, unscheduledListsData] = await Promise.all([
@@ -40,11 +36,11 @@ const Lists: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleListClick = (listId: string) => {
-    navigate(`/lists/${listId}`);
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -104,8 +100,7 @@ const Lists: React.FC = () => {
       >
         {isLoading ? (
           <Card className="p-8 flex justify-center">
-            <div className="animate-pulse flex space-x-4">
-              <div className="h-12 w-12 rounded-full bg-muted"></div>
+            <div className="animate-pulse flex space-x-4 w-full">
               <div className="flex-1 space-y-4 py-1">
                 <div className="h-4 bg-muted rounded w-3/4"></div>
                 <div className="space-y-2">
@@ -120,19 +115,19 @@ const Lists: React.FC = () => {
             {activeTab === 'active' ? (
               lists.length === 0 ? (
                 <Card className="overflow-hidden shadow-md rounded-xl">
-                  <div className="p-6">
+                  <div className="p-6 text-center">
                     <p className="text-center text-muted-foreground mb-4">
                       {t("No shopping lists")}
                     </p>
-                    <CreateListDialog onListCreated={loadData} />
+                    <div className="flex justify-center">
+                      <CreateListDialog onListCreated={loadData} />
+                    </div>
                   </div>
                 </Card>
               ) : (
                 <>
                   {lists.map((list) => (
-                    <div key={list.id} onClick={() => handleListClick(list.id)}>
-                      <ShoppingListCard list={list} onListUpdated={loadData} />
-                    </div>
+                    <ShoppingListCard key={list.id} list={list} onListUpdated={loadData} />
                   ))}
                 </>
               )
@@ -148,9 +143,7 @@ const Lists: React.FC = () => {
               ) : (
                 <>
                   {archivedLists.map((list) => (
-                    <div key={list.id} onClick={() => handleListClick(list.id)}>
-                      <ShoppingListCard list={list} onListUpdated={loadData} />
-                    </div>
+                    <ShoppingListCard key={list.id} list={list} onListUpdated={loadData} />
                   ))}
                 </>
               )
