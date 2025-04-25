@@ -6,16 +6,23 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-// Completely disable toast functionality
+type ToastOptions = {
+  title?: string
+  description?: string
+  variant?: "default" | "destructive"
+  action?: ToastActionElement
+}
+
+// Completely disable toast functionality but accept parameters for type compatibility
 function useToast() {
   return {
-    toast: () => ({}),
-    dismiss: () => {},
+    toast: (options?: ToastOptions) => ({}),
+    dismiss: (toastId?: string) => {},
     toasts: []
   }
 }
 
-function toast() {
+function toast(options?: ToastOptions) {
   return {}
 }
 
