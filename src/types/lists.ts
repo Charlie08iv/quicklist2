@@ -1,4 +1,3 @@
-
 import { Database } from "@/integrations/supabase/types";
 
 export type MealType = "breakfast" | "lunch" | "dinner";
@@ -22,6 +21,7 @@ export interface ShoppingList {
   isShared: boolean;
   groupId?: string;
   createdAt: string;
+  archived?: boolean; // Added the archived property
 }
 
 export interface ShoppingItem {
@@ -57,6 +57,7 @@ export interface ShoppingListRow {
   is_shared: boolean;
   group_id?: string;
   created_at: string;
+  archived?: boolean; // Added the archived property
 }
 
 export interface ShoppingItemRow {
@@ -89,7 +90,8 @@ export const mapShoppingListFromRow = (row: ShoppingListRow, items: ShoppingItem
   items,
   isShared: row.is_shared,
   groupId: row.group_id,
-  createdAt: row.created_at
+  createdAt: row.created_at,
+  archived: row.archived || false // Added the archived property
 });
 
 export const mapShoppingItemFromRow = (row: ShoppingItemRow): ShoppingItem => ({

@@ -246,13 +246,9 @@ export const renameShoppingList = async (listId: string, newName: string) => {
 export const archiveShoppingList = async (listId: string) => {
   try {
     const { error } = await supabase
-      .from('app_changes')
-      .insert({
-        resource_type: 'shopping_list',
-        resource_id: listId,
-        change_type: 'archive',
-        details: { action: 'archived' }
-      });
+      .from('shopping_lists')
+      .update({ archived: true })
+      .eq('id', listId);
       
     if (error) throw error;
     return true;
