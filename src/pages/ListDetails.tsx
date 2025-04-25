@@ -8,6 +8,7 @@ import ListItemManager from "@/components/lists/ListItemManager";
 import { ShoppingList } from "@/types/lists";
 import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
@@ -20,11 +21,25 @@ const ListDetails: React.FC = () => {
 
   const loadList = useCallback(async () => {
     if (!listId) return;
-    setIsLoading(true);
+    
+    // Don't set loading state if we already have list data
+    // This prevents flickering when refreshing data
+    if (!list) {
+      setIsLoading(true);
+    }
+    
     try {
       const listData = await getListById(listId);
       if (listData) {
-        setList(listData);
+        // Use functional update to prevent race conditions
+        setList(prevList => {
+          // Only update if there are actual changes
+          // This prevents unnecessary re-renders
+          if (!prevList || JSON.stringify(prevList) !== JSON.stringify(listData)) {
+            return listData;
+          }
+          return prevList;
+        });
       } else {
         // List not found, navigate back to lists page
         navigate('/lists');
@@ -42,9 +57,12 @@ const ListDetails: React.FC = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      // Add a small delay to prevent rapid UI changes
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
     }
-  }, [listId, navigate, t, toast]);
+  }, [listId, navigate, t, toast, list]);
 
   useEffect(() => {
     loadList();
@@ -168,34 +186,77 @@ const ListDetails: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBackClick}
-          className="rounded-full"
-          disabled={isProcessingAction}
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div 
+          key="loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex justify-center items-center min-h-[60vh]"
         >
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-2xl font-bold">{list.name}</h1>
-        {list.archived && (
-          <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-            {t("Archived")}
-          </span>
-        )}
-      </div>
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-8 bg-muted rounded w-48 mb-4"></div>
+            <div className="h-32 bg-muted rounded w-full max-w-md"></div>
+          </div>
+        </motion.div>
+      ) : !list ? (
+        <motion.div
+          key="not-found"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="max-w-4xl mx-auto px-4 py-6 space-y-6"
+        >
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackClick}
+              className="rounded-full"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <h1 className="text-2xl font-bold">{t("List not found")}</h1>
+          </div>
+          <p>{t("The shopping list you're looking for doesn't exist or has been deleted.")}</p>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="max-w-4xl mx-auto px-4 py-6 space-y-6"
+        >
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackClick}
+              className="rounded-full"
+              disabled={isProcessingAction}
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <h1 className="text-2xl font-bold">{list.name}</h1>
+            {list.archived && (
+              <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                {t("Archived")}
+              </span>
+            )}
+          </div>
 
-      <ListItemManager
-        listId={list.id}
-        items={list.items || []}
-        onAddItem={handleAddItem}
-        onRemoveItem={handleRemoveItem}
-        onToggleItemCheck={handleToggleItemCheck}
-        onUpdateItem={handleUpdateItem}
-      />
-    </div>
+          <ListItemManager
+            listId={list.id}
+            items={list.items || []}
+            onAddItem={handleAddItem}
+            onRemoveItem={handleRemoveItem}
+            onToggleItemCheck={handleToggleItemCheck}
+            onUpdateItem={handleUpdateItem}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
