@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -122,7 +123,8 @@ export const createShoppingList = async (list: { name: string; date?: string }):
       .insert({ 
         name: list.name, 
         date: list.date,
-        user_id: userId
+        user_id: userId,
+        archived: false // Make sure new lists are not archived by default
       })
       .select()
       .single();
@@ -365,6 +367,18 @@ export const createMeal = async (meal: { name: string; type: string; date: strin
 
 export const deleteShoppingList = async (listId: string) => {
   try {
+    // First delete all items associated with the list
+    const { error: itemsError } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('list_id', listId);
+    
+    if (itemsError) {
+      console.error('Error deleting shopping list items:', itemsError);
+      throw itemsError;
+    }
+    
+    // Then delete the list itself
     const { error } = await supabase
       .from('shopping_lists')
       .delete()
