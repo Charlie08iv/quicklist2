@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -41,9 +41,13 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const [newName, setNewName] = useState(list.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleRename = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     if (newName.trim() === "" || newName === list.name) {
       setIsRenameOpen(false);
@@ -57,8 +61,10 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         title: "List renamed",
         description: `Your list has been renamed to "${newName}"`,
       });
-      onListUpdated();
       setIsRenameOpen(false);
+      setTimeout(() => {
+        onListUpdated();
+      }, 100);
     } catch (error) {
       console.error("Failed to rename list:", error);
       toast({
@@ -74,7 +80,9 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const handleArchive = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     setIsSubmitting(true);
+    setMenuOpen(false);
     
     try {
       await archiveShoppingList(list.id);
@@ -82,7 +90,9 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         title: "List archived",
         description: "Your list has been moved to archives",
       });
-      onListUpdated();
+      setTimeout(() => {
+        onListUpdated();
+      }, 100);
     } catch (error) {
       console.error("Failed to archive list:", error);
       toast({
@@ -95,7 +105,12 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -105,8 +120,12 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         description: "Your list has been permanently deleted",
       });
       setIsDeleteConfirmOpen(false);
-      navigate('/lists');
-      onListUpdated();
+      
+      // Navigate back to lists page after a short delay to allow state update
+      setTimeout(() => {
+        navigate('/lists');
+        onListUpdated();
+      }, 100);
     } catch (error) {
       console.error("Failed to delete list:", error);
       toast({
@@ -126,10 +145,11 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          setMenuOpen(true);
         }}>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <MoreHorizontal className="h-4 w-4" />
@@ -140,6 +160,8 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           <DropdownMenuItem onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            setMenuOpen(false);
+            setNewName(list.name);
             setIsRenameOpen(true);
           }}>
             <Edit className="mr-2 h-4 w-4" />
@@ -148,6 +170,7 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           <DropdownMenuItem onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            setMenuOpen(false);
             setShowShareDialog(true);
           }}>
             <Share className="mr-2 h-4 w-4" />
@@ -161,6 +184,7 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           <DropdownMenuItem onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            setMenuOpen(false);
             setIsDeleteConfirmOpen(true);
           }} className="text-destructive">
             <Trash2 className="mr-2 h-4 w-4" />
@@ -174,7 +198,12 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         if (!isSubmitting) setIsRenameOpen(open);
         if (open) setNewName(list.name);
       }}>
-        <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogContent 
+          onClick={(e) => e.stopPropagation()}
+          onPointerDownOutside={(e) => {
+            if (isSubmitting) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t("Rename List")}</DialogTitle>
           </DialogHeader>
@@ -198,17 +227,13 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
                   setIsRenameOpen(false);
                 }} 
                 type="button"
+                disabled={isSubmitting}
               >
                 {t("Cancel")}
               </Button>
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleRename();
-                }}
               >
                 {isSubmitting ? (
                   <>
@@ -228,52 +253,64 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
       <Dialog open={isDeleteConfirmOpen} onOpenChange={(open) => {
         if (!isSubmitting) setIsDeleteConfirmOpen(open);
       }}>
-        <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogContent 
+          onClick={(e) => e.stopPropagation()}
+          onPointerDownOutside={(e) => {
+            if (isSubmitting) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-destructive mr-2" />
               {t("Delete List")}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <p>{t("Are you sure you want to delete this list? This action cannot be undone.")}</p>
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDeleteConfirmOpen(false);
-                }}
-              >
-                {t("Cancel")}
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleDelete();
-                }} 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("Deleting")}
-                  </>
-                ) : (
-                  t("Delete")
-                )}
-              </Button>
-            </div>
+          <DialogDescription>
+            {t("Are you sure you want to delete this list? This action cannot be undone.")}
+          </DialogDescription>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDeleteConfirmOpen(false);
+              }}
+              disabled={isSubmitting}
+            >
+              {t("Cancel")}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={(e) => handleDelete(e)} 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("Deleting")}
+                </>
+              ) : (
+                t("Delete")
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
       
       {/* Share Dialog */}
       {showShareDialog && (
-        <ShareOptionsDialog listId={list.id} onOpenChange={setShowShareDialog} />
+        <ShareOptionsDialog 
+          listId={list.id} 
+          onOpenChange={(open) => {
+            setShowShareDialog(open);
+            if (!open) {
+              setTimeout(() => {
+                onListUpdated();
+              }, 100);
+            }
+          }} 
+        />
       )}
     </>
   );

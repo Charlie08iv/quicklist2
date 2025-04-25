@@ -1,27 +1,24 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import ListItemManager from "@/components/lists/ListItemManager";
 import { ShoppingList } from "@/types/lists";
-import { getListById } from "@/services/listService";
+import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
+import { useToast } from "@/hooks/use-toast";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-  useEffect(() => {
-    if (listId) {
-      loadList();
-    }
-  }, [listId]);
-
-  const loadList = async () => {
+  const loadList = useCallback(async () => {
     if (!listId) return;
     setIsLoading(true);
     try {
@@ -31,17 +28,113 @@ const ListDetails: React.FC = () => {
       } else {
         // List not found, navigate back to lists page
         navigate('/lists');
+        toast({
+          title: t("List not found"),
+          description: t("The list you're looking for doesn't exist or has been deleted"),
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Error loading list:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to load list details"),
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [listId, navigate, t, toast]);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
   const handleBackClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/lists');
+  };
+
+  const handleAddItem = async (item) => {
+    if (!listId) return;
+    setIsProcessingAction(true);
+    
+    try {
+      await addItemToList(listId, item);
+      await loadList();
+      toast({
+        title: t("Item added"),
+        description: t("New item has been added to your list")
+      });
+    } catch (error) {
+      console.error("Error adding item:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to add item"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleRemoveItem = async (itemId) => {
+    setIsProcessingAction(true);
+    try {
+      await removeItemFromList(itemId);
+      await loadList();
+      toast({
+        title: t("Item removed"),
+        description: t("Item has been removed from your list")
+      });
+    } catch (error) {
+      console.error("Error removing item:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to remove item"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleToggleItemCheck = async (itemId, checked) => {
+    setIsProcessingAction(true);
+    try {
+      await updateShoppingItem(itemId, { checked });
+      await loadList();
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to update item"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleUpdateItem = async (itemId, updates) => {
+    setIsProcessingAction(true);
+    try {
+      await updateShoppingItem(itemId, updates);
+      await loadList();
+      toast({
+        title: t("Item updated"),
+        description: t("Item has been updated")
+      });
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to update item"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
   };
 
   if (isLoading) {
@@ -82,6 +175,7 @@ const ListDetails: React.FC = () => {
           size="icon"
           onClick={handleBackClick}
           className="rounded-full"
+          disabled={isProcessingAction}
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
@@ -96,18 +190,10 @@ const ListDetails: React.FC = () => {
       <ListItemManager
         listId={list.id}
         items={list.items || []}
-        onAddItem={async () => {
-          await loadList();
-        }}
-        onRemoveItem={async () => {
-          await loadList();
-        }}
-        onToggleItemCheck={async () => {
-          await loadList();
-        }}
-        onUpdateItem={async () => {
-          await loadList();
-        }}
+        onAddItem={handleAddItem}
+        onRemoveItem={handleRemoveItem}
+        onToggleItemCheck={handleToggleItemCheck}
+        onUpdateItem={handleUpdateItem}
       />
     </div>
   );
