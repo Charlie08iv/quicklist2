@@ -3,7 +3,6 @@ import { useTranslation } from "@/hooks/use-translation";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
