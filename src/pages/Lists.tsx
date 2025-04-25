@@ -1,62 +1,49 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Plus } from "lucide-react";
-import { getMealsByDate, getListsByDate, getUnscheduledLists, toggleNotifications } from "@/services/listService";
-import { Meal, ShoppingList } from "@/types/lists";
+import { Bell, BellOff } from "lucide-react";
+import { getListsByDate, getUnscheduledLists } from "@/services/listService";
+import { ShoppingList } from "@/types/lists";
 import ShoppingListCard from "@/components/lists/ShoppingListCard";
 import { motion } from "framer-motion";
 import CreateListDialog from "@/components/lists/CreateListDialog";
-import { toast } from "sonner";
-import ListItemManager from "@/components/lists/ListItemManager";
+import { useNavigate } from "react-router-dom";
 
 const Lists: React.FC = () => {
   const { t } = useTranslation();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [meals, setMeals] = useState<Meal[]>([]);
   const [lists, setLists] = useState<ShoppingList[]>([]);
-  const [activeTab, setActiveTab] = useState("shopping");
+  const [archivedLists, setArchivedLists] = useState<ShoppingList[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [listsData, unscheduledListsData] = await Promise.all([
-          getListsByDate(new Date().toISOString().split('T')[0]),
-          getUnscheduledLists()
-        ]);
-        
-        setLists([...listsData, ...unscheduledListsData] as ShoppingList[]);
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     loadData();
   }, []);
 
-  const handleToggleNotifications = async () => {
-    const newState = !notificationsEnabled;
-    const success = await toggleNotifications(newState);
-    
-    if (success) {
-      setNotificationsEnabled(newState);
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [listsData, unscheduledListsData] = await Promise.all([
+        getListsByDate(new Date().toISOString().split('T')[0]),
+        getUnscheduledLists()
+      ]);
+      
+      const allLists = [...listsData, ...unscheduledListsData] as ShoppingList[];
+      setLists(allLists.filter(list => !list.archived));
+      setArchivedLists(allLists.filter(list => list.archived));
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const refreshData = () => {
-    Promise.all([
-      getListsByDate(new Date().toISOString().split('T')[0]),
-      getUnscheduledLists()
-    ]).then(([scheduled, unscheduled]) => {
-      setLists([...scheduled, ...unscheduled] as ShoppingList[]);
-    });
+  const handleListClick = (listId: string) => {
+    navigate(`/lists/${listId}`);
   };
 
   const containerVariants = {
@@ -77,7 +64,7 @@ const Lists: React.FC = () => {
           <Button
             variant="outline"
             size="icon"
-            onClick={handleToggleNotifications}
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             title={notificationsEnabled ? t("disableNotifications") : t("enableNotifications")}
           >
             {notificationsEnabled ? (
@@ -86,88 +73,91 @@ const Lists: React.FC = () => {
               <BellOff className="h-4 w-4" />
             )}
           </Button>
-          <CreateListDialog onListCreated={refreshData} />
+          <CreateListDialog onListCreated={loadData} />
         </div>
       </div>
 
       <Card className="rounded-xl shadow-md border">
-        <CardContent className="p-0">
-          <div className="grid grid-cols-2 rounded-t-xl overflow-hidden">
-            <Button 
-              variant={activeTab === "shopping" ? "default" : "ghost"} 
-              onClick={() => setActiveTab("shopping")}
-              className="rounded-none py-4 h-auto text-lg font-medium"
-            >
-              {t("My Lists")}
-            </Button>
-            <Button 
-              variant={activeTab === "meals" ? "default" : "ghost"} 
-              onClick={() => setActiveTab("meals")}
-              className="rounded-none py-4 h-auto text-lg font-medium"
-            >
-              {t("Meal Schedule")}
-            </Button>
-          </div>
-        </CardContent>
+        <div className="grid grid-cols-2 rounded-t-xl overflow-hidden">
+          <Button 
+            variant={activeTab === "active" ? "default" : "ghost"} 
+            onClick={() => setActiveTab("active")}
+            className="rounded-none py-4 h-auto text-lg font-medium"
+          >
+            {t("My Lists")}
+          </Button>
+          <Button 
+            variant={activeTab === "archived" ? "default" : "ghost"} 
+            onClick={() => setActiveTab("archived")}
+            className="rounded-none py-4 h-auto text-lg font-medium"
+          >
+            {t("Archived")}
+          </Button>
+        </div>
       </Card>
 
-      {activeTab === "shopping" && (
-        <motion.div 
-          className="space-y-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {isLoading ? (
-            <Card className="p-8 flex justify-center">
-              <div className="animate-pulse flex space-x-4">
-                <div className="h-12 w-12 rounded-full bg-muted"></div>
-                <div className="flex-1 space-y-4 py-1">
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded"></div>
-                    <div className="h-4 bg-muted rounded w-5/6"></div>
-                  </div>
+      <motion.div 
+        className="space-y-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {isLoading ? (
+          <Card className="p-8 flex justify-center">
+            <div className="animate-pulse flex space-x-4">
+              <div className="h-12 w-12 rounded-full bg-muted"></div>
+              <div className="flex-1 space-y-4 py-1">
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded w-5/6"></div>
                 </div>
               </div>
-            </Card>
-          ) : (
-            <>
-              {lists.length === 0 ? (
+            </div>
+          </Card>
+        ) : (
+          <>
+            {activeTab === 'active' ? (
+              lists.length === 0 ? (
                 <Card className="overflow-hidden shadow-md rounded-xl">
-                  <CardContent className="p-6">
+                  <div className="p-6">
                     <p className="text-center text-muted-foreground mb-4">
                       {t("No shopping lists")}
                     </p>
-                    <CreateListDialog onListCreated={refreshData} />
-                  </CardContent>
+                    <CreateListDialog onListCreated={loadData} />
+                  </div>
                 </Card>
               ) : (
                 <>
                   {lists.map((list) => (
-                    <ShoppingListCard key={list.id} list={list} onListUpdated={refreshData} />
+                    <div key={list.id} onClick={() => handleListClick(list.id)}>
+                      <ShoppingListCard list={list} onListUpdated={loadData} />
+                    </div>
                   ))}
                 </>
-              )}
-            </>
-          )}
-        </motion.div>
-      )}
-      
-      {activeTab === "meals" && (
-        <motion.div 
-          className="space-y-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <Card className="rounded-xl shadow-md text-center p-6">
-            <p className="text-muted-foreground">
-              {t("Plan your meals using the calendar in each list's menu")}
-            </p>
-          </Card>
-        </motion.div>
-      )}
+              )
+            ) : (
+              archivedLists.length === 0 ? (
+                <Card className="overflow-hidden shadow-md rounded-xl">
+                  <div className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      {t("No archived lists")}
+                    </p>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  {archivedLists.map((list) => (
+                    <div key={list.id} onClick={() => handleListClick(list.id)}>
+                      <ShoppingListCard list={list} onListUpdated={loadData} />
+                    </div>
+                  ))}
+                </>
+              )
+            )}
+          </>
+        )}
+      </motion.div>
     </div>
   );
 };

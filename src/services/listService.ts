@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -364,6 +363,51 @@ export const createMeal = async (meal: { name: string; type: string; date: strin
     return mapMealFromRow(data as MealRow);
   } catch (error) {
     console.error("Error creating meal:", error);
+    return null;
+  }
+};
+
+export const deleteShoppingList = async (listId: string) => {
+  try {
+    const { error } = await supabase
+      .from('shopping_lists')
+      .delete()
+      .eq('id', listId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting shopping list:', error);
+    return false;
+  }
+};
+
+export const getListById = async (listId: string): Promise<ShoppingList | null> => {
+  try {
+    const { data: list, error: listError } = await supabase
+      .from('shopping_lists')
+      .select('*')
+      .eq('id', listId)
+      .single();
+
+    if (listError) {
+      console.error("Error fetching list:", listError);
+      return null;
+    }
+
+    const { data: items, error: itemsError } = await supabase
+      .from('shopping_items')
+      .select('*')
+      .eq('list_id', listId);
+
+    if (itemsError) {
+      console.error("Error fetching items:", itemsError);
+      return mapShoppingListFromRow(list, []);
+    }
+
+    return mapShoppingListFromRow(list, items.map(item => mapShoppingItemFromRow(item)));
+  } catch (error) {
+    console.error("Error fetching list by id:", error);
     return null;
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -17,7 +16,8 @@ import {
   Share, 
   Archive, 
   Calendar, 
-  Loader2 
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
@@ -25,7 +25,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   renameShoppingList, 
   archiveShoppingList, 
-  planShoppingList 
+  planShoppingList,
+  deleteShoppingList
 } from "@/services/listService";
 import ShareOptionsDialog from "./ShareOptionsDialog";
 
@@ -37,11 +38,7 @@ interface ListActionsMenuProps {
 const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }) => {
   const { t } = useTranslation();
   const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [newName, setNewName] = useState(list.name);
-  const [planDate, setPlanDate] = useState<Date | undefined>(
-    list.date ? new Date(list.date) : undefined
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
 
@@ -72,18 +69,12 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     }
   };
 
-  const handlePlan = async () => {
-    if (!planDate) return;
-    
-    setIsSubmitting(true);
+  const handleDelete = async () => {
     try {
-      await planShoppingList(list.id, planDate.toISOString().split('T')[0]);
+      await deleteShoppingList(list.id);
       onListUpdated();
-      setIsPlanOpen(false);
     } catch (error) {
-      console.error("Failed to plan list:", error);
-    } finally {
-      setIsSubmitting(false);
+      console.error("Failed to delete list:", error);
     }
   };
 
@@ -105,14 +96,14 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
             <Share className="mr-2 h-4 w-4" />
             {t("Share")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsPlanOpen(true)}>
-            <Calendar className="mr-2 h-4 w-4" />
-            {t("Plan")}
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleArchive} className="text-destructive">
+          <DropdownMenuItem onClick={handleArchive}>
             <Archive className="mr-2 h-4 w-4" />
             {t("Archive")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+            <Trash2 className="mr-2 h-4 w-4" />
+            {t("Delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -138,56 +129,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
                 {t("Cancel")}
               </Button>
               <Button onClick={handleRename} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("Saving")}
-                  </>
-                ) : (
-                  t("Save")
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Plan Dialog */}
-      <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("Plan List")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>{t("Select Date")}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {planDate ? planDate.toLocaleDateString() : t("Select a date")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <div className="p-2">
-                    <input 
-                      type="date" 
-                      className="border rounded px-2 py-1"
-                      value={planDate ? planDate.toISOString().split('T')[0] : ''}
-                      onChange={(e) => {
-                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
-                        setPlanDate(newDate);
-                      }}
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsPlanOpen(false)}>
-                {t("Cancel")}
-              </Button>
-              <Button onClick={handlePlan} disabled={isSubmitting || !planDate}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
