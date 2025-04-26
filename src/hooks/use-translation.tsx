@@ -4,6 +4,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 // Define available languages and translations
 const languages = {
   en: {
+    // Base translations
     lists: "Lists",
     recipes: "Recipes", 
     groups: "Groups",
@@ -123,24 +124,53 @@ const languages = {
     "mealType": "Meal Type",
     "saving": "Saving",
     "saveMeal": "Save Meal",
+    
+    // ListItemManager translations
     "Item Name": "Item Name",
     "Enter item name": "Enter item name",
     "Quantity": "Quantity",
     "Unit": "Unit",
     "Category": "Category",
     "Add Item": "Add Item",
+    "Price": "Price",
+    "Enter price (optional)": "Enter price (optional)",
+    "Done": "Done",
+    "Select unit": "Select unit",
+    "Select category": "Select category",
+    "Items": "Items",
+    "All Items (Alphabetical)": "All Items (Alphabetical)",
+    "Custom Order": "Custom Order",
+    
+    // Category translations
+    "Produce": "Produce",
+    "Dairy": "Dairy",
+    "Meat": "Meat",
+    "Bakery": "Bakery",
+    "Frozen Foods": "Frozen Foods",
+    "Canned Goods": "Canned Goods",
+    "Dry Goods": "Dry Goods",
+    "Beverages": "Beverages",
+    "Spices": "Spices",
+    "Snacks": "Snacks",
+    "Household": "Household", 
     "Other": "Other",
+    
+    // Unit
     "pcs": "pcs",
+    
+    // Recipe page
     "myRecipes": "My Recipes",
     "inspiration": "Inspiration",
     "noPersonalRecipes": "No Personal Recipes",
     "createYourFirstRecipe": "Create your first recipe",
-    "createRecipe": "Create recipe",
+    
+    // Groups page
     "Your Groups": "Your Groups",
-    "members": "members",
     "Lists": "Lists",
     "Chat": "Chat",
     "Invite": "Invite",
+    
+    // Account page
     "Edit Name": "Edit Name",
     "Change Email": "Change Email",
     "Change Password": "Change Password",
@@ -148,6 +178,7 @@ const languages = {
     "Delete Account": "Delete Account"
   },
   sv: {
+    // Base translations
     lists: "Listor",
     recipes: "Recept", 
     groups: "Grupper",
@@ -267,24 +298,53 @@ const languages = {
     "mealType": "Måltidstyp",
     "saving": "Sparar",
     "saveMeal": "Spara måltid",
+    
+    // ListItemManager translations
     "Item Name": "Varunamn",
     "Enter item name": "Ange varunamn",
     "Quantity": "Antal",
     "Unit": "Enhet",
     "Category": "Kategori",
     "Add Item": "Lägg till vara",
+    "Price": "Pris",
+    "Enter price (optional)": "Ange pris (valfritt)",
+    "Done": "Klar",
+    "Select unit": "Välj enhet",
+    "Select category": "Välj kategori",
+    "Items": "Varor",
+    "All Items (Alphabetical)": "Alla varor (alfabetiskt)",
+    "Custom Order": "Anpassad ordning",
+    
+    // Category translations
+    "Produce": "Grönsaker",
+    "Dairy": "Mejeri",
+    "Meat": "Kött",
+    "Bakery": "Bageri",
+    "Frozen Foods": "Frysvaror",
+    "Canned Goods": "Konserver",
+    "Dry Goods": "Torrvaror",
+    "Beverages": "Drycker",
+    "Spices": "Kryddor",
+    "Snacks": "Snacks",
+    "Household": "Hushåll",
     "Other": "Övrigt",
+    
+    // Unit
     "pcs": "st",
+    
+    // Recipe page
     "myRecipes": "Mina recept",
     "inspiration": "Inspiration",
     "noPersonalRecipes": "Inga personliga recept",
     "createYourFirstRecipe": "Skapa ditt första recept",
-    "createRecipe": "Skapa recept",
+    
+    // Groups page
     "Your Groups": "Dina grupper",
-    "members": "medlemmar",
     "Lists": "Listor",
     "Chat": "Chatt",
     "Invite": "Bjud in",
+    
+    // Account page
     "Edit Name": "Redigera namn",
     "Change Email": "Byt e-post",
     "Change Password": "Byt lösenord",
@@ -308,7 +368,7 @@ export const TranslationProvider = ({ children }: { children: React.ReactNode })
   
   const t = useCallback((key: string): string => {
     const translations = languages[language];
-    return translations[key as keyof typeof translations] || key;
+    return (translations as Record<string, string>)[key] || key;
   }, [language]);
 
   return (

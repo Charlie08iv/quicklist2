@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-// Add price property to ShoppingItem since it's used throughout this component
 interface ShoppingItemWithPrice extends ShoppingItem {
   price?: number;
 }
@@ -30,6 +28,7 @@ interface ListItemManagerProps {
   onMoveItem?: (itemId: string, direction: 'up' | 'down') => void;
   showPrices?: boolean;
   sortType?: string;
+  translatedTexts?: Record<string, string>;
 }
 
 const categories = [
@@ -86,7 +85,8 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onUpdateItem,
   onMoveItem,
   showPrices = false,
-  sortType = "category"
+  sortType = "category",
+  translatedTexts
 }) => {
   const { t } = useTranslation();
   const [newItemName, setNewItemName] = useState("");
@@ -99,6 +99,15 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("");
   const [editPrice, setEditPrice] = useState("");
+
+  const getText = (key: string): string => {
+    return translatedTexts?.[key] || t(key) || key;
+  };
+
+  const getCategoryName = (category: string): string => {
+    const key = category.toLowerCase().replace(/\s+/g, '');
+    return getText(key) || translatedTexts?.[category] || t(category) || category;
+  };
 
   const detectCategory = (itemName: string): string => {
     const lowerName = itemName.toLowerCase();
@@ -182,32 +191,26 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     }
   };
 
-  // Memoize sorted items to prevent unnecessary recalculations
   const { itemsByCategory, sortedCategories, allSortedItems } = useMemo(() => {
     const itemsByCategory: Record<string, ShoppingItemWithPrice[]> = {};
     let allSortedItems: ShoppingItemWithPrice[] = [];
     
     if (sortType === "custom") {
-      // For custom sorting, just use the items as they are
       allSortedItems = [...items];
     } else {
-      // First, sort individual items based on sortType
       allSortedItems = [...items].sort((a, b) => {
-        // Always prioritize checked state
         if (a.checked !== b.checked) {
           return a.checked ? 1 : -1;
         }
-
+        
         if (sortType === "name") {
           return a.name.localeCompare(b.name);
         }
         
-        // For category sorting or default
         return a.name.localeCompare(b.name);
       });
     }
     
-    // Then organize by category
     allSortedItems.forEach(item => {
       const category = item.category || "Other";
       if (!itemsByCategory[category]) {
@@ -216,7 +219,6 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       itemsByCategory[category].push(item);
     });
     
-    // Sort within categories if needed (but not for custom sort)
     if (sortType !== "custom") {
       Object.keys(itemsByCategory).forEach(category => {
         itemsByCategory[category].sort((a, b) => {
@@ -228,15 +230,11 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       });
     }
     
-    // Determine category order based on sortType
     let sortedCategories: string[] = [];
     
     if (sortType === "name" || sortType === "custom") {
-      // For alphabetical sorting, we'll put all categories in one
-      // This is just for display in the UI
       sortedCategories = Object.keys(itemsByCategory);
     } else {
-      // For category sorting
       sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
         if (a === "Other") return 1;
         if (b === "Other") return -1;
@@ -247,17 +245,15 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     return { itemsByCategory, sortedCategories, allSortedItems };
   }, [items, sortType]);
 
-  // Special rendering for alphabetical or custom view
   const renderItemsList = () => {
     if (sortType === "name" || sortType === "custom") {
-      // For alphabetical or custom view, show all items in a single list
-      const title = sortType === "name" ? "All Items (Alphabetical)" : "Custom Order";
+      const title = sortType === "name" ? getText("allItems") : getText("customOrder");
       const icon = sortType === "name" ? "🔤" : "📋";
       
       return (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
-            <span className="mr-2">{icon}</span> {t(title)}
+            <span className="mr-2">{icon}</span> {title}
           </h4>
           <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
             {allSortedItems.map(item => renderItem(item))}
@@ -266,11 +262,10 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       );
     }
     
-    // For category view, show items grouped by category
     return sortedCategories.map((category) => (
       <div key={category} className="space-y-2">
         <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
-          <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
+          <span className="mr-2">{categoryIcons[category]}</span> {getCategoryName(category)}
         </h4>
         <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
           {itemsByCategory[category].map(item => renderItem(item))}
@@ -279,7 +274,6 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     ));
   };
 
-  // Extract item rendering for reuse
   const renderItem = (item: ShoppingItemWithPrice) => (
     <li 
       key={item.id} 
@@ -379,12 +373,12 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     <div className="space-y-6">
       <form onSubmit={handleAddItem} className="space-y-4 bg-[#2D7A46]/10 p-4 rounded-lg shadow-sm border border-[#2D7A46]/20">
         <div className="space-y-2">
-          <Label htmlFor="item-name" className="text-foreground">{t("Item Name")}</Label>
+          <Label htmlFor="item-name" className="text-foreground">{getText("itemNameLabel")}</Label>
           <Input
             id="item-name"
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
-            placeholder={t("Enter item name")}
+            placeholder={getText("itemName")}
             className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
             required
           />
@@ -392,7 +386,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <div className="space-y-2">
-            <Label htmlFor="item-quantity" className="text-foreground">{t("Quantity")}</Label>
+            <Label htmlFor="item-quantity" className="text-foreground">{getText("quantity")}</Label>
             <Input
               id="item-quantity"
               type="number"
@@ -405,20 +399,20 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="item-unit" className="text-foreground">{t("Unit")}</Label>
+            <Label htmlFor="item-unit" className="text-foreground">{getText("unit")}</Label>
             <Select value={newItemUnit} onValueChange={setNewItemUnit}>
               <SelectTrigger 
                 id="item-unit" 
                 className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
               >
-                <SelectValue placeholder={t("Select unit")} />
+                <SelectValue placeholder={getText("selectUnit")} />
               </SelectTrigger>
-              <SelectContent className="bg-[#2D7A46]/10 border-[#2D7A46]/20">
+              <SelectContent className="bg-[#1A1F2C] border-[#2D7A46]/20 text-white">
                 {units.map(unit => (
                   <SelectItem 
                     key={unit} 
                     value={unit}
-                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30"
+                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30 text-white"
                   >
                     {unit}
                   </SelectItem>
@@ -428,22 +422,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           </div>
           
           <div className="space-y-2 col-span-2 sm:col-span-1">
-            <Label htmlFor="item-category" className="text-foreground">{t("Category")}</Label>
+            <Label htmlFor="item-category" className="text-foreground">{getText("category")}</Label>
             <Select value={newItemCategory} onValueChange={setNewItemCategory}>
               <SelectTrigger 
                 id="item-category" 
                 className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
               >
-                <SelectValue placeholder={t("Select category")} />
+                <SelectValue placeholder={getText("selectCategory")} />
               </SelectTrigger>
-              <SelectContent className="bg-[#2D7A46]/10 border-[#2D7A46]/20">
+              <SelectContent className="bg-[#1A1F2C] border-[#2D7A46]/20 text-white">
                 {categories.map(category => (
                   <SelectItem 
                     key={category} 
                     value={category}
-                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30"
+                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30 text-white"
                   >
-                    {categoryIcons[category]} {t(category)}
+                    {categoryIcons[category]} {getCategoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -452,7 +446,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           
           {showPrices && (
             <div className="space-y-2 col-span-2 sm:col-span-3">
-              <Label htmlFor="item-price" className="text-foreground">{t("Price")}</Label>
+              <Label htmlFor="item-price" className="text-foreground">{getText("price")}</Label>
               <Input
                 id="item-price"
                 type="number"
@@ -460,7 +454,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                 step="0.01"
                 value={newItemPrice}
                 onChange={(e) => setNewItemPrice(e.target.value)}
-                placeholder={t("Enter price (optional)")}
+                placeholder={getText("enterPrice")}
                 className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
               />
             </div>
@@ -472,13 +466,13 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           className="w-full flex items-center gap-2 bg-[#2D7A46] hover:bg-[#1E5631] text-white"
         >
           <Plus className="h-4 w-4" />
-          {t("Add Item")}
+          {getText("addItem")}
         </Button>
       </form>
 
       {items.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-medium text-lg text-foreground">{t("Items")}</h3>
+          <h3 className="font-medium text-lg text-foreground">{getText("items")}</h3>
           
           <div className="space-y-4">
             {renderItemsList()}
@@ -487,9 +481,9 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       )}
 
       <Dialog open={itemDetailsOpen} onOpenChange={setItemDetailsOpen}>
-        <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
+        <DialogContent className="sm:max-w-[425px] bg-[#1A1F2C] text-white border-[#2D7A46]/30" onClick={e => e.stopPropagation()}>
           <DialogHeader>
-            <DialogTitle className="text-center text-xl flex items-center justify-center">
+            <DialogTitle className="text-center text-xl flex items-center justify-center text-white">
               {selectedItem?.name}
               <span className="ml-2">{selectedItem?.category && categoryIcons[selectedItem.category]}</span>
             </DialogTitle>
@@ -498,13 +492,13 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           <div className="py-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{t("Quantity")}</Label>
+                <Label className="text-white">{getText("quantity")}</Label>
                 <div className="flex items-center space-x-2">
                   <Button 
                     variant="outline" 
                     size="icon"
                     onClick={handleDecreaseQuantity}
-                    className="rounded-full"
+                    className="rounded-full border-[#2D7A46]/30 bg-[#14371F]"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -513,14 +507,14 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                     type="number"
                     value={editQuantity}
                     onChange={(e) => setEditQuantity(e.target.value)}
-                    className="text-center"
+                    className="text-center bg-[#14371F] text-white border-[#2D7A46]/30"
                   />
                   
                   <Button 
                     variant="outline" 
                     size="icon"
                     onClick={handleIncreaseQuantity}
-                    className="rounded-full"
+                    className="rounded-full border-[#2D7A46]/30 bg-[#14371F]"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -528,14 +522,14 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
               </div>
               
               <div className="space-y-2">
-                <Label>{t("Unit")}</Label>
+                <Label className="text-white">{getText("unit")}</Label>
                 <Select value={editUnit} onValueChange={setEditUnit}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("Select unit")} />
+                  <SelectTrigger className="bg-[#14371F] text-white border-[#2D7A46]/30">
+                    <SelectValue placeholder={getText("selectUnit")} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1A1F2C] border-[#2D7A46]/20 text-white">
                     {units.map(unit => (
-                      <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                      <SelectItem key={unit} value={unit} className="text-white hover:bg-[#2D7A46]/20">{unit}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -543,22 +537,25 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 
               {showPrices && (
                 <div className="space-y-2">
-                  <Label>{t("Price")}</Label>
+                  <Label className="text-white">{getText("price")}</Label>
                   <Input
                     type="number"
                     min="0.01"
                     step="0.01"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
-                    placeholder={t("Enter price (optional)")}
-                    className="text-center"
+                    placeholder={getText("enterPrice")}
+                    className="text-center bg-[#14371F] text-white border-[#2D7A46]/30"
                   />
                 </div>
               )}
               
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveItemDetails} className="w-24">
-                  {t("Done")}
+                <Button 
+                  onClick={handleSaveItemDetails} 
+                  className="w-24 bg-[#2D7A46] hover:bg-[#1E5631] text-white"
+                >
+                  {getText("done")}
                 </Button>
               </div>
             </div>

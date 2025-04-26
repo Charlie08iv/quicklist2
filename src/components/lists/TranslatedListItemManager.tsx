@@ -27,13 +27,32 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = (pro
     unit: t("Unit"),
     category: t("Category"),
     addItem: t("Add Item"),
-    other: t("Other")
+    other: t("Other"),
+    done: t("Done"),
+    selectUnit: t("Select unit"),
+    selectCategory: t("Select category"),
+    price: t("Price"),
+    enterPrice: t("Enter price (optional)"),
+    items: t("Items"),
+    allItems: t("All Items (Alphabetical)"),
+    customOrder: t("Custom Order"),
+    produce: t("Produce"),
+    dairy: t("Dairy"),
+    meat: t("Meat"),
+    bakery: t("Bakery"),
+    frozenFoods: t("Frozen Foods"),
+    cannedGoods: t("Canned Goods"),
+    dryGoods: t("Dry Goods"),
+    beverages: t("Beverages"),
+    spices: t("Spices"),
+    snacks: t("Snacks"),
+    household: t("Household")
   };
 
   return (
     <ListItemManager
       {...props}
-      translationOverrides={placeholders}
+      translatedTexts={placeholders}
     />
   );
 };
