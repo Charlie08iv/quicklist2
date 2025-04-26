@@ -2,16 +2,17 @@ import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Sparkles, Utensils } from "lucide-react";
+import { Plus, Search, Sparkles, Utensils, Heart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { getRecipeById, addRecipeToShoppingList } from "@/services/recipeService";
+import { getRecipeById } from "@/services/recipeService";
 import RecipeCard from "@/components/recipes/RecipeCard";
 import RecipeDetailsDialog from "@/components/recipes/RecipeDetailsDialog";
 import { RecipeDetails } from "@/types/recipes";
 import { toast } from "@/hooks/use-toast";
+import LikedRecipes from "@/components/recipes/LikedRecipes";
 
 const CATEGORIES = ["All", "Breakfast", "Vegetarian", "Pasta", "Dinner"];
 const SAMPLE_RECIPE_IDS = ["1", "2", "3", "4", "5"];
@@ -49,25 +50,23 @@ const Recipes: React.FC = () => {
   };
 
   const handleLikeToggle = async (recipeId: string) => {
-    if (activeTab === "myRecipes") {
-      setPersonalRecipes(prev => 
-        prev.map(recipe => 
-          recipe.id === recipeId 
-            ? { ...recipe, liked: !recipe.liked } 
-            : recipe
-        )
-      );
+    const recipes = activeTab === "myRecipes" ? personalRecipes : allInspirationRecipes;
+    const recipe = recipes.find(r => r.id === recipeId);
+    
+    if (recipe) {
+      const updatedRecipe = { ...recipe, liked: !recipe.liked };
+      
+      if (activeTab === "myRecipes") {
+        setPersonalRecipes(prev => prev.map(r => r.id === recipeId ? updatedRecipe : r));
+      } else {
+        setSharedRecipes(prev => prev.map(r => r.id === recipeId ? updatedRecipe : r));
+      }
+      
+      toast({
+        title: updatedRecipe.liked ? "Recipe liked" : "Recipe unliked",
+        description: updatedRecipe.liked ? "Added to your liked recipes" : "Removed from your liked recipes",
+      });
     }
-    if (activeTab === "inspiration") {
-      setSharedRecipes(prev => 
-        prev.map(recipe => 
-          recipe.id === recipeId 
-            ? { ...recipe, liked: !recipe.liked } 
-            : recipe
-        )
-      );
-    }
-    console.log("Toggle like for recipe:", recipeId);
   };
 
   const handleOpenDetails = (recipe: RecipeDetails) => {
@@ -121,7 +120,7 @@ const Recipes: React.FC = () => {
       </div>
 
       <Tabs defaultValue="myRecipes" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <TabsList className="grid w-full grid-cols-3 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsTrigger value="myRecipes" className="flex items-center gap-2 p-4">
             <Utensils className="h-4 w-4" />
             {t("myRecipes")}
@@ -129,6 +128,10 @@ const Recipes: React.FC = () => {
           <TabsTrigger value="inspiration" className="flex items-center gap-2 p-4">
             <Sparkles className="h-4 w-4" />
             {t("inspiration")}
+          </TabsTrigger>
+          <TabsTrigger value="liked" className="flex items-center gap-2 p-4">
+            <Heart className="h-4 w-4" />
+            {t("liked")}
           </TabsTrigger>
         </TabsList>
 
@@ -196,6 +199,14 @@ const Recipes: React.FC = () => {
               />
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="liked">
+          <LikedRecipes 
+            recipes={[...personalRecipes, ...allInspirationRecipes]}
+            onLikeToggle={handleLikeToggle}
+            onOpenDetails={handleOpenDetails}
+          />
         </TabsContent>
       </Tabs>
       
