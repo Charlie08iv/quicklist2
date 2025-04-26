@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getRecipeById } from "@/services/recipeService";
 import RecipeCard from "@/components/recipes/RecipeCard";
+import { RecipeDetails } from "@/types/recipes";
+import { toast } from "@/hooks/use-toast";
 
 const CATEGORIES = ["All", "Breakfast", "Vegetarian", "Pasta", "Dinner"];
 const SAMPLE_RECIPE_IDS = ["1", "2", "3", "4", "5"];
@@ -20,6 +21,7 @@ const Recipes: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [personalRecipes, setPersonalRecipes] = useState<RecipeDetails[]>([]);
 
   const { data: inspirationRecipes = [] } = useQuery({
     queryKey: ['inspiration-recipes'],
@@ -31,7 +33,41 @@ const Recipes: React.FC = () => {
     }
   });
 
-  const filteredRecipes = inspirationRecipes.filter(recipe => {
+  const handleCreateRecipe = (recipe: RecipeDetails) => {
+    if (recipe.isPersonal) {
+      setPersonalRecipes(prev => [...prev, recipe]);
+    } else {
+      setPersonalRecipes(prev => [...prev, recipe]);
+      console.log("Save recipe to database");
+    }
+    
+    toast({
+      title: t("recipeCreated"),
+      description: t("recipeCreatedDescription"),
+    });
+  };
+
+  const handleLikeToggle = async (recipeId: string) => {
+    if (activeTab === "myRecipes") {
+      setPersonalRecipes(prev => 
+        prev.map(recipe => 
+          recipe.id === recipeId 
+            ? { ...recipe, liked: !recipe.liked } 
+            : recipe
+        )
+      );
+    }
+    console.log("Toggle like for recipe:", recipeId);
+  };
+
+  const filteredInspiration = inspirationRecipes.filter(recipe => {
+    const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || recipe.category.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredPersonal = personalRecipes.filter(recipe => {
     const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || recipe.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -85,38 +121,48 @@ const Recipes: React.FC = () => {
         </div>
 
         <TabsContent value="myRecipes">
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-center"
-            >
-              <Utensils className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-2xl font-medium mb-2 text-primary">{t("noPersonalRecipes")}</h2>
-              <p className="text-muted-foreground mb-8">{t("createYourFirstRecipe")}</p>
-              <div className="flex justify-center">
-                <Button 
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-5 w-5" />
-                  {t("createRecipe")}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
+          {filteredPersonal.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredPersonal.map((recipe) => (
+                <RecipeCard 
+                  key={recipe.id} 
+                  recipe={recipe}
+                  onLikeToggle={() => handleLikeToggle(recipe.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
+              >
+                <Utensils className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h2 className="text-2xl font-medium mb-2 text-primary">{t("noPersonalRecipes")}</h2>
+                <p className="text-muted-foreground mb-8">{t("createYourFirstRecipe")}</p>
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-5 w-5" />
+                    {t("createRecipe")}
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="inspiration">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredRecipes.map((recipe) => (
+            {filteredInspiration.map((recipe) => (
               <RecipeCard 
                 key={recipe.id} 
                 recipe={recipe}
-                onLikeToggle={async () => {
-                  console.log("Toggle like for recipe:", recipe.id);
-                }}
+                onLikeToggle={() => handleLikeToggle(recipe.id)}
               />
             ))}
           </div>
@@ -126,7 +172,7 @@ const Recipes: React.FC = () => {
       <CreateRecipeDialog 
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen}
-        onCreateRecipe={() => {}}
+        onCreateRecipe={handleCreateRecipe}
       />
     </div>
   );
