@@ -4,10 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createShoppingList, addItemToList } from "@/services/listService";
+import { createShoppingList } from "@/services/listService";
 import { Loader2, Plus } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
-import { ShoppingList } from "@/types/lists";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -45,9 +44,8 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
         // Notify parent about the list creation
         onListCreated();
         
-        // Make sure we don't navigate before the dialog is closed
+        // Navigate to the list details page using the correct path format
         setTimeout(() => {
-          // Use the correct path format without a slash at the beginning
           navigate(`/lists/${newList.id}`);
         }, 100);
       }
@@ -119,11 +117,12 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
               placeholder={t("Enter list name")}
               className="border-primary/20"
               required
+              autoFocus
             />
           </div>
           
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               {t("Cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>

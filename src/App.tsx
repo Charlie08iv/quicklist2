@@ -20,7 +20,15 @@ import Privacy from "./pages/Privacy";
 import ListDetails from "./pages/ListDetails";
 import Account from "./pages/Account";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduce the amount of loading state flashing
+      refetchOnWindowFocus: false,
+      retry: 1
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,9 +47,7 @@ const App = () => (
                   <Route index element={<Lists />} />
                   <Route path=":listId" element={<ListDetails />} />
                 </Route>
-                <Route path="/list/:listId" element={<AppLayout />}>
-                  <Route index element={<ListDetails />} />
-                </Route>
+                <Route path="/list/:listId" element={<Navigate to="/lists/:listId" replace />} />
                 <Route path="/recipes" element={<AppLayout />}>
                   <Route index element={<Recipes />} />
                 </Route>

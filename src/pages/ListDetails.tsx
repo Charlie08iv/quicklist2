@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Search, Share2 } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
 import ListItemManager from "@/components/lists/ListItemManager";
 import { ShoppingList } from "@/types/lists";
 import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
@@ -21,7 +21,6 @@ const ListDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [showPrices, setShowPrices] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showShareDialog, setShowShareDialog] = useState(false);
 
   const loadList = useCallback(async () => {
@@ -164,10 +163,6 @@ const ListDetails: React.FC = () => {
     setShowShareDialog(true);
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
   const handleUncheckAll = async () => {
     if (!list || !list.items) return;
     
@@ -195,13 +190,6 @@ const ListDetails: React.FC = () => {
       setIsProcessingAction(false);
     }
   };
-
-  const filteredItems = searchQuery && list?.items
-    ? list.items.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : list?.items;
 
   if (isLoading) {
     return (
@@ -275,7 +263,6 @@ const ListDetails: React.FC = () => {
             
             <ListOptionsMenu 
               listId={list.id}
-              onSearch={handleSearch}
               onSort={() => {}} 
               onUncheckAll={handleUncheckAll}
               onTogglePrices={() => setShowPrices(!showPrices)}
@@ -283,22 +270,9 @@ const ListDetails: React.FC = () => {
           </div>
         </div>
 
-        {searchQuery && (
-          <div className="bg-[#2D7A46]/10 p-2 rounded-lg">
-            <div className="flex justify-between items-center">
-              <p className="text-sm">
-                {t("Search results for")}: <span className="font-medium">{searchQuery}</span>
-              </p>
-              <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')}>
-                {t("Clear")}
-              </Button>
-            </div>
-          </div>
-        )}
-
         <ListItemManager
           listId={list.id}
-          items={filteredItems || []}
+          items={list.items || []}
           onAddItem={handleAddItem}
           onRemoveItem={handleRemoveItem}
           onToggleItemCheck={handleToggleItemCheck}

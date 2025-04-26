@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +15,20 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+// Add price property to ShoppingItem since it's used throughout this component
+// This is a temporary solution until the proper types are updated
+interface ShoppingItemWithPrice extends ShoppingItem {
+  price?: number;
+}
+
+// Also update the props to use the extended type
 interface ListItemManagerProps {
   listId: string;
-  items: ShoppingItem[];
-  onAddItem: (item: Omit<ShoppingItem, "id" | "checked">) => void;
+  items: ShoppingItemWithPrice[];
+  onAddItem: (item: Omit<ShoppingItemWithPrice, "id" | "checked">) => void;
   onRemoveItem?: (itemId: string) => void;
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
-  onUpdateItem?: (itemId: string, item: Partial<ShoppingItem>) => void;
+  onUpdateItem?: (itemId: string, item: Partial<ShoppingItemWithPrice>) => void;
   showPrices?: boolean;
 }
 
@@ -85,7 +93,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const [newItemCategory, setNewItemCategory] = useState("Other");
   const [newItemPrice, setNewItemPrice] = useState("");
   const [itemDetailsOpen, setItemDetailsOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ShoppingItemWithPrice | null>(null);
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("");
   const [editPrice, setEditPrice] = useState("");
@@ -136,7 +144,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     }
   };
 
-  const openItemDetails = (item: ShoppingItem) => {
+  const openItemDetails = (item: ShoppingItemWithPrice) => {
     setSelectedItem(item);
     setEditQuantity(item.quantity.toString());
     setEditUnit(item.unit || "pcs");
@@ -146,7 +154,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 
   const handleSaveItemDetails = () => {
     if (selectedItem && onUpdateItem) {
-      const updates: Partial<ShoppingItem> = {
+      const updates: Partial<ShoppingItemWithPrice> = {
         quantity: parseFloat(editQuantity) || selectedItem.quantity,
         unit: editUnit
       };
@@ -173,7 +181,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   };
 
   const sortedItemsByCategory = () => {
-    const itemsByCategory: Record<string, ShoppingItem[]> = {};
+    const itemsByCategory: Record<string, ShoppingItemWithPrice[]> = {};
     
     items.forEach(item => {
       const category = item.category || "Other";

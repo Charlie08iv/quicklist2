@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
-import { Search, MoreVertical, Share2, FileSearch, ArrowDownAZ, DollarSign, CheckCheck } from "lucide-react";
+import { MoreVertical, Share2, ArrowDownAZ, DollarSign, CheckCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,17 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import ShareOptionsDialog from "./ShareOptionsDialog";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface ListOptionsMenuProps {
   listId: string;
-  onSearch?: (query: string) => void;
   onSort?: (field: string) => void;
   onUncheckAll?: () => void;
   onTogglePrices?: () => void;
@@ -31,7 +23,6 @@ interface ListOptionsMenuProps {
 
 const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
   listId,
-  onSearch,
   onSort,
   onUncheckAll,
   onTogglePrices,
@@ -39,22 +30,9 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
   const { t } = useTranslation();
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleShare = () => {
     setShareDialogOpen(true);
-  };
-
-  const handleSearchDialogOpen = () => {
-    setSearchDialogOpen(true);
-  };
-
-  const handleSearch = () => {
-    if (onSearch) {
-      onSearch(searchQuery);
-    }
-    setSearchDialogOpen(false);
   };
 
   const handleSort = () => {
@@ -98,9 +76,6 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{t("Manage List")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSearchDialogOpen}>
-            <FileSearch className="mr-2 h-4 w-4" /> {t("Search in list")}
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleShare}>
             <Share2 className="mr-2 h-4 w-4" /> {t("Share list")}
           </DropdownMenuItem>
@@ -123,25 +98,6 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
           onOpenChange={(open) => setShareDialogOpen(open)} 
         />
       )}
-
-      <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("Search in list")}</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center space-x-2">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("Enter search query")}
-              className="flex-grow"
-            />
-            <Button onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-2" /> {t("Search")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
