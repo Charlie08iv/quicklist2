@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const Recipes: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [personalRecipes, setPersonalRecipes] = useState<RecipeDetails[]>([]);
+  const [sharedRecipes, setSharedRecipes] = useState<RecipeDetails[]>([]);
 
   const { data: inspirationRecipes = [] } = useQuery({
     queryKey: ['inspiration-recipes'],
@@ -34,11 +36,12 @@ const Recipes: React.FC = () => {
   });
 
   const handleCreateRecipe = (recipe: RecipeDetails) => {
-    if (recipe.isPersonal) {
-      setPersonalRecipes(prev => [...prev, recipe]);
-    } else {
-      setPersonalRecipes(prev => [...prev, recipe]);
-      console.log("Save recipe to database");
+    // Add the recipe to the personal recipes list
+    setPersonalRecipes(prev => [...prev, recipe]);
+    
+    // If the recipe is public (not personal), add it to shared recipes
+    if (!recipe.isPersonal) {
+      setSharedRecipes(prev => [...prev, recipe]);
     }
     
     toast({
@@ -48,6 +51,7 @@ const Recipes: React.FC = () => {
   };
 
   const handleLikeToggle = async (recipeId: string) => {
+    // Toggle like for personal recipes
     if (activeTab === "myRecipes") {
       setPersonalRecipes(prev => 
         prev.map(recipe => 
@@ -57,10 +61,25 @@ const Recipes: React.FC = () => {
         )
       );
     }
+    
+    // Toggle like for inspiration recipes
+    if (activeTab === "inspiration") {
+      setSharedRecipes(prev => 
+        prev.map(recipe => 
+          recipe.id === recipeId 
+            ? { ...recipe, liked: !recipe.liked } 
+            : recipe
+        )
+      );
+    }
+    
     console.log("Toggle like for recipe:", recipeId);
   };
 
-  const filteredInspiration = inspirationRecipes.filter(recipe => {
+  // Combine inspiration recipes with shared recipes for the inspiration tab
+  const allInspirationRecipes = [...inspirationRecipes, ...sharedRecipes];
+
+  const filteredInspiration = allInspirationRecipes.filter(recipe => {
     const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || recipe.category.toLowerCase() === selectedCategory.toLowerCase();

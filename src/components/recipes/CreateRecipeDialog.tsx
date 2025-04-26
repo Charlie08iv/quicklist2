@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/hooks/use-translation";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, Plus } from "lucide-react";
+import { X, Plus, FileImage } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 
@@ -40,6 +40,13 @@ interface Instruction {
   text: string;
 }
 
+const DEFAULT_RECIPE_IMAGES = [
+  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+  "https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+  "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+];
+
 const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   open,
   onOpenChange,
@@ -56,9 +63,32 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   const [instructions, setInstructions] = useState<string>("");
   const [newIngredient, setNewIngredient] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setUploadedImage(event.target.result.toString());
+          setImageUrl(""); // Clear the URL field when an image is uploaded
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Choose a random default image if no image is provided
+    let finalImage = uploadedImage || imageUrl;
+    if (!finalImage) {
+      const randomIndex = Math.floor(Math.random() * DEFAULT_RECIPE_IMAGES.length);
+      finalImage = DEFAULT_RECIPE_IMAGES[randomIndex];
+    }
     
     const newRecipe = {
       id: Date.now().toString(),
@@ -67,7 +97,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
       prepTime,
       cookTime,
       liked: false,
-      image: imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+      image: finalImage,
       category,
       ingredients: ingredients.map(ing => ({
         id: ing.id,
@@ -93,6 +123,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     setInstructions("");
     setNewIngredient("");
     setIsPublic(false);
+    setUploadedImage(null);
   };
 
   const handleAddIngredient = () => {
@@ -231,14 +262,65 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="imageUrl" className="font-medium">{t("imageURL")}</Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
-              className="border-input focus-visible:ring-1"
-            />
+            <Label htmlFor="image" className="font-medium">{t("recipeImage")}</Label>
+            
+            {uploadedImage && (
+              <div className="mb-2">
+                <img 
+                  src={uploadedImage} 
+                  alt="Recipe preview" 
+                  className="max-h-32 rounded-md object-cover" 
+                />
+                <Button 
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUploadedImage(null)}
+                  className="mt-2"
+                >
+                  {t("removeImage")}
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex flex-col space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <FileImage className="h-4 w-4" />
+                {t("uploadImage")}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-muted" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    {t("or")}
+                  </span>
+                </div>
+              </div>
+              
+              <Input
+                id="imageUrl"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://..."
+                className="border-input focus-visible:ring-1"
+                disabled={!!uploadedImage}
+              />
+            </div>
           </div>
           
           <div className="flex items-center space-x-2">
