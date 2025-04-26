@@ -48,28 +48,6 @@ const Recipes: React.FC = () => {
     });
   };
 
-  const handleLikeToggle = async (recipeId: string) => {
-    if (activeTab === "myRecipes") {
-      setPersonalRecipes(prev => 
-        prev.map(recipe => 
-          recipe.id === recipeId 
-            ? { ...recipe, liked: !recipe.liked } 
-            : recipe
-        )
-      );
-    }
-    if (activeTab === "inspiration") {
-      setSharedRecipes(prev => 
-        prev.map(recipe => 
-          recipe.id === recipeId 
-            ? { ...recipe, liked: !recipe.liked } 
-            : recipe
-        )
-      );
-    }
-    console.log("Toggle like for recipe:", recipeId);
-  };
-
   const handleOpenDetails = (recipe: RecipeDetails) => {
     setSelectedRecipe(recipe);
     setDetailsOpen(true);
@@ -155,7 +133,6 @@ const Recipes: React.FC = () => {
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe}
-                  onLikeToggle={() => handleLikeToggle(recipe.id)}
                   onOpenDetails={() => handleOpenDetails(recipe)}
                 />
               ))}
@@ -191,7 +168,6 @@ const Recipes: React.FC = () => {
               <RecipeCard 
                 key={recipe.id} 
                 recipe={recipe}
-                onLikeToggle={() => handleLikeToggle(recipe.id)}
                 onOpenDetails={() => handleOpenDetails(recipe)}
               />
             ))}
@@ -209,7 +185,6 @@ const Recipes: React.FC = () => {
         recipe={selectedRecipe}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        onLikeToggle={selectedRecipe ? () => handleLikeToggle(selectedRecipe.id) : undefined}
         onAddToList={handleAddToList}
       />
     </div>

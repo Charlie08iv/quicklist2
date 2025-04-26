@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RecipeDetails } from "@/types/recipes";
@@ -42,13 +41,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onOpenDetails }) => {
           <Button 
             variant="default" 
             onClick={onOpenDetails}
-            className="flex-1 mr-2"
+            className="flex-1"
           >
             View Recipe
-          </Button>
-          
-          <Button variant="ghost" size="icon">
-            <Share className="h-5 w-5 text-muted-foreground" />
           </Button>
         </div>
       </div>

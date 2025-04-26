@@ -1,8 +1,8 @@
+
 import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Share, ShoppingCart, Users } from "lucide-react";
+import { Clock, Users } from "lucide-react";
 import { RecipeDetails } from "@/types/recipes";
 import { useTranslation } from "@/hooks/use-translation";
 
@@ -10,14 +10,12 @@ interface RecipeDetailsDialogProps {
   recipe: RecipeDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddToList?: () => void;
 }
 
 const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
   recipe,
   open,
   onOpenChange,
-  onAddToList,
 }) => {
   const { t } = useTranslation();
   
@@ -40,17 +38,6 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
         </div>
 
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <Button variant="outline">
-              <Share className="h-4 w-4 mr-2" />
-              {t("share")}
-            </Button>
-            <Button onClick={onAddToList}>
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {t("addToList")}
-            </Button>
-          </div>
-
           <p className="text-muted-foreground mb-6">{recipe.description}</p>
 
           <div className="flex flex-wrap gap-2 mb-6">
