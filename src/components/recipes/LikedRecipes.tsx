@@ -30,7 +30,6 @@ const LikedRecipes: React.FC<LikedRecipesProps> = ({
         <RecipeCard 
           key={recipe.id} 
           recipe={recipe}
-          onLikeToggle={() => onLikeToggle(recipe.id)}
           onOpenDetails={() => onOpenDetails(recipe)}
         />
       ))}
