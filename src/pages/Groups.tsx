@@ -30,6 +30,7 @@ const Groups: React.FC = () => {
     
     try {
       setLoading(true);
+      console.log("Fetching groups for user:", user.id);
       
       // Get groups created by the user
       const { data: createdGroups, error: createdError } = await supabase
@@ -37,7 +38,12 @@ const Groups: React.FC = () => {
         .select("*")
         .eq("created_by", user.id);
       
-      if (createdError) throw createdError;
+      if (createdError) {
+        console.error("Error fetching created groups:", createdError);
+        throw createdError;
+      }
+
+      console.log("Created groups:", createdGroups);
 
       // Get groups the user is a member of
       const { data: memberGroups, error: memberError } = await supabase
@@ -45,29 +51,44 @@ const Groups: React.FC = () => {
         .select("group_id")
         .eq("user_id", user.id);
       
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error("Error fetching member groups:", memberError);
+        throw memberError;
+      }
+
+      console.log("Member of groups:", memberGroups);
 
       // If user is a member of any groups, get those group details
       let joinedGroups: Group[] = [];
-      if (memberGroups.length > 0) {
+      if (memberGroups && memberGroups.length > 0) {
         const groupIds = memberGroups.map(m => m.group_id);
+        console.log("Fetching details for groups:", groupIds);
+        
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
           .select("*")
           .in("id", groupIds);
         
-        if (groupsError) throw groupsError;
+        if (groupsError) {
+          console.error("Error fetching group details:", groupsError);
+          throw groupsError;
+        }
+        
         joinedGroups = groupsData || [];
+        console.log("Joined groups details:", joinedGroups);
       }
 
       // Combine and deduplicate groups
       const allGroups = [...(createdGroups || [])];
-      joinedGroups.forEach(joinedGroup => {
-        if (!allGroups.some(g => g.id === joinedGroup.id)) {
-          allGroups.push(joinedGroup);
-        }
-      });
-
+      if (joinedGroups.length > 0) {
+        joinedGroups.forEach(joinedGroup => {
+          if (!allGroups.some(g => g.id === joinedGroup.id)) {
+            allGroups.push(joinedGroup);
+          }
+        });
+      }
+      
+      console.log("All groups after combining:", allGroups);
       setGroups(allGroups);
     } catch (error) {
       console.error("Error fetching groups:", error);
@@ -78,30 +99,34 @@ const Groups: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchGroups();
-    
-    // Set up subscription to real-time updates
-    const channel = supabase
-      .channel("group-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
-        (payload) => {
-          fetchGroups();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        (payload) => {
-          fetchGroups();
-        }
-      )
-      .subscribe();
+    if (user) {
+      fetchGroups();
+      
+      // Set up subscription to real-time updates
+      const channel = supabase
+        .channel("group-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "groups" },
+          (payload) => {
+            console.log("Group change detected:", payload);
+            fetchGroups();
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "group_members" },
+          (payload) => {
+            console.log("Group membership change detected:", payload);
+            fetchGroups();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user?.id]);
 
   // Update DialogOpen callbacks to refresh the groups list

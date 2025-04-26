@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,29 +22,49 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error(t("notLoggedIn"));
+      return;
+    }
     
     setIsLoading(true);
     try {
-      // First, create the group
+      console.log("Creating group with name:", groupName);
+      console.log("User ID:", user.id);
+      
+      // First, create the group with the current user as creator
       const { data: groupData, error: groupError } = await supabase
         .from("groups")
-        .insert([{ name: groupName, created_by: user.id }])
+        .insert([{ 
+          name: groupName, 
+          created_by: user.id 
+        }])
         .select()
         .single();
 
-      if (groupError) throw groupError;
+      if (groupError) {
+        console.error("Error creating group:", groupError);
+        throw groupError;
+      }
       
       if (!groupData) {
         throw new Error("Failed to create group: No data returned");
       }
 
+      console.log("Group created successfully:", groupData);
+      
       // Then, add the creator as a member of the group
       const { error: memberError } = await supabase
         .from("group_members")
-        .insert([{ group_id: groupData.id, user_id: user.id }]);
+        .insert([{ 
+          group_id: groupData.id, 
+          user_id: user.id 
+        }]);
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error("Error adding user as member:", memberError);
+        throw memberError;
+      }
 
       toast.success(t("groupCreated"));
       onOpenChange(false);
@@ -62,6 +82,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("createNewGroup")}</DialogTitle>
+          <DialogDescription>{t("enterGroupDetails")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
