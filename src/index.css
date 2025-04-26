@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,22 +6,22 @@
 @layer base {
   :root {
     --background: 150 30% 96%; 
-    --foreground: 145 64% 10%; // Darker text for better contrast
+    --foreground: 145 64% 10%; /* Darker text for better contrast */
 
     --card: 150 30% 98%;
-    --card-foreground: 145 64% 10%; // Darker card text
+    --card-foreground: 145 64% 10%; /* Darker card text */
 
     --popover: 150 30% 98%;
     --popover-foreground: 145 64% 10%;
 
-    --primary: 145 40% 20%; // Slightly darker primary color
+    --primary: 145 40% 20%; /* Slightly darker primary color */
     --primary-foreground: 150 30% 98%;
 
     --secondary: 150 30% 94%;
-    --secondary-foreground: 145 40% 15%; // Darker secondary foreground
+    --secondary-foreground: 145 40% 15%; /* Darker secondary foreground */
 
     --muted: 150 30% 94%;
-    --muted-foreground: 145 24% 25%; // Darker muted text for better readability
+    --muted-foreground: 145 24% 25%; /* Darker muted text for better readability */
 
     --accent: 150 30% 94%;
     --accent-foreground: 145 40% 15%;
