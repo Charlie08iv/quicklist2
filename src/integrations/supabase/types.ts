@@ -39,91 +39,6 @@ export type Database = {
         }
         Relationships: []
       }
-      group_members: {
-        Row: {
-          group_id: string
-          id: string
-          joined_at: string
-          user_id: string
-        }
-        Insert: {
-          group_id: string
-          id?: string
-          joined_at?: string
-          user_id: string
-        }
-        Update: {
-          group_id?: string
-          id?: string
-          joined_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      group_messages: {
-        Row: {
-          created_at: string
-          group_id: string
-          id: string
-          message: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          group_id: string
-          id?: string
-          message: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          group_id?: string
-          id?: string
-          message?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_messages_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      groups: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          invite_code: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          invite_code?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          invite_code?: string
-          name?: string
-        }
-        Relationships: []
-      }
       meals: {
         Row: {
           created_at: string
@@ -261,64 +176,12 @@ export type Database = {
         }
         Relationships: []
       }
-      wish_items: {
-        Row: {
-          created_at: string
-          description: string | null
-          group_id: string
-          id: string
-          name: string
-          purchased: boolean
-          purchased_by: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          group_id: string
-          id?: string
-          name: string
-          purchased?: boolean
-          purchased_by?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          group_id?: string
-          id?: string
-          name?: string
-          purchased?: boolean
-          purchased_by?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wish_items_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      user_is_creator_of_group: {
-        Args: { group_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
-      user_is_member_of_group: {
-        Args: { group_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
-      user_owns_shopping_item: {
-        Args: { list_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

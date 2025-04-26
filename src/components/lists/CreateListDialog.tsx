@@ -9,8 +9,6 @@ import { Loader2, Plus } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 interface CreateListDialogProps {
   onListCreated: () => void;
@@ -18,9 +16,8 @@ interface CreateListDialogProps {
 
 const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) => {
   const { t } = useTranslation();
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [listName, setListName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,11 +26,6 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
     e.preventDefault();
     if (!listName.trim()) return;
     
-    if (!user) {
-      toast.error(t("Authentication required"));
-      return;
-    }
-    
     setIsSubmitting(true);
     try {
       const newList = await createShoppingList({
@@ -41,7 +33,10 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
       });
       
       if (newList) {
-        toast.success(t("List created"));
+        toast({
+          title: t("List created"),
+          description: t("Your new shopping list has been created")
+        });
         
         // Close the dialog
         setOpen(false);
@@ -53,12 +48,14 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
         setTimeout(() => {
           navigate(`/lists/${newList.id}`);
         }, 100);
-      } else {
-        throw new Error("Failed to create list");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to create list:", error);
-      toast.error(error.message || t("Failed to create list"));
+      toast({
+        title: t("Failed to create list"),
+        description: t("Please try again later"),
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -68,6 +65,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
     setOpen(false);
     setTimeout(() => {
       setListName("");
+      onListCreated();
     }, 100);
   };
 
@@ -127,7 +125,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               {t("Cancel")}
             </Button>
-            <Button type="submit" disabled={isSubmitting || !listName.trim() || !user}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 

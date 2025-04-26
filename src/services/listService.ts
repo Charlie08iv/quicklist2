@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
-import { toast } from "sonner";
 
 export const getMealsByDate = async (date: string): Promise<Meal[]> => {
   try {
@@ -26,16 +25,18 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
-    if (!userId) {
-      console.log("No authenticated user found. Returning empty lists array.");
-      return [];
-    }
-    
-    const { data: lists, error: listsError } = await supabase
+    let query = supabase
       .from('shopping_lists')
       .select('*')
-      .eq('date', date)
-      .eq('user_id', userId);
+      .eq('date', date);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.eq('is_shared', true);
+    }
+
+    const { data: lists, error: listsError } = await query;
 
     if (listsError) {
       console.error("Error fetching shopping lists by date:", listsError);
@@ -43,7 +44,7 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
     }
 
     const listsWithItems = await Promise.all(
-      (lists || []).map(async (list) => {
+      lists.map(async (list) => {
         const { data: items, error: itemsError } = await supabase
           .from('shopping_items')
           .select('*')
@@ -54,7 +55,7 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
           return mapShoppingListFromRow(list as ShoppingListRow, []);
         }
 
-        return mapShoppingListFromRow(list as ShoppingListRow, (items || []).map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
       })
     );
 
@@ -70,16 +71,18 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
-    if (!userId) {
-      console.log("No authenticated user found. Returning empty lists array.");
-      return [];
-    }
-    
-    const { data: lists, error: listsError } = await supabase
+    let query = supabase
       .from('shopping_lists')
       .select('*')
-      .is('date', null)
-      .eq('user_id', userId);
+      .is('date', null);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.eq('is_shared', true);
+    }
+
+    const { data: lists, error: listsError } = await query;
 
     if (listsError) {
       console.error("Error fetching unscheduled shopping lists:", listsError);
@@ -87,7 +90,7 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
     }
 
     const listsWithItems = await Promise.all(
-      (lists || []).map(async (list) => {
+      lists.map(async (list) => {
         const { data: items, error: itemsError } = await supabase
           .from('shopping_items')
           .select('*')
@@ -98,7 +101,7 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
           return mapShoppingListFromRow(list as ShoppingListRow, []);
         }
 
-        return mapShoppingListFromRow(list as ShoppingListRow, (items || []).map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
       })
     );
 
@@ -112,12 +115,7 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
 export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    
-    if (!userId) {
-      console.error("No authenticated user found. Cannot create shopping list.");
-      throw new Error("Authentication required");
-    }
+    const userId = sessionData?.session?.user?.id || 'anonymous';
     
     const { data, error } = await supabase
       .from('shopping_lists')
@@ -125,20 +123,20 @@ export const createShoppingList = async (list: { name: string; date?: string }):
         name: list.name, 
         date: list.date,
         user_id: userId,
-        archived: false
+        archived: false // Make sure new lists are not archived by default
       })
       .select()
       .single();
 
     if (error) {
       console.error("Error creating shopping list:", error);
-      throw error;
+      return null;
     }
 
     return mapShoppingListFromRow(data as ShoppingListRow, []);
   } catch (error) {
     console.error("Error creating shopping list:", error);
-    throw error;
+    return null;
   }
 };
 
