@@ -67,20 +67,20 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
     let message = "";
     switch (sortType) {
       case "name":
-        message = t("Items have been sorted alphabetically");
+        message = t("itemsAlphabetically");
         break;
       case "category":
-        message = t("Items have been sorted by category");
+        message = t("itemsByCategory");
         break;
       case "custom":
-        message = t("Switched to custom sorting mode");
+        message = t("customSorting");
         break;
       default:
-        message = t("Items have been sorted");
+        message = t("itemsSorted");
     }
     
     toast({
-      title: t("List sorted"),
+      title: t("listSorted"),
       description: message
     });
   }, [onSort, toast, t]);
@@ -95,8 +95,8 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       onTogglePrices();
     }
     toast({
-      title: t("Prices toggled"),
-      description: t("Price display has been toggled")
+      title: t("pricesToggled"),
+      description: t("priceDisplay")
     });
   }, [onTogglePrices, toast, t]);
 
@@ -110,8 +110,8 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       onUncheckAll();
     }
     toast({
-      title: t("Items unchecked"),
-      description: t("All items have been unchecked")
+      title: t("itemsUnchecked"),
+      description: t("itemsUnchecked")
     });
   }, [onUncheckAll, toast, t]);
 
@@ -134,38 +134,38 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
           onClick={e => e.stopPropagation()}
           onEscapeKeyDown={() => setIsMenuOpen(false)}
         >
-          <DropdownMenuLabel>{t("Manage List")}</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("manageList")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
           <DropdownMenuItem onClick={handleShare}>
-            <Share2 className="mr-2 h-4 w-4" /> {t("Share list")}
+            <Share2 className="mr-2 h-4 w-4" /> {t("shareList")}
           </DropdownMenuItem>
           
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <ListOrdered className="mr-2 h-4 w-4" /> {t("Sort by")}
+              <ListOrdered className="mr-2 h-4 w-4" /> {t("sortBy")}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuItem onClick={handleSort("category")}>
-                <ListOrdered className="mr-2 h-4 w-4" /> {t("Categories")}
+                <ListOrdered className="mr-2 h-4 w-4" /> {t("categories")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSort("name")}>
-                <ArrowDownAZ className="mr-2 h-4 w-4" /> {t("Alphabetically")}
+                <ArrowDownAZ className="mr-2 h-4 w-4" /> {t("alphabetically")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSort("custom")}>
-                <Share2 className="mr-2 h-4 w-4" /> {t("Custom")}
+                <Share2 className="mr-2 h-4 w-4" /> {t("custom")}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           
           <DropdownMenuItem onClick={handleTogglePrices}>
-            <DollarSign className="mr-2 h-4 w-4" /> {t("Show prices")}
+            <DollarSign className="mr-2 h-4 w-4" /> {t("showPrices")}
           </DropdownMenuItem>
           
           <DropdownMenuSeparator />
           
           <DropdownMenuItem onClick={handleUncheckAll}>
-            <CheckCheck className="mr-2 h-4 w-4" /> {t("Uncheck all items")}
+            <CheckCheck className="mr-2 h-4 w-4" /> {t("uncheckAllItems")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

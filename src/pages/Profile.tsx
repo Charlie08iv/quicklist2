@@ -1,19 +1,21 @@
+
 import React, { useState } from "react";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileActions from "@/components/profile/ProfileActions";
 import SettingsDialog from "@/components/profile/SettingsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/providers/ThemeProvider";
-import { useTranslation } from "@/hooks/use-translation";
+import { useTranslation, LanguageCode } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { language, setLanguage } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const username = user?.email?.split("@")[0] || "username";
 
@@ -23,7 +25,7 @@ const Profile: React.FC = () => {
   const handleShare = async () => {
     const shareData = {
       title: "Quicklist2",
-      text: "Check out this awesome grocery list app!",
+      text: t("Check out this awesome grocery list app!"),
       url: window.location.origin,
     };
 
@@ -31,15 +33,15 @@ const Profile: React.FC = () => {
       if (navigator.share) {
         await navigator.share(shareData);
         toast({
-          title: "Success",
-          description: "Thanks for sharing!",
+          title: t("success"),
+          description: t("thanksForSharing"),
         });
       } else {
         if (navigator.clipboard) {
           await navigator.clipboard.writeText(shareData.url);
           toast({
-            title: "Link copied!",
-            description: "The app link has been copied to your clipboard",
+            title: t("linkCopied"),
+            description: t("appLinkCopied"),
           });
         } else {
           window.open(shareData.url, "_blank");
@@ -48,8 +50,8 @@ const Profile: React.FC = () => {
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
         toast({
-          title: "Couldn't share",
-          description: "Please try copying the link instead",
+          title: t("couldntShare"),
+          description: t("tryToCopy"),
           variant: "destructive",
         });
       }
@@ -58,8 +60,8 @@ const Profile: React.FC = () => {
 
   const handleRate = () => {
     toast({
-      title: "Thank you!",
-      description: "Rating functionality will be implemented soon.",
+      title: t("thankYou"),
+      description: t("ratingSoon"),
     });
   };
 
@@ -73,6 +75,14 @@ const Profile: React.FC = () => {
 
   const handleAvatarChange = async (file: File, url: string) => {
     setAvatarUrl(url);
+    toast({
+      title: t("profilePictureUpdated"),
+      description: t("profilePictureSuccess"),
+    });
+  };
+  
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang as LanguageCode);
   };
 
   return (
@@ -95,9 +105,10 @@ const Profile: React.FC = () => {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         language={language}
-        onLanguageChange={setLanguage}
+        onLanguageChange={handleLanguageChange}
         theme={theme}
         onThemeChange={setTheme}
+        email={user?.email}
       />
     </div>
   );

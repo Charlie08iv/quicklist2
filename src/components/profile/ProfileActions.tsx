@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { User, Share, Mail, FileText, Settings, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@/hooks/use-translation";
 
 type ProfileActionsProps = {
   onOpenSettings: () => void;
@@ -20,6 +21,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   onPrivacy,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col gap-3 w-full px-3 max-w-md mx-auto">
@@ -30,7 +32,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         type="button"
       >
         <Settings className="mr-2 w-5 h-5" />
-        Settings
+        {t("settings")}
       </Button>
       <Button
         className="rounded-xl bg-card text-lg border shadow hover:bg-accent/30 transition"
@@ -39,7 +41,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         type="button"
       >
         <User className="mr-2 w-5 h-5" />
-        Account
+        {t("account")}
       </Button>
       <Button
         className="rounded-xl bg-primary text-white text-lg font-medium shadow hover:bg-primary/80 transition"
@@ -47,7 +49,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         type="button"
       >
         <Share className="mr-2 w-4 h-4" />
-        Share app
+        {t("shareApp")}
       </Button>
       <Button
         type="button"
@@ -55,7 +57,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         className="flex rounded-xl bg-card text-lg border shadow hover:bg-accent/30 transition items-center justify-center"
         onClick={onRate}
       >
-        <Star className="mr-2 w-5 h-5" /> Rate the app!
+        <Star className="mr-2 w-5 h-5" /> {t("rateTheApp")}
       </Button>
       <Button
         type="button"
@@ -63,7 +65,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         className="flex rounded-xl bg-card border shadow hover:bg-accent/30 transition items-center justify-center"
         onClick={onFeedback}
       >
-        <Mail className="mr-2 w-5 h-5" /> Support and feedback
+        <Mail className="mr-2 w-5 h-5" /> {t("supportAndFeedback")}
       </Button>
       <Button
         type="button"
@@ -72,7 +74,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
         onClick={onPrivacy}
       >
         <FileText className="mr-2 w-4 h-4" />
-        Privacy Policy
+        {t("privacyPolicy")}
       </Button>
     </div>
   );

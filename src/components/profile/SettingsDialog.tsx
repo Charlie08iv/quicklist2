@@ -4,6 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Mail, User as UserIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useTranslation } from "@/hooks/use-translation";
+import FeedbackForm from "./FeedbackForm";
 
 type SettingsDialogProps = {
   open: boolean;
@@ -16,8 +18,8 @@ type SettingsDialogProps = {
 };
 
 const LANGS = [
-  { value: "en", label: "English" },
   { value: "sv", label: "Svenska" },
+  { value: "en", label: "English" },
 ];
 
 const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -29,10 +31,12 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   theme,
   onThemeChange,
 }) => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState(true);
   const [openLastUsed, setOpenLastUsed] = useState(false);
   const [keepScreenOn, setKeepScreenOn] = useState(false);
   const [rating, setRating] = useState(0);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
 
   // Star rating
   const StarRating = () => (
@@ -62,11 +66,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
         </DialogHeader>
         <div className="p-5 space-y-4">
           <div>
-            <span className="font-semibold text-muted-foreground mb-1 block">General</span>
+            <span className="font-semibold text-muted-foreground mb-1 block">{t("general")}</span>
             <div className="flex flex-col gap-4 rounded-xl">
               {/* Language Picker */}
               <div className="flex items-center justify-between">
-                <label htmlFor="language" className="font-medium">Language</label>
+                <label htmlFor="language" className="font-medium">{t("language")}</label>
                 <select
                   id="language"
                   className="rounded border bg-muted px-2 py-1 text-sm outline-none"
@@ -80,9 +84,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
               {/* Light/Dark mode */}
               <div className="flex items-center justify-between">
-                <label className="font-medium">Light mode</label>
+                <label className="font-medium">{t("lightMode")}</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Switch to {theme === "dark" ? "light" : "dark"} mode</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("switchTo")} {theme === "dark" ? t("lightMode").toLowerCase() : t("darkMode").toLowerCase()}
+                  </span>
                   <Switch
                     checked={theme === "light"}
                     onCheckedChange={checked => onThemeChange(checked ? "light" : "dark")}
@@ -91,31 +97,35 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
               {/* Notification */}
               <div className="flex items-center justify-between">
-                <label className="font-medium">Notification</label>
+                <label className="font-medium">{t("notifications")}</label>
                 <Switch checked={notifications} onCheckedChange={setNotifications} />
               </div>
               {/* Open last used list */}
               <div className="flex items-center justify-between">
-                <label className="font-medium">Open last used list</label>
+                <label className="font-medium">{t("openLastUsed")}</label>
                 <Switch checked={openLastUsed} onCheckedChange={setOpenLastUsed} />
               </div>
               {/* Keep screen on */}
               <div className="flex items-center justify-between">
-                <label className="font-medium">Keep the screen on</label>
+                <label className="font-medium">{t("keepScreenOn")}</label>
                 <Switch checked={keepScreenOn} onCheckedChange={setKeepScreenOn} />
               </div>
               {/* Rate the app */}
               <div className="flex items-center justify-between">
-                <label className="font-medium">Rate the app!</label>
+                <label className="font-medium">{t("rateTheApp")}</label>
                 <StarRating />
               </div>
               {/* Feedback */}
               <div className="flex flex-col gap-2">
-                <label className="font-medium">Report a problem/feedback</label>
-                <Button size="sm" variant="outline" className="flex gap-1 items-center w-fit">
-                  <Mail className="w-4 h-4" />
-                  Send Feedback
-                </Button>
+                <label className="font-medium">{t("reportProblem")}</label>
+                {showFeedbackForm ? (
+                  <FeedbackForm />
+                ) : (
+                  <Button size="sm" variant="outline" className="flex gap-1 items-center w-fit" onClick={() => setShowFeedbackForm(true)}>
+                    <Mail className="w-4 h-4" />
+                    {t("sendFeedback")}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
