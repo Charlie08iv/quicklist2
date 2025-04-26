@@ -2,7 +2,8 @@
 import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Users, ShoppingCart } from "lucide-react";
 import { RecipeDetails } from "@/types/recipes";
 import { useTranslation } from "@/hooks/use-translation";
 
@@ -40,7 +41,13 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
         </div>
 
         <div className="p-6">
-          <p className="text-muted-foreground mb-6">{recipe.description}</p>
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-muted-foreground">{recipe.description}</p>
+            <Button onClick={onAddToList} className="ml-4 shrink-0">
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              {t("addToList")}
+            </Button>
+          </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
             {recipe.tags.map((tag, idx) => (
