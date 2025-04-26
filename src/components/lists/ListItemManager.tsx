@@ -13,6 +13,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ShoppingItemWithPrice extends ShoppingItem {
   price?: number;
@@ -61,6 +78,113 @@ const categoryIcons: Record<string, string> = {
   "Other": "📦"
 };
 
+interface SortableItemProps {
+  item: ShoppingItemWithPrice;
+  onRemove?: (id: string) => void;
+  onToggleCheck?: (id: string, checked: boolean) => void;
+  onOpenDetails: (item: ShoppingItemWithPrice) => void;
+  showPrices?: boolean;
+}
+
+const SortableItem: React.FC<SortableItemProps> = ({ 
+  item, 
+  onRemove, 
+  onToggleCheck, 
+  onOpenDetails,
+  showPrices 
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'move'
+  };
+
+  return (
+    <li 
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="flex justify-between items-center p-2 hover:bg-[#2D7A46]/20 rounded-md border-b border-[#2D7A46]/10 last:border-0"
+    >
+      <div className="flex items-center space-x-2 flex-1">
+        {onToggleCheck && (
+          <button
+            onClick={() => onToggleCheck(item.id, !item.checked)}
+            className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center",
+              item.checked 
+                ? "bg-[#2D7A46] text-white" 
+                : "border-2 border-[#2D7A46]/50 text-[#2D7A46]"
+            )}
+            aria-label={item.checked ? "Mark as not done" : "Mark as done"}
+          >
+            {item.checked && <Check className="h-4 w-4" />}
+          </button>
+        )}
+        <div
+          className={cn(
+            "flex-1 flex flex-col", 
+            item.checked ? "line-through text-[#2D7A46]/70" : ""
+          )}
+          onClick={() => onOpenDetails(item)}
+        >
+          <span className="text-white">
+            {item.name}
+            {item.category && (
+              <span className="ml-2 text-xs text-[#2D7A46]/80">
+                {categoryIcons[item.category]}
+              </span>
+            )}
+          </span>
+          {showPrices && item.price !== undefined && (
+            <span className="text-xs text-[#2D7A46]/80">
+              ${item.price.toFixed(2)}
+            </span>
+          )}
+        </div>
+        <span className="text-sm text-[#2D7A46] whitespace-nowrap">
+          {item.quantity} {item.unit}
+        </span>
+      </div>
+      
+      <div className="flex space-x-1">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => onOpenDetails(item)}
+          className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
+          aria-label="Edit item details"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        
+        {onRemove && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => onRemove(item.id)}
+            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/20"
+            aria-label="Remove item"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </li>
+  );
+};
+
 const ListItemManager: React.FC<ListItemManagerProps> = ({ 
   listId, 
   items, 
@@ -83,6 +207,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [list, setList] = useState<{ items: ShoppingItemWithPrice[] } | null>(null);
 
   const getText = (key: string): string => {
     return translatedTexts?.[key] || t(key) || key;
@@ -279,6 +404,26 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     return { itemsByCategory, sortedCategories, allSortedItems };
   }, [items, sortType]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      const oldIndex = allSortedItems.findIndex((item) => item.id === active.id);
+      const newIndex = allSortedItems.findIndex((item) => item.id === over?.id);
+      
+      const newItems = arrayMove(allSortedItems, oldIndex, newIndex);
+      // Update local state immediately for smooth UX
+      setList(prevList => prevList ? { ...prevList, items: newItems } : null);
+    }
+  };
+
   const renderItemsList = () => {
     if (sortType === "name" || sortType === "custom") {
       const title = sortType === "name" ? getText("allItems") : getText("customOrder");
@@ -290,7 +435,31 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
             <span className="mr-2">{icon}</span> {title}
           </h4>
           <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
-            {allSortedItems.map(item => renderItem(item))}
+            {sortType === "custom" ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={allSortedItems.map(item => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {allSortedItems.map(item => (
+                    <SortableItem
+                      key={item.id}
+                      item={item}
+                      onRemove={onRemoveItem}
+                      onToggleCheck={onToggleItemCheck}
+                      onOpenDetails={openItemDetails}
+                      showPrices={showPrices}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              allSortedItems.map(item => renderItem(item))
+            )}
           </ul>
         </div>
       );
