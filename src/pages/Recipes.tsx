@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -95,13 +94,15 @@ const Recipes: React.FC = () => {
               <Utensils className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h2 className="text-2xl font-medium mb-2 text-primary">{t("noPersonalRecipes")}</h2>
               <p className="text-muted-foreground mb-8">{t("createYourFirstRecipe")}</p>
-              <Button 
-                onClick={() => setCreateDialogOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                {t("createRecipe")}
-              </Button>
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  {t("createRecipe")}
+                </Button>
+              </div>
             </motion.div>
           </div>
         </TabsContent>
@@ -132,4 +133,3 @@ const Recipes: React.FC = () => {
 };
 
 export default Recipes;
-
