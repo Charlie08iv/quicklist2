@@ -121,24 +121,24 @@ const Recipes: React.FC = () => {
       </div>
 
       <Tabs defaultValue="myRecipes" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="myRecipes" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TabsTrigger value="myRecipes" className="flex items-center gap-2 p-4">
             <Utensils className="h-4 w-4" />
             {t("myRecipes")}
           </TabsTrigger>
-          <TabsTrigger value="inspiration" className="flex items-center gap-2">
+          <TabsTrigger value="inspiration" className="flex items-center gap-2 p-4">
             <Sparkles className="h-4 w-4" />
             {t("inspiration")}
           </TabsTrigger>
         </TabsList>
 
         {activeTab === "inspiration" && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4">
             {CATEGORIES.map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
-                className="flex-shrink-0"
+                className="flex-shrink-0 whitespace-nowrap"
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
               >
