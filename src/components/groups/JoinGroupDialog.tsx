@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import { toast } from "sonner";
 interface JoinGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGroupJoined?: () => void;
 }
 
-export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
+export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
@@ -23,69 +22,30 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast.error(t("You need to be logged in to join a group"));
-      return;
-    }
-    
-    if (!inviteCode.trim()) {
-      toast.error(t("Please enter an invite code"));
-      return;
-    }
+    if (!user) return;
     
     setIsLoading(true);
     try {
-      // Find the group with the invite code
       const { data: group, error: groupError } = await supabase
         .from("groups")
         .select("id")
-        .eq("invite_code", inviteCode.trim())
+        .eq("invite_code", inviteCode)
         .single();
 
-      if (groupError) {
-        if (groupError.code === 'PGRST116') {
-          toast.error(t("Invalid invite code"));
-        } else {
-          throw groupError;
-        }
-        setIsLoading(false);
-        return;
-      }
+      if (groupError) throw groupError;
 
-      // Check if the user is already a member of the group
-      const { data: existingMember, error: memberCheckError } = await supabase
-        .from("group_members")
-        .select("id")
-        .eq("group_id", group.id)
-        .eq("user_id", user.id)
-        .single();
-        
-      if (!memberCheckError && existingMember) {
-        toast.info(t("You are already a member of this group"));
-        onOpenChange(false);
-        setInviteCode("");
-        if (onGroupJoined) onGroupJoined();
-        setIsLoading(false);
-        return;
-      }
-
-      // Add the user as a member of the group
       const { error: memberError } = await supabase
         .from("group_members")
-        .insert([{ 
-          group_id: group.id, 
-          user_id: user.id 
-        }]);
+        .insert([{ group_id: group.id, user_id: user.id }]);
 
       if (memberError) throw memberError;
 
-      toast.success(t("Successfully joined the group"));
+      toast.success(t("joinedGroup"));
       onOpenChange(false);
       setInviteCode("");
-      if (onGroupJoined) onGroupJoined();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error joining group:", error);
-      toast.error(error.message || t("Error joining group"));
+      toast.error(t("errorJoiningGroup"));
     } finally {
       setIsLoading(false);
     }
@@ -95,23 +55,21 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("Join Group")}</DialogTitle>
-          <DialogDescription>{t("Enter the invite code to join an existing group.")}</DialogDescription>
+          <DialogTitle>{t("joinGroup")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="inviteCode">{t("Invite Code")}</Label>
+            <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
             <Input
               id="inviteCode"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              placeholder={t("Enter invite code")}
+              placeholder={t("enterInviteCode")}
               required
-              autoFocus
             />
           </div>
-          <Button type="submit" disabled={isLoading || !inviteCode.trim()} className="w-full">
-            {isLoading ? t("Joining...") : t("Join Group")}
+          <Button type="submit" disabled={isLoading || !inviteCode.trim()}>
+            {isLoading ? t("joining") : t("joinGroup")}
           </Button>
         </form>
       </DialogContent>

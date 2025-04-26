@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import { toast } from "sonner";
 interface CreateGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGroupCreated?: () => void;
 }
 
-export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
+export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [groupName, setGroupName] = useState("");
@@ -23,49 +22,22 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast.error(t("You need to be logged in to create a group"));
-      return;
-    }
-    
-    if (!groupName.trim()) {
-      toast.error(t("Please enter a group name"));
-      return;
-    }
+    if (!user) return;
     
     setIsLoading(true);
     try {
-      // Insert the group into the database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("groups")
-        .insert([{ 
-          name: groupName.trim(), 
-          created_by: user.id 
-        }])
-        .select()
-        .single();
+        .insert([{ name: groupName, created_by: user.id }]);
 
       if (error) throw error;
 
-      // Add the creator as a member of the group
-      if (data) {
-        const { error: memberError } = await supabase
-          .from("group_members")
-          .insert([{ 
-            group_id: data.id, 
-            user_id: user.id 
-          }]);
-        
-        if (memberError) throw memberError;
-      }
-
-      toast.success(t("Group created successfully"));
+      toast.success(t("groupCreated"));
       onOpenChange(false);
       setGroupName("");
-      if (onGroupCreated) onGroupCreated();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating group:", error);
-      toast.error(error.message || t("Error creating group"));
+      toast.error(t("errorCreatingGroup"));
     } finally {
       setIsLoading(false);
     }
@@ -75,23 +47,21 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("Create New Group")}</DialogTitle>
-          <DialogDescription>{t("Create a group to share lists and chat with others.")}</DialogDescription>
+          <DialogTitle>{t("createNewGroup")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="groupName">{t("Group Name")}</Label>
+            <Label htmlFor="groupName">{t("groupName")}</Label>
             <Input
               id="groupName"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder={t("Enter group name")}
+              placeholder={t("enterGroupName")}
               required
-              autoFocus
             />
           </div>
-          <Button type="submit" disabled={isLoading || !groupName.trim()} className="w-full">
-            {isLoading ? t("Creating...") : t("Create Group")}
+          <Button type="submit" disabled={isLoading || !groupName.trim()}>
+            {isLoading ? t("creating") : t("createGroup")}
           </Button>
         </form>
       </DialogContent>
