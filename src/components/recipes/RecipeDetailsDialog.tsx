@@ -10,12 +10,14 @@ interface RecipeDetailsDialogProps {
   recipe: RecipeDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddToList?: () => void;
 }
 
 const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
   recipe,
   open,
   onOpenChange,
+  onAddToList,
 }) => {
   const { t } = useTranslation();
   
