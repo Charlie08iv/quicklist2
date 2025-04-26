@@ -25,7 +25,6 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = (pro
     quantity: t("Quantity"),
     unit: t("Unit"),
     addItem: t("Add Item"),
-    other: t("Other"),
     done: t("Done"),
     selectUnit: t("Select unit"),
     price: t("Price"),
