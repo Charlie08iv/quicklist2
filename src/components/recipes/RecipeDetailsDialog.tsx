@@ -3,20 +3,24 @@ import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Share, X } from "lucide-react";
-import { useTranslation } from "@/hooks/use-translation";
+import { Clock, Heart, Share, ShoppingCart, Users } from "lucide-react";
 import { RecipeDetails } from "@/types/recipes";
+import { useTranslation } from "@/hooks/use-translation";
 
 interface RecipeDetailsDialogProps {
   recipe: RecipeDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLikeToggle?: () => void;
+  onAddToList?: () => void;
 }
 
 const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
   recipe,
   open,
   onOpenChange,
+  onLikeToggle,
+  onAddToList,
 }) => {
   const { t } = useTranslation();
   
@@ -36,21 +40,27 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
             <h2 className="text-3xl font-semibold text-white mb-2">{recipe.title}</h2>
             <p className="text-white/90">By {recipe.author}</p>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="absolute top-4 right-4 bg-black/30 rounded-full p-1 hover:bg-black/50 transition-colors text-white"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="h-6 w-6" />
-          </Button>
         </div>
 
         <div className="p-6">
-          <div className="flex justify-end">
-            <Button variant="outline">
-              <Share className="h-4 w-4 mr-2" />
-              {t("share")}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={onLikeToggle}
+                className={recipe.liked ? "text-red-500" : ""}
+              >
+                <Heart className="h-4 w-4 mr-2" fill={recipe.liked ? "currentColor" : "none"} />
+                {recipe.liked ? t("liked") : t("like")}
+              </Button>
+              <Button variant="outline">
+                <Share className="h-4 w-4 mr-2" />
+                {t("share")}
+              </Button>
+            </div>
+            <Button onClick={onAddToList}>
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              {t("addToList")}
             </Button>
           </div>
 
@@ -74,7 +84,7 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
               <span className="font-medium">{recipe.cookTime} {t("min")}</span>
             </div>
             <div className="flex flex-col items-center p-4 bg-muted/30 rounded-lg">
-              <span className="text-xl mb-1">👥</span>
+              <Users className="h-5 w-5 text-muted-foreground mb-1" />
               <span className="text-sm text-muted-foreground">{t("servings")}</span>
               <span className="font-medium">{recipe.servings}</span>
             </div>

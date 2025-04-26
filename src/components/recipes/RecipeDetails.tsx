@@ -4,24 +4,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Share, X } from "lucide-react";
+import { Clock, Heart, Share, ShoppingCart, X, Check } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { RecipeDetails as RecipeDetailsType } from "@/types/recipes";
+import { useState } from "react";
+import { addRecipeToShoppingList } from "@/services/recipeService";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecipeDetailsDialogProps {
   recipe: RecipeDetailsType | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLike?: () => void;
 }
 
 const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
   recipe,
   open,
-  onOpenChange
+  onOpenChange,
+  onLike
 }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
   
   if (!recipe) return null;
+  
+  const handleAddToList = async () => {
+    setIsAdding(true);
+    try {
+      const success = await addRecipeToShoppingList(recipe.id);
+      
+      if (success) {
+        toast({
+          title: t("ingredientsAdded"),
+          description: t("ingredientsAddedToList"),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to add ingredients to list:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,10 +74,39 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
         </DialogHeader>
         
         <div className="p-6 space-y-6">
-          <div className="flex justify-end">
-            <Button variant="outline">
-              <Share className="h-4 w-4 mr-2" />
-              {t("share")}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <Button 
+                onClick={onLike} 
+                variant="outline"
+                className={recipe.liked ? "text-red-500" : ""}
+              >
+                <Heart className="h-4 w-4 mr-2" fill={recipe.liked ? "currentColor" : "none"} />
+                <span>{recipe.liked ? t("liked") : t("like")}</span>
+              </Button>
+              <Button variant="outline">
+                <Share className="h-4 w-4 mr-2" />
+                {t("share")}
+              </Button>
+            </div>
+            
+            <Button onClick={handleAddToList} disabled={isAdding}>
+              {isAdding ? (
+                <>
+                  <span className="animate-spin mr-2">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  </span>
+                  {t("adding")}
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {t("addToList")}
+                </>
+              )}
             </Button>
           </div>
 

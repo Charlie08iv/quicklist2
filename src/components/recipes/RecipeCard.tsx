@@ -1,17 +1,18 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Share } from "lucide-react";
+import { Heart, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RecipeDetails } from "@/types/recipes";
 
 interface RecipeCardProps {
   recipe: RecipeDetails;
+  onLikeToggle?: () => void;
   onOpenDetails: () => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onOpenDetails }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onLikeToggle, onOpenDetails }) => {
   return (
     <Card className="recipe-card group relative overflow-hidden">
       <div className="relative">
@@ -47,9 +48,23 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onOpenDetails }) => {
             View Recipe
           </Button>
           
-          <Button variant="ghost" size="icon">
-            <Share className="h-5 w-5 text-muted-foreground" />
-          </Button>
+          <div className="flex gap-2">
+            {onLikeToggle && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={onLikeToggle}
+                className="shrink-0"
+              >
+                <Heart 
+                  className={`h-5 w-5 ${recipe.liked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon">
+              <Share className="h-5 w-5 text-muted-foreground" />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
