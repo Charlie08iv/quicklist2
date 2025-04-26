@@ -65,7 +65,7 @@ const AddMealDialog: React.FC<AddMealDialogProps> = ({ date, onMealAdded }) => {
               id="meal-name"
               value={mealName}
               onChange={(e) => setMealName(e.target.value)}
-              placeholder="Enter meal name"
+              placeholder={t("Enter meal name")}
               className="border-primary/20 focus-visible:ring-primary"
               required
             />
