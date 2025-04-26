@@ -6,7 +6,7 @@ import { UserCircle2, Plus, User2 } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext"; // Updated import path
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface Group {
@@ -14,12 +14,12 @@ interface Group {
   name: string;
   created_at: string;
   invite_code: string;
-  created_by: string; // Added this property to match the database schema
+  created_by: string;
 }
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth(); // Using the correct auth context
+  const { user } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -35,64 +35,43 @@ const Groups: React.FC = () => {
       setLoading(true);
       console.log("Fetching groups for user:", user.id);
       
-      // Get groups created by the user
-      const { data: createdGroups, error: createdError } = await supabase
-        .from("groups")
-        .select("*")
-        .eq("created_by", user.id);
-      
-      if (createdError) {
-        console.error("Error fetching created groups:", createdError);
-        throw createdError;
-      }
-
-      console.log("Created groups:", createdGroups);
-
-      // Get groups the user is a member of
-      const { data: memberGroups, error: memberError } = await supabase
+      // Get all groups the user is a member of through group_members table
+      const { data: membershipData, error: membershipError } = await supabase
         .from("group_members")
         .select("group_id")
         .eq("user_id", user.id);
       
-      if (memberError) {
-        console.error("Error fetching member groups:", memberError);
-        throw memberError;
+      if (membershipError) {
+        console.error("Error fetching group memberships:", membershipError);
+        throw membershipError;
       }
 
-      console.log("Member of groups:", memberGroups);
-
-      // If user is a member of any groups, get those group details
-      let joinedGroups: Group[] = [];
-      if (memberGroups && memberGroups.length > 0) {
-        const groupIds = memberGroups.map(m => m.group_id);
-        console.log("Fetching details for groups:", groupIds);
-        
-        const { data: groupsData, error: groupsError } = await supabase
-          .from("groups")
-          .select("*")
-          .in("id", groupIds);
-        
-        if (groupsError) {
-          console.error("Error fetching group details:", groupsError);
-          throw groupsError;
-        }
-        
-        joinedGroups = groupsData || [];
-        console.log("Joined groups details:", joinedGroups);
-      }
-
-      // Combine and deduplicate groups
-      const allGroups = [...(createdGroups || [])];
-      if (joinedGroups.length > 0) {
-        joinedGroups.forEach(joinedGroup => {
-          if (!allGroups.some(g => g.id === joinedGroup.id)) {
-            allGroups.push(joinedGroup);
-          }
-        });
+      console.log("User group memberships:", membershipData);
+      
+      // If user isn't a member of any groups, return an empty array
+      if (!membershipData || membershipData.length === 0) {
+        console.log("User is not a member of any groups");
+        setGroups([]);
+        setLoading(false);
+        return;
       }
       
-      console.log("All groups after combining:", allGroups);
-      setGroups(allGroups);
+      // Extract group IDs
+      const groupIds = membershipData.map(item => item.group_id);
+      
+      // Fetch details for those groups
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("groups")
+        .select("*")
+        .in("id", groupIds);
+      
+      if (groupsError) {
+        console.error("Error fetching groups details:", groupsError);
+        throw groupsError;
+      }
+      
+      console.log("Fetched groups:", groupsData);
+      setGroups(groupsData || []);
     } catch (error) {
       console.error("Error fetching groups:", error);
       toast.error(t("errorFetchingGroups"));

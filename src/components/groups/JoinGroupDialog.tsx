@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext"; // Updated import path
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth(); // Using the correct auth context
+  const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,6 +29,9 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
     
     setIsLoading(true);
     try {
+      console.log("Joining group with invite code:", inviteCode);
+      console.log("Current user:", user.id);
+      
       // First, find the group with the invite code
       const { data: group, error: groupError } = await supabase
         .from("groups")
@@ -40,11 +43,20 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
         if (groupError.code === 'PGRST116') {
           toast.error(t("invalidInviteCode"));
         } else {
-          throw groupError;
+          console.error("Error finding group:", groupError);
+          toast.error(t("errorJoiningGroup"));
         }
         setIsLoading(false);
         return;
       }
+
+      if (!group) {
+        toast.error(t("invalidInviteCode"));
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Found group:", group);
 
       // Check if user is already a member
       const { data: existingMember, error: memberCheckError } = await supabase
@@ -54,7 +66,12 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
         .eq("user_id", user.id)
         .maybeSingle();
         
-      if (memberCheckError) throw memberCheckError;
+      if (memberCheckError) {
+        console.error("Error checking membership:", memberCheckError);
+        toast.error(t("errorJoiningGroup"));
+        setIsLoading(false);
+        return;
+      }
       
       if (existingMember) {
         toast.info(t("alreadyGroupMember"));
@@ -64,13 +81,21 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
         return;
       }
 
+      console.log("Adding user to group:", { group_id: group.id, user_id: user.id });
+
       // Then, add the user as a member
       const { error: memberError } = await supabase
         .from("group_members")
         .insert([{ group_id: group.id, user_id: user.id }]);
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error("Error joining group:", memberError);
+        toast.error(t("errorJoiningGroup"));
+        setIsLoading(false);
+        return;
+      }
 
+      console.log("Successfully joined group");
       toast.success(t("joinedGroup"));
       onOpenChange(false);
       setInviteCode("");

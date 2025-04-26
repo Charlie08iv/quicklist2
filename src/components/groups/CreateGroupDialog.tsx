@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext"; // Updated import path
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth(); // Using the correct auth context
+  const { user } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,12 +33,17 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       console.log("Creating group with name:", groupName);
       console.log("User ID:", user.id);
       
+      // Generate a unique invite code (use UUID for uniqueness)
+      const inviteCode = crypto.randomUUID();
+      console.log("Generated invite code:", inviteCode);
+      
       // First, create the group with the current user as creator
       const { data: groupData, error: groupError } = await supabase
         .from("groups")
         .insert([{ 
           name: groupName, 
-          created_by: user.id 
+          created_by: user.id,
+          invite_code: inviteCode
         }])
         .select()
         .single();
