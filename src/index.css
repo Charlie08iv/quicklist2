@@ -1,69 +1,68 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 145 64% 10%; /* Deep Forest Green background */
-    --foreground: 90 20% 90%; /* Light Sage text */
+    --background: 150 30% 96%;
+    --foreground: 145 64% 15%;
 
-    --card: 145 64% 15%; /* Darker Forest Green card */
-    --card-foreground: 90 20% 90%;
+    --card: 150 30% 98%;
+    --card-foreground: 145 64% 15%;
 
-    --popover: 145 64% 15%;
-    --popover-foreground: 90 20% 90%;
+    --popover: 150 30% 98%;
+    --popover-foreground: 145 64% 15%;
 
-    --primary: 136 45% 36%; /* Soft Green primary */
-    --primary-foreground: 90 20% 95%;
+    --primary: 145 40% 24%;
+    --primary-foreground: 150 30% 98%;
 
-    --secondary: 145 64% 20%;
-    --secondary-foreground: 90 20% 90%;
+    --secondary: 150 30% 94%;
+    --secondary-foreground: 145 40% 24%;
 
-    --muted: 145 64% 20%;
-    --muted-foreground: 90 20% 70%;
+    --muted: 150 30% 94%;
+    --muted-foreground: 145 24% 40%;
 
-    --accent: 136 20% 30%;
-    --accent-foreground: 90 20% 90%;
+    --accent: 150 30% 94%;
+    --accent-foreground: 145 40% 24%;
 
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 90 20% 90%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 150 30% 98%;
 
-    --border: 145 24% 30%;
-    --input: 145 24% 30%;
-    --ring: 136 45% 36%;
+    --border: 150 30% 90%;
+    --input: 150 30% 90%;
+    --ring: 145 40% 24%;
 
     --radius: 0.75rem;
   }
 
-  .light {
-    --background: 90 20% 95%; /* Light Sage background */
-    --foreground: 145 64% 15%; /* Dark Forest Green text */
+  .dark {
+    --background: 145 30% 12%;
+    --foreground: 150 30% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 145 64% 15%;
+    --card: 145 30% 15%;
+    --card-foreground: 150 30% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 145 64% 15%;
+    --popover: 145 30% 15%;
+    --popover-foreground: 150 30% 98%;
 
-    --primary: 136 45% 23%; /* Muted Green primary */
-    --primary-foreground: 90 20% 95%;
+    --primary: 150 40% 35%;
+    --primary-foreground: 145 30% 98%;
 
-    --secondary: 90 20% 90%;
-    --secondary-foreground: 136 45% 23%;
+    --secondary: 145 30% 18%;
+    --secondary-foreground: 150 30% 98%;
 
-    --muted: 90 20% 88%;
-    --muted-foreground: 145 24% 40%;
+    --muted: 145 30% 18%;
+    --muted-foreground: 150 20% 80%;
 
-    --accent: 136 45% 88%;
-    --accent-foreground: 136 45% 23%;
+    --accent: 145 30% 18%;
+    --accent-foreground: 150 30% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 90 20% 95%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 150 30% 98%;
 
-    --border: 145 24% 80%;
-    --input: 145 24% 80%;
-    --ring: 136 45% 23%;
+    --border: 145 30% 20%;
+    --input: 145 30% 20%;
+    --ring: 150 40% 35%;
   }
 }
 
@@ -92,26 +91,23 @@
   }
 }
 
-/* Smooth transitions for dark/light mode changes */
 * {
   transition-property: color, background-color, border-color, transform, box-shadow;
   transition-duration: 200ms;
 }
 
-/* Modern Card Styles */
 .modern-card {
-  @apply rounded-xl border-0 shadow-md overflow-hidden;
+  @apply rounded-xl border border-border/10 shadow-lg overflow-hidden;
 }
 
 .modern-card-header {
-  @apply p-4 border-b bg-gradient-to-r from-secondary/30 to-secondary/10;
+  @apply p-4 border-b border-border/10 bg-gradient-to-r from-primary/20 to-primary/5;
 }
 
 .modern-card-content {
   @apply p-5;
 }
 
-/* Bottom Navigation */
 .bottom-nav-active {
   @apply relative text-primary;
 }
@@ -121,12 +117,10 @@
   @apply absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full;
 }
 
-/* Mobile-specific styles */
 .mobile-container {
   @apply max-w-md mx-auto px-4;
 }
 
-/* Card styles */
 .recipe-card {
   @apply rounded-xl overflow-hidden bg-card border border-border/50 transition-all duration-200;
 }
@@ -135,7 +129,6 @@
   @apply aspect-video w-full object-cover;
 }
 
-/* Shimmer loading effect */
 .shimmer {
   @apply relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent;
 }
