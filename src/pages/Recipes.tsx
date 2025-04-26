@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { getRecipeById } from "@/services/recipeService";
+import { getRecipeById, addRecipeToShoppingList } from "@/services/recipeService";
 import RecipeCard from "@/components/recipes/RecipeCard";
 import RecipeDetailsDialog from "@/components/recipes/RecipeDetailsDialog";
 import { RecipeDetails } from "@/types/recipes";
