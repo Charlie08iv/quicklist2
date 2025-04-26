@@ -9,7 +9,7 @@ import {
   DollarSign, 
   CheckCheck,
   MessageSquare,
-  Contacts,
+  Contact,  // Changed from Contacts to Contact
   ListOrdered
 } from "lucide-react";
 import {
