@@ -14,6 +14,7 @@ interface TranslatedListItemManagerProps {
   showPrices: boolean;
   sortType: string;
   onMoveItem?: (itemId: string, direction: 'up' | 'down') => void;
+  onReorderItems?: (reorderedItems: ShoppingItem[]) => void;
 }
 
 const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = (props) => {

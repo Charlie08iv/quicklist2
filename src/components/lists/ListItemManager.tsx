@@ -43,6 +43,7 @@ interface ListItemManagerProps {
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
   onUpdateItem?: (itemId: string, item: Partial<ShoppingItemWithPrice>) => void;
   onMoveItem?: (itemId: string, direction: 'up' | 'down') => void;
+  onReorderItems?: (reorderedItems: ShoppingItemWithPrice[]) => void;
   showPrices?: boolean;
   sortType?: string;
   translatedTexts?: Record<string, string>;
@@ -193,6 +194,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onToggleItemCheck,
   onUpdateItem,
   onMoveItem,
+  onReorderItems,
   showPrices = false,
   sortType = "category",
   translatedTexts
@@ -221,68 +223,37 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const detectCategory = (itemName: string): string => {
     const lowerName = itemName.toLowerCase();
     
-    // Comprehensive keywords in multiple languages
     const categoryKeywords: Record<string, string[]> = {
       "Produce": [
-        // English
         "apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable",
-        // Swedish
-        "äpple", "banan", "apelsin", "sallad", "tomat", "potatis", "morot", "lök", "frukt", "grönsak",
         "ananas", "paprika"
       ],
       "Dairy": [
-        // English
-        "milk", "cheese", "yogurt", "cream", "butter", "egg",
-        // Swedish
-        "mjölk", "ost", "yoghurt", "grädde", "smör", "ägg"
+        "milk", "cheese", "yogurt", "cream", "butter", "egg"
       ],
       "Meat": [
-        // English
-        "beef", "chicken", "pork", "steak", "fish", "meat", "sausage",
-        // Swedish
-        "nötkött", "kyckling", "fläsk", "biff", "fisk", "kött", "korv"
+        "beef", "chicken", "pork", "steak", "fish", "meat", "sausage"
       ],
       "Bakery": [
-        // English
-        "bread", "cake", "cookie", "bagel", "muffin", "pastry",
-        // Swedish
-        "bröd", "kaka", "bulle", "bagel", "muffins", "bakverk"
+        "bread", "cake", "cookie", "bagel", "muffin", "pastry"
       ],
       "Frozen Foods": [
-        // English
-        "frozen", "ice cream",
-        // Swedish
-        "fryst", "glass", "frysta"
+        "frozen", "ice cream"
       ],
       "Canned Goods": [
-        // English
-        "can", "soup", "beans", "tuna",
-        // Swedish
-        "konserv", "soppa", "bönor", "tonfisk"
+        "can", "soup", "beans", "tuna"
       ],
       "Beverages": [
-        // English
-        "water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine",
-        // Swedish
-        "vatten", "läsk", "juice", "kaffe", "te", "dryck", "öl", "vin"
+        "water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine"
       ],
       "Spices": [
-        // English
-        "salt", "pepper", "spice", "herb",
-        // Swedish
-        "salt", "peppar", "krydda", "ört"
+        "salt", "pepper", "spice", "herb"
       ],
       "Snacks": [
-        // English
-        "chip", "candy", "snack", "chocolate", "cookie",
-        // Swedish
-        "chips", "godis", "snacks", "choklad", "kaka"
+        "chip", "candy", "snack", "chocolate", "cookie"
       ],
       "Household": [
-        // English
-        "paper", "soap", "detergent", "cleaner", "towel",
-        // Swedish
-        "papper", "tvål", "tvättmedel", "rengöring", "handduk"
+        "paper", "soap", "detergent", "cleaner", "towel"
       ]
     };
     
@@ -405,7 +376,11 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   }, [items, sortType]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -419,8 +394,12 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       const newIndex = allSortedItems.findIndex((item) => item.id === over?.id);
       
       const newItems = arrayMove(allSortedItems, oldIndex, newIndex);
-      // Update local state immediately for smooth UX
+      
       setList(prevList => prevList ? { ...prevList, items: newItems } : null);
+      
+      if (onReorderItems) {
+        onReorderItems(newItems);
+      }
     }
   };
 

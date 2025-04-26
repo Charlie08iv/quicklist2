@@ -5,8 +5,8 @@ import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
 import TranslatedListItemManager from "@/components/lists/TranslatedListItemManager";
-import { ShoppingList } from "@/types/lists";
-import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
+import { ShoppingList, ShoppingItem } from "@/types/lists";
+import { getListById, addItemToList, removeItemFromList, updateShoppingItem, updateItemOrder } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ListOptionsMenu from "@/components/lists/ListOptionsMenu";
@@ -251,6 +251,38 @@ const ListDetails: React.FC = () => {
     }
   };
 
+  // Add new handler for reordering items via drag and drop
+  const handleReorderItems = async (reorderedItems: ShoppingItem[]) => {
+    if (!listId || !list) return;
+    
+    setIsProcessingAction(true);
+    
+    try {
+      // First update local state for immediate UI feedback
+      setList(prevList => prevList ? { ...prevList, items: reorderedItems } : null);
+      
+      // Then persist the changes to the database
+      await updateItemOrder(listId, reorderedItems);
+      
+      toast({
+        title: t("Order updated"),
+        description: t("List order has been updated")
+      });
+    } catch (error) {
+      console.error("Error updating item order:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to update item order"),
+        variant: "destructive"
+      });
+      
+      // Reload the list to restore original order if there's an error
+      await loadList();
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -340,6 +372,7 @@ const ListDetails: React.FC = () => {
           showPrices={showPrices}
           sortType={sortType}
           onMoveItem={handleMoveItem}
+          onReorderItems={handleReorderItems}
         />
 
         {showShareDialog && (

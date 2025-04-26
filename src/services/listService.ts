@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
 
@@ -419,5 +418,34 @@ export const getListById = async (listId: string): Promise<ShoppingList | null> 
   } catch (error) {
     console.error("Error fetching list by id:", error);
     return null;
+  }
+};
+
+export const updateItemOrder = async (listId: string, reorderedItems: ShoppingItem[]): Promise<boolean> => {
+  try {
+    // For each item, update its position in the database
+    // We use Promise.all to perform all updates in parallel for better performance
+    const updatePromises = reorderedItems.map((item, index) => {
+      return supabase
+        .from('shopping_items')
+        .update({ position: index })
+        .eq('id', item.id);
+    });
+    
+    // Wait for all updates to complete
+    const results = await Promise.all(updatePromises);
+    
+    // Check if any updates failed
+    const hasErrors = results.some(result => result.error);
+    if (hasErrors) {
+      console.error("Some items failed to update position:", 
+        results.filter(r => r.error).map(r => r.error));
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating item order:", error);
+    return false;
   }
 };
