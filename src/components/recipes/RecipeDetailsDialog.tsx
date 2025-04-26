@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Share, X, Users } from "lucide-react";
+import { Clock, Share, X } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { RecipeDetails } from "@/types/recipes";
 
@@ -73,7 +74,7 @@ const RecipeDetailsDialog: React.FC<RecipeDetailsDialogProps> = ({
               <span className="font-medium">{recipe.cookTime} {t("min")}</span>
             </div>
             <div className="flex flex-col items-center p-4 bg-muted/30 rounded-lg">
-              <Users className="h-5 w-5 text-muted-foreground mb-1" />
+              <span className="text-xl mb-1">👥</span>
               <span className="text-sm text-muted-foreground">{t("servings")}</span>
               <span className="font-medium">{recipe.servings}</span>
             </div>
