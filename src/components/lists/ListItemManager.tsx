@@ -21,6 +21,7 @@ interface ListItemManagerProps {
   onRemoveItem?: (itemId: string) => void;
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
   onUpdateItem?: (itemId: string, item: Partial<ShoppingItem>) => void;
+  showPrices?: boolean;
 }
 
 const categories = [
@@ -74,17 +75,20 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onAddItem, 
   onRemoveItem,
   onToggleItemCheck,
-  onUpdateItem
+  onUpdateItem,
+  showPrices = false
 }) => {
   const { t } = useTranslation();
   const [newItemName, setNewItemName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState("pcs");
   const [newItemCategory, setNewItemCategory] = useState("Other");
+  const [newItemPrice, setNewItemPrice] = useState("");
   const [itemDetailsOpen, setItemDetailsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("");
+  const [editPrice, setEditPrice] = useState("");
 
   const detectCategory = (itemName: string): string => {
     const lowerName = itemName.toLowerCase();
@@ -123,10 +127,12 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         quantity: parseFloat(newItemQuantity) || 1,
         unit: newItemUnit,
         category: category,
+        price: newItemPrice ? parseFloat(newItemPrice) : undefined
       });
       setNewItemName("");
       setNewItemQuantity("1");
       setNewItemUnit("pcs");
+      setNewItemPrice("");
     }
   };
 
@@ -134,15 +140,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     setSelectedItem(item);
     setEditQuantity(item.quantity.toString());
     setEditUnit(item.unit || "pcs");
+    setEditPrice(item.price?.toString() || "");
     setItemDetailsOpen(true);
   };
 
   const handleSaveItemDetails = () => {
     if (selectedItem && onUpdateItem) {
-      onUpdateItem(selectedItem.id, {
+      const updates: Partial<ShoppingItem> = {
         quantity: parseFloat(editQuantity) || selectedItem.quantity,
         unit: editUnit
-      });
+      };
+      
+      if (editPrice) {
+        updates.price = parseFloat(editPrice);
+      }
+      
+      onUpdateItem(selectedItem.id, updates);
     }
     setItemDetailsOpen(false);
   };
@@ -264,6 +277,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
+          {showPrices && (
+            <div className="space-y-2 col-span-2 sm:col-span-3">
+              <Label htmlFor="item-price" className="text-foreground">{t("Price")}</Label>
+              <Input
+                id="item-price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={newItemPrice}
+                onChange={(e) => setNewItemPrice(e.target.value)}
+                placeholder={t("Enter price (optional)")}
+                className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
+              />
+            </div>
+          )}
         </div>
         
         <Button 
@@ -305,15 +334,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                           {item.checked && <Check className="h-4 w-4" />}
                         </button>
                       )}
-                      <span 
+                      <div
                         className={cn(
-                          "flex-1 text-white", 
+                          "flex-1 flex flex-col", 
                           item.checked ? "line-through text-[#2D7A46]/70" : ""
                         )}
                         onClick={() => openItemDetails(item)}
                       >
-                        {item.name}
-                      </span>
+                        <span className="text-white">
+                          {item.name}
+                        </span>
+                        {showPrices && item.price && (
+                          <span className="text-xs text-[#2D7A46]/80">
+                            ${item.price.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm text-[#2D7A46] whitespace-nowrap">
                         {item.quantity} {item.unit}
                       </span>
@@ -404,6 +440,21 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {showPrices && (
+                <div className="space-y-2">
+                  <Label>{t("Price")}</Label>
+                  <Input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    placeholder={t("Enter price (optional)")}
+                    className="text-center"
+                  />
+                </div>
+              )}
               
               <div className="flex justify-end pt-4">
                 <Button onClick={handleSaveItemDetails} className="w-24">

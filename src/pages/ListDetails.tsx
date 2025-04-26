@@ -3,12 +3,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search, Share2 } from "lucide-react";
 import ListItemManager from "@/components/lists/ListItemManager";
 import { ShoppingList } from "@/types/lists";
 import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import ListOptionsMenu from "@/components/lists/ListOptionsMenu";
+import ShareOptionsDialog from "@/components/lists/ShareOptionsDialog";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
@@ -18,6 +20,9 @@ const ListDetails: React.FC = () => {
   const [list, setList] = useState<ShoppingList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [showPrices, setShowPrices] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const loadList = useCallback(async () => {
     if (!listId) return;
@@ -155,6 +160,49 @@ const ListDetails: React.FC = () => {
     }
   };
 
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleUncheckAll = async () => {
+    if (!list || !list.items) return;
+    
+    setIsProcessingAction(true);
+    try {
+      const checkedItems = list.items.filter(item => item.checked);
+      
+      for (const item of checkedItems) {
+        await updateShoppingItem(item.id, { checked: false });
+      }
+      
+      await loadList();
+      toast({
+        title: t("Items unchecked"),
+        description: t("All items have been unchecked")
+      });
+    } catch (error) {
+      console.error("Error unchecking items:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to uncheck items"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const filteredItems = searchQuery && list?.items
+    ? list.items.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : list?.items;
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -187,47 +235,14 @@ const ListDetails: React.FC = () => {
 
   return (
     <AnimatePresence mode="wait">
-      {isLoading ? (
-        <motion.div 
-          key="loading"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="flex justify-center items-center min-h-[60vh]"
-        >
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-8 bg-muted rounded w-48 mb-4"></div>
-            <div className="h-32 bg-muted rounded w-full max-w-md"></div>
-          </div>
-        </motion.div>
-      ) : !list ? (
-        <motion.div
-          key="not-found"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="max-w-4xl mx-auto px-4 py-6 space-y-6"
-        >
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBackClick}
-              className="rounded-full"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </Button>
-            <h1 className="text-2xl font-bold">{t("List not found")}</h1>
-          </div>
-          <p>{t("The shopping list you're looking for doesn't exist or has been deleted.")}</p>
-        </motion.div>
-      ) : (
-        <motion.div
-          key="content"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="max-w-4xl mx-auto px-4 py-6 space-y-6"
-        >
+      <motion.div
+        key="content"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="max-w-4xl mx-auto px-4 py-6 space-y-6"
+      >
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -245,17 +260,59 @@ const ListDetails: React.FC = () => {
               </span>
             )}
           </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2" 
+              onClick={handleShare}
+              disabled={isProcessingAction}
+            >
+              <Share2 className="h-4 w-4" />
+              {t("Share")}
+            </Button>
+            
+            <ListOptionsMenu 
+              listId={list.id}
+              onSearch={handleSearch}
+              onSort={() => {}} 
+              onUncheckAll={handleUncheckAll}
+              onTogglePrices={() => setShowPrices(!showPrices)}
+            />
+          </div>
+        </div>
 
-          <ListItemManager
-            listId={list.id}
-            items={list.items || []}
-            onAddItem={handleAddItem}
-            onRemoveItem={handleRemoveItem}
-            onToggleItemCheck={handleToggleItemCheck}
-            onUpdateItem={handleUpdateItem}
+        {searchQuery && (
+          <div className="bg-[#2D7A46]/10 p-2 rounded-lg">
+            <div className="flex justify-between items-center">
+              <p className="text-sm">
+                {t("Search results for")}: <span className="font-medium">{searchQuery}</span>
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')}>
+                {t("Clear")}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <ListItemManager
+          listId={list.id}
+          items={filteredItems || []}
+          onAddItem={handleAddItem}
+          onRemoveItem={handleRemoveItem}
+          onToggleItemCheck={handleToggleItemCheck}
+          onUpdateItem={handleUpdateItem}
+          showPrices={showPrices}
+        />
+
+        {showShareDialog && (
+          <ShareOptionsDialog 
+            listId={list.id} 
+            onOpenChange={setShowShareDialog}
           />
-        </motion.div>
-      )}
+        )}
+      </motion.div>
     </AnimatePresence>
   );
 };

@@ -45,8 +45,11 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
         // Notify parent about the list creation
         onListCreated();
         
-        // Navigate to the list details page
-        navigate(`/list/${newList.id}`);
+        // Make sure we don't navigate before the dialog is closed
+        setTimeout(() => {
+          // Use the correct path format without a slash at the beginning
+          navigate(`/lists/${newList.id}`);
+        }, 100);
       }
     } catch (error) {
       console.error("Failed to create list:", error);
