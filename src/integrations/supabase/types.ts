@@ -107,6 +107,7 @@ export type Database = {
           id: string
           list_id: string
           name: string
+          position: number | null
           quantity: number | null
           unit: string | null
         }
@@ -117,6 +118,7 @@ export type Database = {
           id?: string
           list_id: string
           name: string
+          position?: number | null
           quantity?: number | null
           unit?: string | null
         }
@@ -127,6 +129,7 @@ export type Database = {
           id?: string
           list_id?: string
           name?: string
+          position?: number | null
           quantity?: number | null
           unit?: string | null
         }

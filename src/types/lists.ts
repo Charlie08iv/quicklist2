@@ -1,3 +1,4 @@
+
 import { Database } from "@/integrations/supabase/types";
 
 export type MealType = "breakfast" | "lunch" | "dinner";
@@ -31,6 +32,7 @@ export interface ShoppingItem {
   unit?: string;
   checked: boolean;
   category?: string;
+  position?: number; // Added position field for ordering items
 }
 
 export interface DateWithMarker {
@@ -68,6 +70,7 @@ export interface ShoppingItemRow {
   unit?: string;
   checked: boolean;
   category?: string;
+  position?: number; // Added position field for ordering items
   created_at: string;
 }
 
@@ -100,5 +103,6 @@ export const mapShoppingItemFromRow = (row: ShoppingItemRow): ShoppingItem => ({
   quantity: row.quantity,
   unit: row.unit,
   checked: row.checked,
-  category: row.category
+  category: row.category,
+  position: row.position
 });
