@@ -8,10 +8,12 @@ import { toast } from "@/hooks/use-toast";
 import { User, Mail, Lock, Trash2, ArrowLeft, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslation } from "@/hooks/use-translation";
 
 const Account = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(user?.user_metadata?.name || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -29,12 +31,12 @@ const Account = () => {
       if (error) throw error;
       
       toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        title: t("Profile updated"),
+        description: t("Your profile has been successfully updated."),
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: t("Error"),
         description: error.message,
         variant: "destructive",
       });
@@ -51,12 +53,12 @@ const Account = () => {
       if (error) throw error;
       
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for the password reset link.",
+        title: t("Password reset email sent"),
+        description: t("Check your email for the password reset link."),
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: t("Error"),
         description: error.message,
         variant: "destructive",
       });
@@ -75,14 +77,14 @@ const Account = () => {
       // Here you would typically upload to Supabase storage
       // For now, we'll just update the preview
       toast({
-        title: "Profile picture updated",
-        description: "Your profile picture has been updated successfully.",
+        title: t("Profile picture updated"),
+        description: t("Your profile picture has been updated successfully."),
       });
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+    if (window.confirm(t("Are you sure you want to delete your account? This action cannot be undone."))) {
       try {
         const { error } = await supabase.auth.admin.deleteUser(user?.id || "");
         if (error) throw error;
@@ -90,12 +92,12 @@ const Account = () => {
         await signOut();
         navigate("/auth");
         toast({
-          title: "Account deleted",
-          description: "Your account has been successfully deleted.",
+          title: t("Account deleted"),
+          description: t("Your account has been successfully deleted."),
         });
       } catch (error: any) {
         toast({
-          title: "Error",
+          title: t("Error"),
           description: error.message,
           variant: "destructive",
         });
@@ -130,7 +132,7 @@ const Account = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">Account</h1>
+          <h1 className="text-2xl font-bold text-white">{t("account")}</h1>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -165,7 +167,7 @@ const Account = () => {
             onClick={handleNameClick}
           >
             <User className="mr-2 h-5 w-5" />
-            Edit Name
+            {t("Edit Name")}
           </Button>
 
           <Button 
@@ -174,7 +176,7 @@ const Account = () => {
             onClick={handleEmailClick}
           >
             <Mail className="mr-2 h-5 w-5" />
-            Change Email
+            {t("Change Email")}
           </Button>
 
           <Button 
@@ -183,7 +185,7 @@ const Account = () => {
             onClick={handlePasswordReset}
           >
             <Lock className="mr-2 h-5 w-5" />
-            Change Password
+            {t("Change Password")}
           </Button>
 
           <Button 
@@ -192,7 +194,7 @@ const Account = () => {
             onClick={signOut}
           >
             <LogOut className="mr-2 h-5 w-5" />
-            Log Out
+            {t("Log Out")}
           </Button>
 
           <Button
@@ -201,7 +203,7 @@ const Account = () => {
             onClick={handleDeleteAccount}
           >
             <Trash2 className="mr-2 h-5 w-5" />
-            Delete Account
+            {t("Delete Account")}
           </Button>
         </div>
 

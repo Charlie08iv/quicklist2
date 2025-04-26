@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
-import ListItemManager from "@/components/lists/ListItemManager";
+import TranslatedListItemManager from "@/components/lists/TranslatedListItemManager";
 import { ShoppingList } from "@/types/lists";
 import { getListById, addItemToList, removeItemFromList, updateShoppingItem } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
@@ -49,16 +49,16 @@ const ListDetails: React.FC = () => {
         // List not found, navigate back to lists page
         navigate('/lists');
         toast({
-          title: t("List not found"),
-          description: t("The list you're looking for doesn't exist or has been deleted"),
+          title: t("listNotFound"),
+          description: t("listDoesNotExist"),
           variant: "destructive"
         });
       }
     } catch (error) {
       console.error("Error loading list:", error);
       toast({
-        title: t("Error"),
-        description: t("Failed to load list details"),
+        title: t("error"),
+        description: t("failedToLoadList"),
         variant: "destructive"
       });
     } finally {
@@ -93,14 +93,14 @@ const ListDetails: React.FC = () => {
       await addItemToList(listId, itemToAdd);
       await loadList();
       toast({
-        title: t("Item added"),
-        description: t("New item has been added to your list")
+        title: t("itemAdded"),
+        description: t("newItemAdded")
       });
     } catch (error) {
       console.error("Error adding item:", error);
       toast({
-        title: t("Error"),
-        description: t("Failed to add item"),
+        title: t("error"),
+        description: t("failedToAddItem"),
         variant: "destructive"
       });
     } finally {
@@ -114,14 +114,14 @@ const ListDetails: React.FC = () => {
       await removeItemFromList(itemId);
       await loadList();
       toast({
-        title: t("Item removed"),
-        description: t("Item has been removed from your list")
+        title: t("itemRemoved"),
+        description: t("itemHasBeenRemoved")
       });
     } catch (error) {
       console.error("Error removing item:", error);
       toast({
-        title: t("Error"),
-        description: t("Failed to remove item"),
+        title: t("error"),
+        description: t("failedToRemoveItem"),
         variant: "destructive"
       });
     } finally {
@@ -137,8 +137,8 @@ const ListDetails: React.FC = () => {
     } catch (error) {
       console.error("Error updating item:", error);
       toast({
-        title: t("Error"),
-        description: t("Failed to update item"),
+        title: t("error"),
+        description: t("failedToUpdateItem"),
         variant: "destructive"
       });
     } finally {
@@ -159,14 +159,14 @@ const ListDetails: React.FC = () => {
       await updateShoppingItem(itemId, updatesToSend);
       await loadList();
       toast({
-        title: t("Item updated"),
-        description: t("Item has been updated")
+        title: t("itemUpdated"),
+        description: t("itemHasBeenUpdated")
       });
     } catch (error) {
       console.error("Error updating item:", error);
       toast({
-        title: t("Error"),
-        description: t("Failed to update item"),
+        title: t("error"),
+        description: t("failedToUpdateItem"),
         variant: "destructive"
       });
     } finally {
@@ -274,7 +274,7 @@ const ListDetails: React.FC = () => {
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-2xl font-bold">{t("List not found")}</h1>
+          <h1 className="text-2xl font-bold">{t("listNotFound")}</h1>
         </div>
         <p>{t("The shopping list you're looking for doesn't exist or has been deleted.")}</p>
       </div>
@@ -304,7 +304,7 @@ const ListDetails: React.FC = () => {
             <h1 className="text-2xl font-bold">{list.name}</h1>
             {list.archived && (
               <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                {t("Archived")}
+                {t("archived")}
               </span>
             )}
           </div>
@@ -318,7 +318,7 @@ const ListDetails: React.FC = () => {
               disabled={isProcessingAction}
             >
               <Share2 className="h-4 w-4" />
-              {t("Share")}
+              {t("share")}
             </Button>
             
             <ListOptionsMenu 
@@ -330,7 +330,7 @@ const ListDetails: React.FC = () => {
           </div>
         </div>
 
-        <ListItemManager
+        <TranslatedListItemManager
           listId={list.id}
           items={list.items || []}
           onAddItem={handleAddItem}
