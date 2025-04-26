@@ -89,6 +89,10 @@ const Account = () => {
         
         await signOut();
         navigate("/auth");
+        toast({
+          title: "Account deleted",
+          description: "Your account has been successfully deleted.",
+        });
       } catch (error: any) {
         toast({
           title: "Error",
@@ -96,6 +100,22 @@ const Account = () => {
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleNameClick = () => {
+    const nameInput = document.getElementById('name-input') as HTMLInputElement;
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
+    }
+  };
+
+  const handleEmailClick = () => {
+    const emailInput = document.getElementById('email-input') as HTMLInputElement;
+    if (emailInput) {
+      emailInput.focus();
+      emailInput.select();
     }
   };
 
@@ -142,7 +162,7 @@ const Account = () => {
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={() => document.getElementById('name-input')?.focus()}
+            onClick={handleNameClick}
           >
             <User className="mr-2 h-5 w-5" />
             Edit Name
@@ -151,7 +171,7 @@ const Account = () => {
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={() => document.getElementById('email-input')?.focus()}
+            onClick={handleEmailClick}
           >
             <Mail className="mr-2 h-5 w-5" />
             Change Email

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Mail, User as UserIcon, LogOut, Trash2 } from "lucide-react";
+import { Mail, User as UserIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 type SettingsDialogProps = {
@@ -13,7 +13,6 @@ type SettingsDialogProps = {
   onLanguageChange: (lang: string) => void;
   theme: string;
   onThemeChange: (theme: "light" | "dark") => void;
-  onLogout: () => void;
 };
 
 const LANGS = [
@@ -29,7 +28,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onLanguageChange,
   theme,
   onThemeChange,
-  onLogout,
 }) => {
   const [notifications, setNotifications] = useState(true);
   const [openLastUsed, setOpenLastUsed] = useState(false);
@@ -119,40 +117,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   Send Feedback
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* Account Actions */}
-          <div>
-            <span className="font-semibold text-muted-foreground mb-1 block">Account</span>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" className="justify-start" size="sm">
-                Edit Name
-              </Button>
-              <Button variant="outline" className="justify-start" size="sm">
-                Change Email
-              </Button>
-              <Button variant="outline" className="justify-start" size="sm">
-                Change Password
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start text-red-600 hover:bg-destructive/10 transition"
-                size="sm"
-                onClick={onLogout}
-              >
-                <LogOut className="mr-2 w-4 h-4" />
-                Log Out
-              </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-red-500 hover:bg-destructive/10"
-                size="sm"
-                onClick={() => toast({ title: "Delete account (not implemented)" })}
-              >
-                <Trash2 className="mr-2 w-4 h-4" />
-                Delete Account
-              </Button>
             </div>
           </div>
         </div>
