@@ -14,6 +14,7 @@ interface Group {
   name: string;
   created_at: string;
   invite_code: string;
+  created_by: string; // Added this missing property
 }
 
 const Groups: React.FC = () => {
