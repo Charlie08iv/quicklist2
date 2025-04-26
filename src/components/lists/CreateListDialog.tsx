@@ -9,6 +9,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateListDialogProps {
   onListCreated: () => void;
@@ -18,6 +19,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [listName, setListName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +27,15 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!listName.trim()) return;
+    
+    if (!user) {
+      toast({
+        title: t("Authentication required"),
+        description: t("Please sign in to create lists"),
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     try {
@@ -125,7 +136,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               {t("Cancel")}
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !user}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 

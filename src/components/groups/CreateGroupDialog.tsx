@@ -23,7 +23,6 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      console.error("Authentication state:", { user });
       toast.error(t("notLoggedIn"));
       return;
     }
@@ -35,7 +34,6 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       
       // Generate a unique invite code (use UUID for uniqueness)
       const inviteCode = crypto.randomUUID();
-      console.log("Generated invite code:", inviteCode);
       
       // First, create the group with the current user as creator
       const { data: groupData, error: groupError } = await supabase
@@ -101,9 +99,14 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
               required
             />
           </div>
-          <Button type="submit" disabled={isLoading || !groupName.trim()}>
-            {isLoading ? t("creating") : t("createGroup")}
-          </Button>
+          <div className="flex justify-between">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+              {t("Cancel")}
+            </Button>
+            <Button type="submit" disabled={isLoading || !groupName.trim() || !user}>
+              {isLoading ? t("creating") : t("createGroup")}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

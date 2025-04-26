@@ -25,18 +25,16 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
-    let query = supabase
+    if (!userId) {
+      console.log("No authenticated user found. Returning empty lists array.");
+      return [];
+    }
+    
+    const { data: lists, error: listsError } = await supabase
       .from('shopping_lists')
       .select('*')
-      .eq('date', date);
-    
-    if (userId) {
-      query = query.eq('user_id', userId);
-    } else {
-      query = query.eq('is_shared', true);
-    }
-
-    const { data: lists, error: listsError } = await query;
+      .eq('date', date)
+      .eq('user_id', userId);
 
     if (listsError) {
       console.error("Error fetching shopping lists by date:", listsError);
@@ -71,18 +69,16 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     
-    let query = supabase
+    if (!userId) {
+      console.log("No authenticated user found. Returning empty lists array.");
+      return [];
+    }
+    
+    const { data: lists, error: listsError } = await supabase
       .from('shopping_lists')
       .select('*')
-      .is('date', null);
-    
-    if (userId) {
-      query = query.eq('user_id', userId);
-    } else {
-      query = query.eq('is_shared', true);
-    }
-
-    const { data: lists, error: listsError } = await query;
+      .is('date', null)
+      .eq('user_id', userId);
 
     if (listsError) {
       console.error("Error fetching unscheduled shopping lists:", listsError);
@@ -115,7 +111,12 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
 export const createShoppingList = async (list: { name: string; date?: string }): Promise<ShoppingList | null> => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id || 'anonymous';
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId) {
+      console.error("No authenticated user found. Cannot create shopping list.");
+      throw new Error("Authentication required");
+    }
     
     const { data, error } = await supabase
       .from('shopping_lists')
