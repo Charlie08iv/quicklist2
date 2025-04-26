@@ -12,17 +12,15 @@ const Groups: React.FC = () => {
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">{t("groups")}</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Card className="p-6 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed">
-          <UserCircle2 className="h-12 w-12 mb-3 text-muted-foreground" />
-          <span className="text-lg font-medium">{t("joinGroup")}</span>
-          <p className="text-sm text-muted-foreground mt-1">{t("joinExistingGroup")}</p>
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <Card className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed">
+          <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
+          <span className="text-sm font-medium">{t("joinGroup")}</span>
         </Card>
 
-        <Card className="p-6 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed">
-          <Plus className="h-12 w-12 mb-3 text-muted-foreground" />
-          <span className="text-lg font-medium">{t("createGroup")}</span>
-          <p className="text-sm text-muted-foreground mt-1">{t("startNewGroup")}</p>
+        <Card className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed">
+          <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
+          <span className="text-sm font-medium">{t("createGroup")}</span>
         </Card>
       </div>
 
