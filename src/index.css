@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 150 30% 96%;
-    --foreground: 145 64% 15%;
+    --background: 150 30% 96%; 
+    --foreground: 145 64% 10%; // Darker text for better contrast
 
     --card: 150 30% 98%;
-    --card-foreground: 145 64% 15%;
+    --card-foreground: 145 64% 10%; // Darker card text
 
     --popover: 150 30% 98%;
-    --popover-foreground: 145 64% 15%;
+    --popover-foreground: 145 64% 10%;
 
-    --primary: 145 40% 24%;
+    --primary: 145 40% 20%; // Slightly darker primary color
     --primary-foreground: 150 30% 98%;
 
     --secondary: 150 30% 94%;
-    --secondary-foreground: 145 40% 24%;
+    --secondary-foreground: 145 40% 15%; // Darker secondary foreground
 
     --muted: 150 30% 94%;
-    --muted-foreground: 145 24% 40%;
+    --muted-foreground: 145 24% 25%; // Darker muted text for better readability
 
     --accent: 150 30% 94%;
-    --accent-foreground: 145 40% 24%;
+    --accent-foreground: 145 40% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 150 30% 98%;
 
     --border: 150 30% 90%;
     --input: 150 30% 90%;
-    --ring: 145 40% 24%;
+    --ring: 145 40% 20%;
 
     --radius: 0.75rem;
   }
