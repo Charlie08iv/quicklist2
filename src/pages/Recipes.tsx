@@ -6,14 +6,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Utensils, Sparkles } from "lucide-react";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { motion } from "framer-motion";
+import { RecipeDetails } from "@/types/recipes";
 
 const Recipes: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("myRecipes");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [recipes, setRecipes] = useState<RecipeDetails[]>([]);
 
   const handleCreateRecipe = () => {
     setCreateDialogOpen(true);
+  };
+
+  const handleRecipeCreated = (recipe: RecipeDetails) => {
+    setRecipes([...recipes, recipe]);
   };
 
   return (
@@ -75,7 +81,8 @@ const Recipes: React.FC = () => {
       
       <CreateRecipeDialog 
         open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+        onCreateRecipe={handleRecipeCreated}
       />
     </div>
   );
