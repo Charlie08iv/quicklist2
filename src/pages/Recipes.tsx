@@ -20,7 +20,6 @@ const Recipes: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Fetch all sample recipes
   const { data: inspirationRecipes = [] } = useQuery({
     queryKey: ['inspiration-recipes'],
     queryFn: async () => {
@@ -40,11 +39,12 @@ const Recipes: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
-      <div className="flex justify-center items-center mb-6">
+      <div className="flex justify-center items-center mb-6 gap-2">
         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
           <Plus className="h-5 w-5" />
           {t("createRecipe")}
         </Button>
+        <span className="text-lg font-medium text-muted-foreground">Recipe</span>
       </div>
 
       <div className="relative mb-6">
@@ -114,7 +114,6 @@ const Recipes: React.FC = () => {
                 key={recipe.id} 
                 recipe={recipe}
                 onLikeToggle={async () => {
-                  // This will be implemented when we add authentication
                   console.log("Toggle like for recipe:", recipe.id);
                 }}
               />
