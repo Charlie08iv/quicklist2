@@ -3,17 +3,16 @@ import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Sparkles, Utensils, Heart } from "lucide-react";
+import { Plus, Search, Sparkles, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { getRecipeById, addRecipeToShoppingList } from "@/services/recipeService";
+import { getRecipeById } from "@/services/recipeService";
 import RecipeCard from "@/components/recipes/RecipeCard";
 import RecipeDetailsDialog from "@/components/recipes/RecipeDetailsDialog";
 import { RecipeDetails } from "@/types/recipes";
 import { toast } from "@/hooks/use-toast";
-import LikedRecipes from "@/components/recipes/LikedRecipes";
 
 const CATEGORIES = ["All", "Breakfast", "Vegetarian", "Pasta", "Dinner"];
 const SAMPLE_RECIPE_IDS = ["1", "2", "3", "4", "5"];
@@ -50,38 +49,9 @@ const Recipes: React.FC = () => {
     });
   };
 
-  const handleLikeToggle = async (recipeId: string) => {
-    const recipes = activeTab === "myRecipes" ? personalRecipes : allInspirationRecipes;
-    const recipe = recipes.find(r => r.id === recipeId);
-    
-    if (recipe) {
-      const updatedRecipe = { ...recipe, liked: !recipe.liked };
-      
-      if (activeTab === "myRecipes") {
-        setPersonalRecipes(prev => prev.map(r => r.id === recipeId ? updatedRecipe : r));
-      } else {
-        setSharedRecipes(prev => prev.map(r => r.id === recipeId ? updatedRecipe : r));
-      }
-      
-      toast({
-        title: updatedRecipe.liked ? "Recipe liked" : "Recipe unliked",
-        description: updatedRecipe.liked ? "Added to your liked recipes" : "Removed from your liked recipes",
-      });
-    }
-  };
-
   const handleOpenDetails = (recipe: RecipeDetails) => {
     setSelectedRecipe(recipe);
     setDetailsOpen(true);
-  };
-
-  const handleAddToList = async () => {
-    if (!selectedRecipe) return;
-    
-    const success = await addRecipeToShoppingList(selectedRecipe.id);
-    if (success) {
-      setDetailsOpen(false);
-    }
   };
 
   const allInspirationRecipes = [...inspirationRecipes, ...sharedRecipes];
@@ -121,7 +91,7 @@ const Recipes: React.FC = () => {
       </div>
 
       <Tabs defaultValue="myRecipes" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <TabsList className="grid w-full grid-cols-2 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsTrigger value="myRecipes" className="flex items-center gap-2 p-4">
             <Utensils className="h-4 w-4" />
             {t("myRecipes")}
@@ -129,10 +99,6 @@ const Recipes: React.FC = () => {
           <TabsTrigger value="inspiration" className="flex items-center gap-2 p-4">
             <Sparkles className="h-4 w-4" />
             {t("inspiration")}
-          </TabsTrigger>
-          <TabsTrigger value="liked" className="flex items-center gap-2 p-4">
-            <Heart className="h-4 w-4" />
-            {t("liked")}
           </TabsTrigger>
         </TabsList>
 
@@ -159,7 +125,6 @@ const Recipes: React.FC = () => {
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe}
-                  onLikeToggle={() => handleLikeToggle(recipe.id)}
                   onOpenDetails={() => handleOpenDetails(recipe)}
                 />
               ))}
@@ -195,19 +160,10 @@ const Recipes: React.FC = () => {
               <RecipeCard 
                 key={recipe.id} 
                 recipe={recipe}
-                onLikeToggle={() => handleLikeToggle(recipe.id)}
                 onOpenDetails={() => handleOpenDetails(recipe)}
               />
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="liked">
-          <LikedRecipes 
-            recipes={[...personalRecipes, ...allInspirationRecipes]}
-            onLikeToggle={handleLikeToggle}
-            onOpenDetails={handleOpenDetails}
-          />
         </TabsContent>
       </Tabs>
       
@@ -221,8 +177,6 @@ const Recipes: React.FC = () => {
         recipe={selectedRecipe}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        onLikeToggle={selectedRecipe ? () => handleLikeToggle(selectedRecipe.id) : undefined}
-        onAddToList={handleAddToList}
       />
     </div>
   );
