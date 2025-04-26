@@ -41,8 +41,7 @@ const Recipes: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t("recipes")}</h1>
+      <div className="flex justify-center items-center mb-6">
         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
           <Plus className="h-5 w-5" />
           {t("createRecipe")}
@@ -133,3 +132,4 @@ const Recipes: React.FC = () => {
 };
 
 export default Recipes;
+
