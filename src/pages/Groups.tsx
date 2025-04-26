@@ -6,7 +6,7 @@ import { UserCircle2, Plus, User2 } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext"; // Updated import path
 import { toast } from "sonner";
 
 interface Group {
@@ -14,19 +14,22 @@ interface Group {
   name: string;
   created_at: string;
   invite_code: string;
-  created_by: string; // Added this missing property
+  created_by: string; // Added this property to match the database schema
 }
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user } = useAuth(); // Using the correct auth context
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchGroups = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);

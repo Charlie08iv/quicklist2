@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext"; // Updated import path
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,13 +16,16 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user } = useAuth(); // Using the correct auth context
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error(t("notLoggedIn"));
+      return;
+    }
     
     setIsLoading(true);
     try {
