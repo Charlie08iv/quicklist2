@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { 
@@ -43,15 +43,16 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
-  const handleShare = (e?: React.MouseEvent) => {
+  // Use useCallback to memoize event handlers
+  const handleShare = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
     setShareDialogOpen(true);
-  };
+  }, []);
 
-  const handleSort = (sortType: string) => (e: React.MouseEvent) => {
+  const handleSort = useCallback((sortType: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -67,9 +68,9 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
           ? t("Items have been sorted by category")
           : t("Items have been sorted")
     });
-  };
+  }, [onSort, toast, t]);
 
-  const handleTogglePrices = (e: React.MouseEvent) => {
+  const handleTogglePrices = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -80,9 +81,9 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       title: t("Prices toggled"),
       description: t("Price display has been toggled")
     });
-  };
+  }, [onTogglePrices, toast, t]);
 
-  const handleUncheckAll = (e: React.MouseEvent) => {
+  const handleUncheckAll = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -93,7 +94,7 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       title: t("Items unchecked"),
       description: t("All items have been unchecked")
     });
-  };
+  }, [onUncheckAll, toast, t]);
 
   return (
     <>
@@ -143,7 +144,14 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       {shareDialogOpen && (
         <ShareOptionsDialog 
           listId={listId} 
-          onOpenChange={(open) => setShareDialogOpen(open)} 
+          onOpenChange={(open) => {
+            if (!open) {
+              // Use setTimeout to defer state update and prevent freezing
+              setTimeout(() => {
+                setShareDialogOpen(false);
+              }, 0);
+            }
+          }} 
         />
       )}
     </>

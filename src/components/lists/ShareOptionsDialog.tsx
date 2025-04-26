@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,11 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen && onOpenChange) {
-      onOpenChange(false);
+      // Use setTimeout to defer state update in parent component
+      // This helps prevent UI freezing when closing the dialog
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 0);
     }
   };
 
