@@ -27,19 +27,24 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       return;
     }
     
+    if (!groupName.trim()) {
+      toast.error(t("Please enter a group name"));
+      return;
+    }
+    
     setIsLoading(true);
     try {
       console.log("Creating group with name:", groupName);
       console.log("User ID:", user.id);
       
-      // Generate a unique invite code (use UUID for uniqueness)
+      // Generate a unique invite code
       const inviteCode = crypto.randomUUID();
       
       // First, create the group with the current user as creator
       const { data: groupData, error: groupError } = await supabase
         .from("groups")
         .insert([{ 
-          name: groupName, 
+          name: groupName.trim(), 
           created_by: user.id,
           invite_code: inviteCode
         }])
@@ -73,9 +78,9 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       toast.success(t("groupCreated"));
       onOpenChange(false);
       setGroupName("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating group:", error);
-      toast.error(t("errorCreatingGroup"));
+      toast.error(error.message || t("errorCreatingGroup"));
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +102,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
               onChange={(e) => setGroupName(e.target.value)}
               placeholder={t("enterGroupName")}
               required
+              autoFocus
             />
           </div>
           <div className="flex justify-between">

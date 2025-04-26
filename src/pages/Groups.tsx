@@ -72,9 +72,9 @@ const Groups: React.FC = () => {
       
       console.log("Fetched groups:", groupsData);
       setGroups(groupsData || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching groups:", error);
-      toast.error(t("errorFetchingGroups"));
+      toast.error(error.message || t("errorFetchingGroups"));
     } finally {
       setLoading(false);
     }

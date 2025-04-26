@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DateWithMarker, Meal, MealRow, ShoppingItem, ShoppingItemRow, ShoppingList, ShoppingListRow, mapMealFromRow, mapShoppingItemFromRow, mapShoppingListFromRow } from "@/types/lists";
+import { toast } from "sonner";
 
 export const getMealsByDate = async (date: string): Promise<Meal[]> => {
   try {
@@ -42,7 +43,7 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
     }
 
     const listsWithItems = await Promise.all(
-      lists.map(async (list) => {
+      (lists || []).map(async (list) => {
         const { data: items, error: itemsError } = await supabase
           .from('shopping_items')
           .select('*')
@@ -53,7 +54,7 @@ export const getListsByDate = async (date: string): Promise<ShoppingList[]> => {
           return mapShoppingListFromRow(list as ShoppingListRow, []);
         }
 
-        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+        return mapShoppingListFromRow(list as ShoppingListRow, (items || []).map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
       })
     );
 
@@ -86,7 +87,7 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
     }
 
     const listsWithItems = await Promise.all(
-      lists.map(async (list) => {
+      (lists || []).map(async (list) => {
         const { data: items, error: itemsError } = await supabase
           .from('shopping_items')
           .select('*')
@@ -97,7 +98,7 @@ export const getUnscheduledLists = async (): Promise<ShoppingList[]> => {
           return mapShoppingListFromRow(list as ShoppingListRow, []);
         }
 
-        return mapShoppingListFromRow(list as ShoppingListRow, items.map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
+        return mapShoppingListFromRow(list as ShoppingListRow, (items || []).map(item => mapShoppingItemFromRow(item as ShoppingItemRow)));
       })
     );
 
@@ -124,20 +125,20 @@ export const createShoppingList = async (list: { name: string; date?: string }):
         name: list.name, 
         date: list.date,
         user_id: userId,
-        archived: false // Make sure new lists are not archived by default
+        archived: false
       })
       .select()
       .single();
 
     if (error) {
       console.error("Error creating shopping list:", error);
-      return null;
+      throw error;
     }
 
     return mapShoppingListFromRow(data as ShoppingListRow, []);
   } catch (error) {
     console.error("Error creating shopping list:", error);
-    return null;
+    throw error;
   }
 };
 
