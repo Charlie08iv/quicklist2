@@ -8,8 +8,8 @@ import { createShoppingList, addItemToList } from "@/services/listService";
 import { Loader2, Plus } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
-import ListItemManager from "./ListItemManager";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface CreateListDialogProps {
   onListCreated: () => void;
@@ -18,11 +18,10 @@ interface CreateListDialogProps {
 const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'name' | 'items'>('name');
   const [listName, setListName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdList, setCreatedList] = useState<ShoppingList | null>(null);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +34,19 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
       });
       
       if (newList) {
-        setCreatedList(newList as ShoppingList);
-        setStep('items');
         toast({
           title: t("List created"),
           description: t("Your new shopping list has been created")
         });
+        
+        // Close the dialog
+        setOpen(false);
+        
+        // Notify parent about the list creation
+        onListCreated();
+        
+        // Navigate to the list details page
+        navigate(`/list/${newList.id}`);
       }
     } catch (error) {
       console.error("Failed to create list:", error);
@@ -57,28 +63,9 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
   const handleClose = () => {
     setOpen(false);
     setTimeout(() => {
-      setStep('name');
       setListName("");
-      setCreatedList(null);
       onListCreated();
     }, 100);
-  };
-
-  const handleAddItem = async (item) => {
-    if (!createdList) return;
-    
-    try {
-      await addItemToList(createdList.id, item);
-      // No need to refresh createdList here as we're just adding items
-      // and will refresh through onListCreated when dialog is closed
-    } catch (error) {
-      console.error("Failed to add item:", error);
-      toast({
-        title: t("Failed to add item"),
-        description: t("Please try again later"),
-        variant: "destructive"
-      });
-    }
   };
 
   return (
@@ -115,54 +102,39 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({ onListCreated }) =>
       >
         <DialogHeader>
           <DialogTitle className="text-center text-xl">
-            {step === 'name' ? t("Create New List") : createdList?.name}
+            {t("Create New List")}
           </DialogTitle>
         </DialogHeader>
         
-        {step === 'name' ? (
-          <form onSubmit={handleCreateList} className="space-y-6 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="list-name">{t("List Name")}</Label>
-              <Input
-                id="list-name"
-                value={listName}
-                onChange={(e) => setListName(e.target.value)}
-                placeholder={t("Enter list name")}
-                className="border-primary/20"
-                required
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                {t("Cancel")}
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                    {t("Creating")}
-                  </>
-                ) : (
-                  t("Continue")
-                )}
-              </Button>
-            </div>
-          </form>
-        ) : createdList && (
-          <div className="space-y-4">
-            <ListItemManager 
-              listId={createdList.id}
-              items={[]}
-              onAddItem={handleAddItem}
+        <form onSubmit={handleCreateList} className="space-y-6 pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="list-name">{t("List Name")}</Label>
+            <Input
+              id="list-name"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              placeholder={t("Enter list name")}
+              className="border-primary/20"
+              required
             />
-            <div className="flex justify-end">
-              <Button onClick={handleClose}>
-                {t("Done")}
-              </Button>
-            </div>
           </div>
-        )}
+          
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              {t("Cancel")}
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  {t("Creating")}
+                </>
+              ) : (
+                t("Create")
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

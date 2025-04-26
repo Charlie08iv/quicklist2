@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ListItemManagerProps {
-  listId: string; // Add the listId property to the interface
+  listId: string;
   items: ShoppingItem[];
   onAddItem: (item: Omit<ShoppingItem, "id" | "checked">) => void;
   onRemoveItem?: (itemId: string) => void;
@@ -54,7 +53,6 @@ const units = [
   "dkg"
 ];
 
-// Item category icons or emoji mapping
 const categoryIcons: Record<string, string> = {
   "Produce": "🥬",
   "Dairy": "🥛",
@@ -88,14 +86,43 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState("");
 
+  const detectCategory = (itemName: string): string => {
+    const lowerName = itemName.toLowerCase();
+    
+    const categoryKeywords: Record<string, string[]> = {
+      "Produce": ["apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable"],
+      "Dairy": ["milk", "cheese", "yogurt", "cream", "butter", "egg"],
+      "Meat": ["beef", "chicken", "pork", "steak", "fish", "meat", "sausage"],
+      "Bakery": ["bread", "cake", "cookie", "bagel", "muffin", "pastry"],
+      "Frozen Foods": ["ice cream", "frozen", "pizza"],
+      "Canned Goods": ["can", "soup", "beans", "tuna"],
+      "Beverages": ["water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine"],
+      "Spices": ["salt", "pepper", "spice", "herb"],
+      "Snacks": ["chip", "candy", "snack", "chocolate", "cookie"],
+      "Household": ["paper", "soap", "detergent", "cleaner", "towel"]
+    };
+    
+    for (const [category, keywords] of Object.entries(categoryKeywords)) {
+      if (keywords.some(keyword => lowerName.includes(keyword))) {
+        return category;
+      }
+    }
+    
+    return "Other";
+  };
+
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (newItemName.trim()) {
+      const category = newItemCategory === "Other" 
+        ? detectCategory(newItemName.trim()) 
+        : newItemCategory;
+        
       onAddItem({
         name: newItemName.trim(),
         quantity: parseFloat(newItemQuantity) || 1,
         unit: newItemUnit,
-        category: newItemCategory,
+        category: category,
       });
       setNewItemName("");
       setNewItemQuantity("1");
@@ -132,22 +159,36 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     }
   };
 
-  // Group items by category
-  const itemsByCategory: Record<string, ShoppingItem[]> = {};
-  items.forEach(item => {
-    const category = item.category || "Other";
-    if (!itemsByCategory[category]) {
-      itemsByCategory[category] = [];
-    }
-    itemsByCategory[category].push(item);
-  });
-
-  const sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
-    // Put "Other" at the end
-    if (a === "Other") return 1;
-    if (b === "Other") return -1;
-    return a.localeCompare(b);
-  });
+  const sortedItemsByCategory = () => {
+    const itemsByCategory: Record<string, ShoppingItem[]> = {};
+    
+    items.forEach(item => {
+      const category = item.category || "Other";
+      if (!itemsByCategory[category]) {
+        itemsByCategory[category] = [];
+      }
+      itemsByCategory[category].push(item);
+    });
+    
+    Object.keys(itemsByCategory).forEach(category => {
+      itemsByCategory[category].sort((a, b) => {
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    });
+    
+    const sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
+      if (a === "Other") return 1;
+      if (b === "Other") return -1;
+      return a.localeCompare(b);
+    });
+    
+    return { itemsByCategory, sortedCategories };
+  };
+  
+  const { itemsByCategory, sortedCategories } = sortedItemsByCategory();
 
   return (
     <div className="space-y-6">
@@ -378,4 +419,3 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
 };
 
 export default ListItemManager;
-
