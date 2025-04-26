@@ -29,13 +29,18 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
   }, [open, shareLink, isSubmitting]);
 
   const handleOpenChange = (newOpen: boolean) => {
+    // Prevent state updates if we're closing the dialog
+    if (newOpen === open) return;
+    
+    // Set local state immediately
     setOpen(newOpen);
+    
+    // Only notify parent when closing, with a delay
     if (!newOpen && onOpenChange) {
-      // Use setTimeout to defer state update in parent component
-      // This helps prevent UI freezing when closing the dialog
+      // Use a longer timeout to ensure state updates are processed
       setTimeout(() => {
         onOpenChange(false);
-      }, 0);
+      }, 50);
     }
   };
 
@@ -124,7 +129,20 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
+      <DialogContent 
+        className="sm:max-w-[425px]" 
+        onClick={e => {
+          // Prevent clicks from bubbling up to parent elements
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+        }}
+        onPointerDownOutside={(e) => {
+          // Prevent closing on outside clicks if submitting
+          if (isSubmitting) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-center text-primary">{t("Share List")}</DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">

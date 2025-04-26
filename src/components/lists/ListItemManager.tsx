@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingItem } from "@/types/lists";
-import { Check, ChevronDown, Minus, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus, X, MoveUp, MoveDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -27,6 +27,7 @@ interface ListItemManagerProps {
   onRemoveItem?: (itemId: string) => void;
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
   onUpdateItem?: (itemId: string, item: Partial<ShoppingItemWithPrice>) => void;
+  onMoveItem?: (itemId: string, direction: 'up' | 'down') => void;
   showPrices?: boolean;
   sortType?: string;
 }
@@ -83,6 +84,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onRemoveItem,
   onToggleItemCheck,
   onUpdateItem,
+  onMoveItem,
   showPrices = false,
   sortType = "category"
 }) => {
@@ -135,7 +137,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         quantity: parseFloat(newItemQuantity) || 1,
         unit: newItemUnit,
         category: category,
-        price: newItemPrice ? parseFloat(newItemPrice) : undefined
+        price: newItemPrice && showPrices ? parseFloat(newItemPrice) : undefined
       });
       setNewItemName("");
       setNewItemQuantity("1");
@@ -159,7 +161,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         unit: editUnit
       };
       
-      if (editPrice) {
+      if (showPrices && editPrice) {
         updates.price = parseFloat(editPrice);
       }
       
@@ -181,26 +183,32 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   };
 
   // Memoize sorted items to prevent unnecessary recalculations
-  const { itemsByCategory, sortedCategories } = useMemo(() => {
+  const { itemsByCategory, sortedCategories, allSortedItems } = useMemo(() => {
     const itemsByCategory: Record<string, ShoppingItemWithPrice[]> = {};
+    let allSortedItems: ShoppingItemWithPrice[] = [];
     
-    // First, sort individual items based on sortType
-    const sortedItems = [...items].sort((a, b) => {
-      // Always prioritize checked state
-      if (a.checked !== b.checked) {
-        return a.checked ? 1 : -1;
-      }
+    if (sortType === "custom") {
+      // For custom sorting, just use the items as they are
+      allSortedItems = [...items];
+    } else {
+      // First, sort individual items based on sortType
+      allSortedItems = [...items].sort((a, b) => {
+        // Always prioritize checked state
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
 
-      if (sortType === "name") {
+        if (sortType === "name") {
+          return a.name.localeCompare(b.name);
+        }
+        
+        // For category sorting or default
         return a.name.localeCompare(b.name);
-      }
-      
-      // For category sorting or default
-      return a.name.localeCompare(b.name);
-    });
+      });
+    }
     
     // Then organize by category
-    sortedItems.forEach(item => {
+    allSortedItems.forEach(item => {
       const category = item.category || "Other";
       if (!itemsByCategory[category]) {
         itemsByCategory[category] = [];
@@ -208,20 +216,22 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       itemsByCategory[category].push(item);
     });
     
-    // Sort within categories if needed
-    Object.keys(itemsByCategory).forEach(category => {
-      itemsByCategory[category].sort((a, b) => {
-        if (a.checked !== b.checked) {
-          return a.checked ? 1 : -1;
-        }
-        return a.name.localeCompare(b.name);
+    // Sort within categories if needed (but not for custom sort)
+    if (sortType !== "custom") {
+      Object.keys(itemsByCategory).forEach(category => {
+        itemsByCategory[category].sort((a, b) => {
+          if (a.checked !== b.checked) {
+            return a.checked ? 1 : -1;
+          }
+          return a.name.localeCompare(b.name);
+        });
       });
-    });
+    }
     
     // Determine category order based on sortType
     let sortedCategories: string[] = [];
     
-    if (sortType === "name") {
+    if (sortType === "name" || sortType === "custom") {
       // For alphabetical sorting, we'll put all categories in one
       // This is just for display in the UI
       sortedCategories = Object.keys(itemsByCategory);
@@ -234,27 +244,23 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       });
     }
     
-    return { itemsByCategory, sortedCategories };
+    return { itemsByCategory, sortedCategories, allSortedItems };
   }, [items, sortType]);
 
-  // Special rendering for alphabetical view
+  // Special rendering for alphabetical or custom view
   const renderItemsList = () => {
-    if (sortType === "name") {
-      // For alphabetical view, show all items in a single list
-      const allItems = [...items].sort((a, b) => {
-        if (a.checked !== b.checked) {
-          return a.checked ? 1 : -1;
-        }
-        return a.name.localeCompare(b.name);
-      });
+    if (sortType === "name" || sortType === "custom") {
+      // For alphabetical or custom view, show all items in a single list
+      const title = sortType === "name" ? "All Items (Alphabetical)" : "Custom Order";
+      const icon = sortType === "name" ? "🔤" : "📋";
       
       return (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
-            <span className="mr-2">🔤</span> {t("All Items")}
+            <span className="mr-2">{icon}</span> {t(title)}
           </h4>
           <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
-            {allItems.map(renderItem)}
+            {allSortedItems.map(item => renderItem(item))}
           </ul>
         </div>
       );
@@ -267,7 +273,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
         </h4>
         <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
-          {itemsByCategory[category].map(renderItem)}
+          {itemsByCategory[category].map(item => renderItem(item))}
         </ul>
       </div>
     ));
@@ -303,13 +309,13 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         >
           <span className="text-white">
             {item.name}
-            {sortType === "name" && item.category && (
+            {(sortType === "name" || sortType === "custom") && item.category && (
               <span className="ml-2 text-xs text-[#2D7A46]/80">
                 {categoryIcons[item.category]}
               </span>
             )}
           </span>
-          {showPrices && item.price && (
+          {showPrices && item.price !== undefined && (
             <span className="text-xs text-[#2D7A46]/80">
               ${item.price.toFixed(2)}
             </span>
@@ -321,6 +327,29 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       </div>
       
       <div className="flex space-x-1">
+        {sortType === "custom" && onMoveItem && (
+          <>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onMoveItem(item.id, 'up')}
+              className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
+              aria-label="Move item up"
+            >
+              <MoveUp className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onMoveItem(item.id, 'down')}
+              className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
+              aria-label="Move item down"
+            >
+              <MoveDown className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+        
         <Button 
           variant="ghost" 
           size="sm"

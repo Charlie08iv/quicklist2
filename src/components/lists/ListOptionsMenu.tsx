@@ -9,7 +9,7 @@ import {
   DollarSign, 
   CheckCheck,
   MessageSquare,
-  Contact,  // Changed from Contacts to Contact
+  Contact,
   ListOrdered
 } from "lucide-react";
 import {
@@ -42,6 +42,7 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
   const { t } = useTranslation();
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Use useCallback to memoize event handlers
   const handleShare = useCallback((e?: React.MouseEvent) => {
@@ -49,6 +50,7 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
+    setIsMenuOpen(false);
     setShareDialogOpen(true);
   }, []);
 
@@ -56,23 +58,38 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    setIsMenuOpen(false);
+    
     if (onSort) {
       onSort(sortType);
     }
     
+    let message = "";
+    switch (sortType) {
+      case "name":
+        message = t("Items have been sorted alphabetically");
+        break;
+      case "category":
+        message = t("Items have been sorted by category");
+        break;
+      case "custom":
+        message = t("Switched to custom sorting mode");
+        break;
+      default:
+        message = t("Items have been sorted");
+    }
+    
     toast({
       title: t("List sorted"),
-      description: sortType === "name" 
-        ? t("Items have been sorted alphabetically") 
-        : sortType === "category" 
-          ? t("Items have been sorted by category")
-          : t("Items have been sorted")
+      description: message
     });
   }, [onSort, toast, t]);
 
   const handleTogglePrices = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    setIsMenuOpen(false);
     
     if (onTogglePrices) {
       onTogglePrices();
@@ -87,6 +104,8 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    setIsMenuOpen(false);
+    
     if (onUncheckAll) {
       onUncheckAll();
     }
@@ -98,13 +117,23 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button 
+            variant="ghost" 
+            className="h-8 w-8 p-0" 
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
             <MoreVertical className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+        <DropdownMenuContent 
+          align="end" 
+          onClick={e => e.stopPropagation()}
+          onEscapeKeyDown={() => setIsMenuOpen(false)}
+        >
           <DropdownMenuLabel>{t("Manage List")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
@@ -146,10 +175,10 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
           listId={listId} 
           onOpenChange={(open) => {
             if (!open) {
-              // Use setTimeout to defer state update and prevent freezing
+              // Use a longer setTimeout to defer state update and prevent freezing
               setTimeout(() => {
                 setShareDialogOpen(false);
-              }, 0);
+              }, 50);
             }
           }} 
         />

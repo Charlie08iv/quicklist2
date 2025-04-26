@@ -83,7 +83,14 @@ const ListDetails: React.FC = () => {
     setIsProcessingAction(true);
     
     try {
-      await addItemToList(listId, item);
+      // Remove the price property if using prices isn't enabled
+      // This avoids database errors since price column doesn't exist
+      const itemToAdd = { ...item };
+      if (!showPrices && 'price' in itemToAdd) {
+        delete itemToAdd.price;
+      }
+      
+      await addItemToList(listId, itemToAdd);
       await loadList();
       toast({
         title: t("Item added"),
@@ -142,7 +149,14 @@ const ListDetails: React.FC = () => {
   const handleUpdateItem = async (itemId, updates) => {
     setIsProcessingAction(true);
     try {
-      await updateShoppingItem(itemId, updates);
+      // Remove the price property if using prices isn't enabled
+      // This avoids database errors since price column doesn't exist
+      const updatesToSend = { ...updates };
+      if (!showPrices && 'price' in updatesToSend) {
+        delete updatesToSend.price;
+      }
+      
+      await updateShoppingItem(itemId, updatesToSend);
       await loadList();
       toast({
         title: t("Item updated"),
@@ -190,6 +204,46 @@ const ListDetails: React.FC = () => {
       toast({
         title: t("Error"),
         description: t("Failed to uncheck items"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  // Handle custom order movement
+  const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
+    if (!listId || !list || sortType !== 'custom') return;
+    
+    setIsProcessingAction(true);
+    
+    try {
+      // For custom sorting, we'll just update the list locally for now
+      // as there's no position/order column in the database yet
+      // This will let the user see the changes immediately
+      const updatedItems = [...(list?.items || [])];
+      const itemIndex = updatedItems.findIndex(item => item.id === itemId);
+      
+      if (itemIndex === -1) return;
+      
+      if (direction === 'up' && itemIndex > 0) {
+        // Swap with previous item
+        [updatedItems[itemIndex], updatedItems[itemIndex - 1]] = 
+          [updatedItems[itemIndex - 1], updatedItems[itemIndex]];
+      } else if (direction === 'down' && itemIndex < updatedItems.length - 1) {
+        // Swap with next item
+        [updatedItems[itemIndex], updatedItems[itemIndex + 1]] = 
+          [updatedItems[itemIndex + 1], updatedItems[itemIndex]];
+      }
+      
+      // Update the local state
+      setList(prevList => prevList ? { ...prevList, items: updatedItems } : null);
+      
+    } catch (error) {
+      console.error("Error moving item:", error);
+      toast({
+        title: t("Error"),
+        description: t("Failed to move item"),
         variant: "destructive"
       });
     } finally {
@@ -285,12 +339,19 @@ const ListDetails: React.FC = () => {
           onUpdateItem={handleUpdateItem}
           showPrices={showPrices}
           sortType={sortType}
+          onMoveItem={handleMoveItem}
         />
 
         {showShareDialog && (
           <ShareOptionsDialog 
             listId={list.id} 
-            onOpenChange={setShowShareDialog}
+            onOpenChange={(open) => {
+              if (!open) {
+                setTimeout(() => {
+                  setShowShareDialog(false);
+                }, 50);
+              }
+            }}
           />
         )}
       </motion.div>
