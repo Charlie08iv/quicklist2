@@ -26,11 +26,25 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
     
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // First, create the group
+      const { data: groupData, error: groupError } = await supabase
         .from("groups")
-        .insert([{ name: groupName, created_by: user.id }]);
+        .insert([{ name: groupName, created_by: user.id }])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (groupError) throw groupError;
+      
+      if (!groupData) {
+        throw new Error("Failed to create group: No data returned");
+      }
+
+      // Then, add the creator as a member of the group
+      const { error: memberError } = await supabase
+        .from("group_members")
+        .insert([{ group_id: groupData.id, user_id: user.id }]);
+
+      if (memberError) throw memberError;
 
       toast.success(t("groupCreated"));
       onOpenChange(false);

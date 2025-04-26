@@ -26,14 +26,42 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
     
     setIsLoading(true);
     try {
+      // First, find the group with the invite code
       const { data: group, error: groupError } = await supabase
         .from("groups")
         .select("id")
         .eq("invite_code", inviteCode)
         .single();
 
-      if (groupError) throw groupError;
+      if (groupError) {
+        if (groupError.code === 'PGRST116') {
+          toast.error(t("invalidInviteCode"));
+        } else {
+          throw groupError;
+        }
+        setIsLoading(false);
+        return;
+      }
 
+      // Check if user is already a member
+      const { data: existingMember, error: memberCheckError } = await supabase
+        .from("group_members")
+        .select("id")
+        .eq("group_id", group.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      if (memberCheckError) throw memberCheckError;
+      
+      if (existingMember) {
+        toast.info(t("alreadyGroupMember"));
+        onOpenChange(false);
+        setInviteCode("");
+        setIsLoading(false);
+        return;
+      }
+
+      // Then, add the user as a member
       const { error: memberError } = await supabase
         .from("group_members")
         .insert([{ group_id: group.id, user_id: user.id }]);
