@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -125,19 +124,21 @@ const Recipes: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((category) => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              className="flex-shrink-0"
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-            >
-              {category}
-            </Button>
-          ))}
-        </div>
+        {activeTab === "inspiration" && (
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+            {CATEGORIES.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                className="flex-shrink-0"
+                size="sm"
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <TabsContent value="myRecipes">
           {filteredPersonal.length > 0 ? (
