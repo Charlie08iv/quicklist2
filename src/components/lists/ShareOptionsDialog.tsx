@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { shareList } from "@/services/listService";
-import { Loader2, Copy, Check, Share, Facebook, Twitter, Mail, Link as LinkIcon } from "lucide-react";
+import { Loader2, Copy, Check, Share, Facebook, Twitter, Mail, Link as LinkIcon, MessageSquare, Contacts } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,11 +22,12 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  // Fetch the share link when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && !shareLink && !isSubmitting) {
       handleShare();
     }
-  }, []);
+  }, [open, shareLink, isSubmitting]);
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
@@ -88,17 +89,31 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
     if (!shareLink) return;
     
     let shareUrl = '';
+    const subject = encodeURIComponent('Check out this shopping list');
+    const body = encodeURIComponent(`I wanted to share this shopping list with you: ${shareLink}`);
     
     switch (platform) {
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`;
         break;
       case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent('Check out this shopping list')}`;
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareLink)}&text=${subject}`;
         break;
       case 'email':
-        shareUrl = `mailto:?subject=${encodeURIComponent('Check out this shopping list')}&body=${encodeURIComponent(`I wanted to share this shopping list with you: ${shareLink}`)}`;
+        shareUrl = `mailto:?subject=${subject}&body=${body}`;
         break;
+      case 'imessage':
+        // On iOS this will open the Messages app if available
+        shareUrl = `sms:&body=${body}`;
+        break;
+      case 'contacts':
+        // This is a special case, we'll just copy to clipboard and suggest sharing with contacts
+        navigator.clipboard.writeText(shareLink);
+        toast({
+          title: "Ready to share with contacts",
+          description: "Link copied. You can now paste it in your contacts app."
+        });
+        return;
       default:
         return;
     }
@@ -108,12 +123,15 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="text-center text-primary">{t("Share List")}</DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground">
+            {t("Share this list with friends and family")}
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6 pt-4">
+        <div className="space-y-6 pt-2">
           {isSubmitting ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -157,7 +175,7 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full"
+                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
                     onClick={() => handleShareVia('facebook')}
                   >
                     <Facebook className="h-5 w-5 text-blue-600" />
@@ -165,7 +183,7 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full"
+                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
                     onClick={() => handleShareVia('twitter')}
                   >
                     <Twitter className="h-5 w-5 text-blue-400" />
@@ -173,10 +191,26 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full"
+                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
                     onClick={() => handleShareVia('email')}
                   >
                     <Mail className="h-5 w-5 text-gray-600" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="rounded-full hover:bg-green-100 dark:hover:bg-green-900/30"
+                    onClick={() => handleShareVia('imessage')}
+                  >
+                    <MessageSquare className="h-5 w-5 text-green-500" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                    onClick={() => handleShareVia('contacts')}
+                  >
+                    <Contacts className="h-5 w-5 text-blue-700" />
                   </Button>
                   <Button 
                     variant="outline" 

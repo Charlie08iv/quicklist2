@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,12 +16,10 @@ import {
 import { cn } from "@/lib/utils";
 
 // Add price property to ShoppingItem since it's used throughout this component
-// This is a temporary solution until the proper types are updated
 interface ShoppingItemWithPrice extends ShoppingItem {
   price?: number;
 }
 
-// Also update the props to use the extended type
 interface ListItemManagerProps {
   listId: string;
   items: ShoppingItemWithPrice[];
@@ -30,6 +28,7 @@ interface ListItemManagerProps {
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
   onUpdateItem?: (itemId: string, item: Partial<ShoppingItemWithPrice>) => void;
   showPrices?: boolean;
+  sortType?: string;
 }
 
 const categories = [
@@ -84,7 +83,8 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onRemoveItem,
   onToggleItemCheck,
   onUpdateItem,
-  showPrices = false
+  showPrices = false,
+  sortType = "category"
 }) => {
   const { t } = useTranslation();
   const [newItemName, setNewItemName] = useState("");
@@ -180,10 +180,27 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
     }
   };
 
-  const sortedItemsByCategory = () => {
+  // Memoize sorted items to prevent unnecessary recalculations
+  const { itemsByCategory, sortedCategories } = useMemo(() => {
     const itemsByCategory: Record<string, ShoppingItemWithPrice[]> = {};
     
-    items.forEach(item => {
+    // First, sort individual items based on sortType
+    const sortedItems = [...items].sort((a, b) => {
+      // Always prioritize checked state
+      if (a.checked !== b.checked) {
+        return a.checked ? 1 : -1;
+      }
+
+      if (sortType === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      
+      // For category sorting or default
+      return a.name.localeCompare(b.name);
+    });
+    
+    // Then organize by category
+    sortedItems.forEach(item => {
       const category = item.category || "Other";
       if (!itemsByCategory[category]) {
         itemsByCategory[category] = [];
@@ -191,6 +208,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       itemsByCategory[category].push(item);
     });
     
+    // Sort within categories if needed
     Object.keys(itemsByCategory).forEach(category => {
       itemsByCategory[category].sort((a, b) => {
         if (a.checked !== b.checked) {
@@ -200,16 +218,133 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
       });
     });
     
-    const sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
-      if (a === "Other") return 1;
-      if (b === "Other") return -1;
-      return a.localeCompare(b);
-    });
+    // Determine category order based on sortType
+    let sortedCategories: string[] = [];
+    
+    if (sortType === "name") {
+      // For alphabetical sorting, we'll put all categories in one
+      // This is just for display in the UI
+      sortedCategories = Object.keys(itemsByCategory);
+    } else {
+      // For category sorting
+      sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
+        if (a === "Other") return 1;
+        if (b === "Other") return -1;
+        return a.localeCompare(b);
+      });
+    }
     
     return { itemsByCategory, sortedCategories };
+  }, [items, sortType]);
+
+  // Special rendering for alphabetical view
+  const renderItemsList = () => {
+    if (sortType === "name") {
+      // For alphabetical view, show all items in a single list
+      const allItems = [...items].sort((a, b) => {
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+      
+      return (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
+            <span className="mr-2">🔤</span> {t("All Items")}
+          </h4>
+          <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
+            {allItems.map(renderItem)}
+          </ul>
+        </div>
+      );
+    }
+    
+    // For category view, show items grouped by category
+    return sortedCategories.map((category) => (
+      <div key={category} className="space-y-2">
+        <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
+          <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
+        </h4>
+        <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
+          {itemsByCategory[category].map(renderItem)}
+        </ul>
+      </div>
+    ));
   };
-  
-  const { itemsByCategory, sortedCategories } = sortedItemsByCategory();
+
+  // Extract item rendering for reuse
+  const renderItem = (item: ShoppingItemWithPrice) => (
+    <li 
+      key={item.id} 
+      className="flex justify-between items-center p-2 hover:bg-[#2D7A46]/20 rounded-md border-b border-[#2D7A46]/10 last:border-0"
+    >
+      <div className="flex items-center space-x-2 flex-1">
+        {onToggleItemCheck && (
+          <button
+            onClick={() => onToggleItemCheck(item.id, !item.checked)}
+            className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center",
+              item.checked 
+                ? "bg-[#2D7A46] text-white" 
+                : "border-2 border-[#2D7A46]/50 text-[#2D7A46]"
+            )}
+            aria-label={item.checked ? "Mark as not done" : "Mark as done"}
+          >
+            {item.checked && <Check className="h-4 w-4" />}
+          </button>
+        )}
+        <div
+          className={cn(
+            "flex-1 flex flex-col", 
+            item.checked ? "line-through text-[#2D7A46]/70" : ""
+          )}
+          onClick={() => openItemDetails(item)}
+        >
+          <span className="text-white">
+            {item.name}
+            {sortType === "name" && item.category && (
+              <span className="ml-2 text-xs text-[#2D7A46]/80">
+                {categoryIcons[item.category]}
+              </span>
+            )}
+          </span>
+          {showPrices && item.price && (
+            <span className="text-xs text-[#2D7A46]/80">
+              ${item.price.toFixed(2)}
+            </span>
+          )}
+        </div>
+        <span className="text-sm text-[#2D7A46] whitespace-nowrap">
+          {item.quantity} {item.unit}
+        </span>
+      </div>
+      
+      <div className="flex space-x-1">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => openItemDetails(item)}
+          className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
+          aria-label="Edit item details"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        
+        {onRemoveItem && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => onRemoveItem(item.id)}
+            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/20"
+            aria-label="Remove item"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </li>
+  );
 
   return (
     <div className="space-y-6">
@@ -316,86 +451,14 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
         <div className="space-y-4">
           <h3 className="font-medium text-lg text-foreground">{t("Items")}</h3>
           
-          {sortedCategories.map((category) => (
-            <div key={category} className="space-y-2">
-              <h4 className="text-sm font-semibold bg-[#2D7A46]/20 py-1 px-2 rounded flex items-center text-white">
-                <span className="mr-2">{categoryIcons[category]}</span> {t(category)}
-              </h4>
-              <ul className="space-y-1 bg-[#2D7A46]/10 rounded-lg shadow-sm p-2 border border-[#2D7A46]/20">
-                {itemsByCategory[category].map(item => (
-                  <li 
-                    key={item.id} 
-                    className="flex justify-between items-center p-2 hover:bg-[#2D7A46]/20 rounded-md border-b border-[#2D7A46]/10 last:border-0"
-                  >
-                    <div className="flex items-center space-x-2 flex-1">
-                      {onToggleItemCheck && (
-                        <button
-                          onClick={() => onToggleItemCheck(item.id, !item.checked)}
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center",
-                            item.checked 
-                              ? "bg-[#2D7A46] text-white" 
-                              : "border-2 border-[#2D7A46]/50 text-[#2D7A46]"
-                          )}
-                          aria-label={item.checked ? "Mark as not done" : "Mark as done"}
-                        >
-                          {item.checked && <Check className="h-4 w-4" />}
-                        </button>
-                      )}
-                      <div
-                        className={cn(
-                          "flex-1 flex flex-col", 
-                          item.checked ? "line-through text-[#2D7A46]/70" : ""
-                        )}
-                        onClick={() => openItemDetails(item)}
-                      >
-                        <span className="text-white">
-                          {item.name}
-                        </span>
-                        {showPrices && item.price && (
-                          <span className="text-xs text-[#2D7A46]/80">
-                            ${item.price.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-[#2D7A46] whitespace-nowrap">
-                        {item.quantity} {item.unit}
-                      </span>
-                    </div>
-                    
-                    <div className="flex space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => openItemDetails(item)}
-                        className="h-8 w-8 p-0 text-[#2D7A46] hover:bg-[#2D7A46]/20"
-                        aria-label="Edit item details"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                      
-                      {onRemoveItem && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onRemoveItem(item.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:bg-destructive/20"
-                          aria-label="Remove item"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="space-y-4">
+            {renderItemsList()}
+          </div>
         </div>
       )}
 
       <Dialog open={itemDetailsOpen} onOpenChange={setItemDetailsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle className="text-center text-xl flex items-center justify-center">
               {selectedItem?.name}

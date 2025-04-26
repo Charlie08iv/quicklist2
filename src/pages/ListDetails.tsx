@@ -22,6 +22,7 @@ const ListDetails: React.FC = () => {
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [showPrices, setShowPrices] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [sortType, setSortType] = useState("category"); // Default sort by category
 
   const loadList = useCallback(async () => {
     if (!listId) return;
@@ -72,10 +73,10 @@ const ListDetails: React.FC = () => {
     loadList();
   }, [loadList]);
 
-  const handleBackClick = (e: React.MouseEvent) => {
+  const handleBackClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/lists');
-  };
+  }, [navigate]);
 
   const handleAddItem = async (item) => {
     if (!listId) return;
@@ -159,9 +160,13 @@ const ListDetails: React.FC = () => {
     }
   };
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     setShowShareDialog(true);
-  };
+  }, []);
+
+  const handleSort = useCallback((type: string) => {
+    setSortType(type);
+  }, []);
 
   const handleUncheckAll = async () => {
     if (!list || !list.items) return;
@@ -170,9 +175,10 @@ const ListDetails: React.FC = () => {
     try {
       const checkedItems = list.items.filter(item => item.checked);
       
-      for (const item of checkedItems) {
-        await updateShoppingItem(item.id, { checked: false });
-      }
+      // Reduce number of API calls by using Promise.all
+      await Promise.all(
+        checkedItems.map(item => updateShoppingItem(item.id, { checked: false }))
+      );
       
       await loadList();
       toast({
@@ -263,7 +269,7 @@ const ListDetails: React.FC = () => {
             
             <ListOptionsMenu 
               listId={list.id}
-              onSort={() => {}} 
+              onSort={handleSort} 
               onUncheckAll={handleUncheckAll}
               onTogglePrices={() => setShowPrices(!showPrices)}
             />
@@ -278,6 +284,7 @@ const ListDetails: React.FC = () => {
           onToggleItemCheck={handleToggleItemCheck}
           onUpdateItem={handleUpdateItem}
           showPrices={showPrices}
+          sortType={sortType}
         />
 
         {showShareDialog && (
