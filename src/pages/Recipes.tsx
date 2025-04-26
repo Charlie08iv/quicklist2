@@ -39,7 +39,7 @@ const Recipes: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
-      <div className="flex justify-center items-center mb-6 gap-2">
+      <div className="flex justify-between items-center mb-6">
         <span className="text-lg font-medium text-muted-foreground">Recipe</span>
         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
           <Plus className="h-5 w-5" />
