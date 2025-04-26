@@ -43,16 +43,30 @@ const Groups: React.FC = () => {
       if (createdError) throw createdError;
       
       // Fetch groups where user is a member
-      const { data: memberGroups, error: memberError } = await supabase
-        .from("groups")
-        .select("*")
-        .eq("id", supabase.rpc('user_is_member_of_group', { group_id_param: 'id', user_id_param: user.id }));
-
+      // Fix: Use a different approach to get the member groups instead of using PostgrestFilterBuilder
+      const { data: memberData, error: memberError } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id);
+      
       if (memberError) throw memberError;
+      
+      // If the user is a member of any groups, fetch those groups
+      let memberGroups: Group[] = [];
+      if (memberData && memberData.length > 0) {
+        const groupIds = memberData.map(item => item.group_id);
+        const { data: groups, error: groupsError } = await supabase
+          .from("groups")
+          .select("*")
+          .in("id", groupIds);
+          
+        if (groupsError) throw groupsError;
+        memberGroups = groups || [];
+      }
       
       // Combine and deduplicate groups
       const allGroups = [...(createdGroups || [])];
-      if (memberGroups) {
+      if (memberGroups.length > 0) {
         memberGroups.forEach(group => {
           if (!allGroups.some(g => g.id === group.id)) {
             allGroups.push(group);
