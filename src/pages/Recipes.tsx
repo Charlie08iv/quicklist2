@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import CreateRecipeDialog from "@/components/recipes/CreateRecipeDialog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { getRecipeById } from "@/services/recipeService";
+import { getRecipeById, addRecipeToShoppingList } from "@/services/recipeService";
 import RecipeCard from "@/components/recipes/RecipeCard";
+import RecipeDetailsDialog from "@/components/recipes/RecipeDetailsDialog";
 import { RecipeDetails } from "@/types/recipes";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,6 +24,8 @@ const Recipes: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [personalRecipes, setPersonalRecipes] = useState<RecipeDetails[]>([]);
   const [sharedRecipes, setSharedRecipes] = useState<RecipeDetails[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const { data: inspirationRecipes = [] } = useQuery({
     queryKey: ['inspiration-recipes'],
@@ -35,14 +38,10 @@ const Recipes: React.FC = () => {
   });
 
   const handleCreateRecipe = (recipe: RecipeDetails) => {
-    // Add the recipe to the personal recipes list
     setPersonalRecipes(prev => [...prev, recipe]);
-    
-    // If the recipe is public (not personal), add it to shared recipes
     if (!recipe.isPersonal) {
       setSharedRecipes(prev => [...prev, recipe]);
     }
-    
     toast({
       title: t("recipeCreated"),
       description: t("recipeCreatedDescription"),
@@ -50,7 +49,6 @@ const Recipes: React.FC = () => {
   };
 
   const handleLikeToggle = async (recipeId: string) => {
-    // Toggle like for personal recipes
     if (activeTab === "myRecipes") {
       setPersonalRecipes(prev => 
         prev.map(recipe => 
@@ -60,8 +58,6 @@ const Recipes: React.FC = () => {
         )
       );
     }
-    
-    // Toggle like for inspiration recipes
     if (activeTab === "inspiration") {
       setSharedRecipes(prev => 
         prev.map(recipe => 
@@ -71,11 +67,23 @@ const Recipes: React.FC = () => {
         )
       );
     }
-    
     console.log("Toggle like for recipe:", recipeId);
   };
 
-  // Combine inspiration recipes with shared recipes for the inspiration tab
+  const handleOpenDetails = (recipe: RecipeDetails) => {
+    setSelectedRecipe(recipe);
+    setDetailsOpen(true);
+  };
+
+  const handleAddToList = async () => {
+    if (!selectedRecipe) return;
+    
+    const success = await addRecipeToShoppingList(selectedRecipe.id);
+    if (success) {
+      setDetailsOpen(false);
+    }
+  };
+
   const allInspirationRecipes = [...inspirationRecipes, ...sharedRecipes];
 
   const filteredInspiration = allInspirationRecipes.filter(recipe => {
@@ -148,6 +156,7 @@ const Recipes: React.FC = () => {
                   key={recipe.id} 
                   recipe={recipe}
                   onLikeToggle={() => handleLikeToggle(recipe.id)}
+                  onOpenDetails={() => handleOpenDetails(recipe)}
                 />
               ))}
             </div>
@@ -183,6 +192,7 @@ const Recipes: React.FC = () => {
                 key={recipe.id} 
                 recipe={recipe}
                 onLikeToggle={() => handleLikeToggle(recipe.id)}
+                onOpenDetails={() => handleOpenDetails(recipe)}
               />
             ))}
           </div>
@@ -193,6 +203,14 @@ const Recipes: React.FC = () => {
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen}
         onCreateRecipe={handleCreateRecipe}
+      />
+
+      <RecipeDetailsDialog
+        recipe={selectedRecipe}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onLikeToggle={selectedRecipe ? () => handleLikeToggle(selectedRecipe.id) : undefined}
+        onAddToList={handleAddToList}
       />
     </div>
   );
