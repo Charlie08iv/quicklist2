@@ -12,9 +12,10 @@ import { toast } from "sonner";
 interface JoinGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onGroupJoined?: () => void;
 }
 
-export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
+export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
@@ -43,6 +44,10 @@ export function JoinGroupDialog({ open, onOpenChange }: JoinGroupDialogProps) {
       toast.success(t("joinedGroup"));
       onOpenChange(false);
       setInviteCode("");
+      
+      if (onGroupJoined) {
+        onGroupJoined();
+      }
     } catch (error) {
       console.error("Error joining group:", error);
       toast.error(t("errorJoiningGroup"));

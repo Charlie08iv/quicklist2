@@ -12,9 +12,10 @@ import { toast } from "sonner";
 interface CreateGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onGroupCreated?: () => void;
 }
 
-export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps) {
+export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [groupName, setGroupName] = useState("");
@@ -35,6 +36,10 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       toast.success(t("groupCreated"));
       onOpenChange(false);
       setGroupName("");
+      
+      if (onGroupCreated) {
+        onGroupCreated();
+      }
     } catch (error) {
       console.error("Error creating group:", error);
       toast.error(t("errorCreatingGroup"));
