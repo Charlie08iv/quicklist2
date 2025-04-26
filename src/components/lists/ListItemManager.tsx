@@ -31,21 +31,6 @@ interface ListItemManagerProps {
   translatedTexts?: Record<string, string>;
 }
 
-const categories = [
-  "Produce",
-  "Dairy",
-  "Meat",
-  "Bakery",
-  "Frozen Foods",
-  "Canned Goods",
-  "Dry Goods",
-  "Beverages",
-  "Spices",
-  "Snacks",
-  "Household",
-  "Other"
-];
-
 const units = [
   "pcs",
   "kg",
@@ -92,7 +77,6 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const [newItemName, setNewItemName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState("pcs");
-  const [newItemCategory, setNewItemCategory] = useState("Other");
   const [newItemPrice, setNewItemPrice] = useState("");
   const [itemDetailsOpen, setItemDetailsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ShoppingItemWithPrice | null>(null);
@@ -112,17 +96,69 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const detectCategory = (itemName: string): string => {
     const lowerName = itemName.toLowerCase();
     
+    // Comprehensive keywords in multiple languages
     const categoryKeywords: Record<string, string[]> = {
-      "Produce": ["apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable"],
-      "Dairy": ["milk", "cheese", "yogurt", "cream", "butter", "egg"],
-      "Meat": ["beef", "chicken", "pork", "steak", "fish", "meat", "sausage"],
-      "Bakery": ["bread", "cake", "cookie", "bagel", "muffin", "pastry"],
-      "Frozen Foods": ["ice cream", "frozen", "pizza"],
-      "Canned Goods": ["can", "soup", "beans", "tuna"],
-      "Beverages": ["water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine"],
-      "Spices": ["salt", "pepper", "spice", "herb"],
-      "Snacks": ["chip", "candy", "snack", "chocolate", "cookie"],
-      "Household": ["paper", "soap", "detergent", "cleaner", "towel"]
+      "Produce": [
+        // English
+        "apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable",
+        // Swedish
+        "äpple", "banan", "apelsin", "sallad", "tomat", "potatis", "morot", "lök", "frukt", "grönsak",
+        "ananas", "paprika"
+      ],
+      "Dairy": [
+        // English
+        "milk", "cheese", "yogurt", "cream", "butter", "egg",
+        // Swedish
+        "mjölk", "ost", "yoghurt", "grädde", "smör", "ägg"
+      ],
+      "Meat": [
+        // English
+        "beef", "chicken", "pork", "steak", "fish", "meat", "sausage",
+        // Swedish
+        "nötkött", "kyckling", "fläsk", "biff", "fisk", "kött", "korv"
+      ],
+      "Bakery": [
+        // English
+        "bread", "cake", "cookie", "bagel", "muffin", "pastry",
+        // Swedish
+        "bröd", "kaka", "bulle", "bagel", "muffins", "bakverk"
+      ],
+      "Frozen Foods": [
+        // English
+        "frozen", "ice cream",
+        // Swedish
+        "fryst", "glass", "frysta"
+      ],
+      "Canned Goods": [
+        // English
+        "can", "soup", "beans", "tuna",
+        // Swedish
+        "konserv", "soppa", "bönor", "tonfisk"
+      ],
+      "Beverages": [
+        // English
+        "water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine",
+        // Swedish
+        "vatten", "läsk", "juice", "kaffe", "te", "dryck", "öl", "vin"
+      ],
+      "Spices": [
+        // English
+        "salt", "pepper", "spice", "herb",
+        // Swedish
+        "salt", "peppar", "krydda", "ört"
+      ],
+      "Snacks": [
+        // English
+        "chip", "candy", "snack", "chocolate", "cookie",
+        // Swedish
+        "chips", "godis", "snacks", "choklad", "kaka"
+      ],
+      "Household": [
+        // English
+        "paper", "soap", "detergent", "cleaner", "towel",
+        // Swedish
+        "papper", "tvål", "tvättmedel", "rengöring", "handduk"
+      ]
     };
     
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
@@ -137,9 +173,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (newItemName.trim()) {
-      const category = newItemCategory === "Other" 
-        ? detectCategory(newItemName.trim()) 
-        : newItemCategory;
+      const category = detectCategory(newItemName.trim());
         
       onAddItem({
         name: newItemName.trim(),
@@ -384,7 +418,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
           />
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-2">
             <Label htmlFor="item-quantity" className="text-foreground">{getText("quantity")}</Label>
             <Input
@@ -420,46 +454,23 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2 col-span-2 sm:col-span-1">
-            <Label htmlFor="item-category" className="text-foreground">{getText("category")}</Label>
-            <Select value={newItemCategory} onValueChange={setNewItemCategory}>
-              <SelectTrigger 
-                id="item-category" 
-                className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
-              >
-                <SelectValue placeholder={getText("selectCategory")} />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1A1F2C] border-[#2D7A46]/20 text-white">
-                {categories.map(category => (
-                  <SelectItem 
-                    key={category} 
-                    value={category}
-                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30 text-white"
-                  >
-                    {categoryIcons[category]} {getCategoryName(category)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {showPrices && (
-            <div className="space-y-2 col-span-2 sm:col-span-3">
-              <Label htmlFor="item-price" className="text-foreground">{getText("price")}</Label>
-              <Input
-                id="item-price"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={newItemPrice}
-                onChange={(e) => setNewItemPrice(e.target.value)}
-                placeholder={getText("enterPrice")}
-                className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
-              />
-            </div>
-          )}
         </div>
+        
+        {showPrices && (
+          <div className="space-y-2">
+            <Label htmlFor="item-price" className="text-foreground">{getText("price")}</Label>
+            <Input
+              id="item-price"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={newItemPrice}
+              onChange={(e) => setNewItemPrice(e.target.value)}
+              placeholder={getText("enterPrice")}
+              className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
+            />
+          </div>
+        )}
         
         <Button 
           type="submit" 

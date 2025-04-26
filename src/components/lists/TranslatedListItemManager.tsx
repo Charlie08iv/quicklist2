@@ -19,18 +19,15 @@ interface TranslatedListItemManagerProps {
 const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = (props) => {
   const { t } = useTranslation();
   
-  // Create translated placeholder texts
   const placeholders = {
     itemName: t("Enter item name"),
     itemNameLabel: t("Item Name"),
     quantity: t("Quantity"),
     unit: t("Unit"),
-    category: t("Category"),
     addItem: t("Add Item"),
     other: t("Other"),
     done: t("Done"),
     selectUnit: t("Select unit"),
-    selectCategory: t("Select category"),
     price: t("Price"),
     enterPrice: t("Enter price (optional)"),
     items: t("Items"),
@@ -46,7 +43,8 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = (pro
     beverages: t("Beverages"),
     spices: t("Spices"),
     snacks: t("Snacks"),
-    household: t("Household")
+    household: t("Household"),
+    other: t("Other")
   };
 
   return (
