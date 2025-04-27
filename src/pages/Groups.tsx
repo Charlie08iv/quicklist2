@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -33,16 +34,46 @@ const Groups: React.FC = () => {
     
     setLoading(true);
     try {
-      // With our updated RLS policies, we can now fetch all groups in a single query
-      // The policies will automatically filter to show only groups where the user
-      // is either the creator or a member
-      const { data: groups, error } = await supabase
+      // Fetch groups created by the user
+      const { data: createdGroups, error: createdError } = await supabase
         .from("groups")
-        .select("*");
+        .select("*")
+        .eq("created_by", user.id);
 
-      if (error) throw error;
+      if (createdError) throw createdError;
       
-      setGroups(groups || []);
+      // Fetch groups where user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id);
+      
+      if (memberError) throw memberError;
+      
+      // If the user is a member of any groups, fetch those groups
+      let memberGroups: Group[] = [];
+      if (memberData && memberData.length > 0) {
+        const groupIds = memberData.map(item => item.group_id);
+        const { data: groups, error: groupsError } = await supabase
+          .from("groups")
+          .select("*")
+          .in("id", groupIds);
+          
+        if (groupsError) throw groupsError;
+        memberGroups = groups || [];
+      }
+      
+      // Combine and deduplicate groups
+      const allGroups = [...(createdGroups || [])];
+      if (memberGroups.length > 0) {
+        memberGroups.forEach(group => {
+          if (!allGroups.some(g => g.id === group.id)) {
+            allGroups.push(group);
+          }
+        });
+      }
+      
+      setGroups(allGroups);
     } catch (error) {
       console.error("Error fetching groups:", error);
       toast.error(t("errorFetchingGroups"));
