@@ -38,90 +38,31 @@ const Lists: React.FC = () => {
     setHasError(false);
     
     try {
-      const mockData: ShoppingList[] = [
-        {
-          id: '1',
-          userId: 'user1',
-          name: 'Weekly Groceries',
-          date: new Date().toISOString().split('T')[0],
-          items: [
-            { id: '101', name: 'Milk', quantity: 1, checked: false },
-            { id: '102', name: 'Bread', quantity: 2, checked: true },
-          ],
-          isShared: false,
-          createdAt: new Date().toISOString(),
-          archived: false
-        },
-        {
-          id: '2',
-          userId: 'user1',
-          name: 'Weekend Party',
-          items: [
-            { id: '201', name: 'Chips', quantity: 3, checked: false },
-            { id: '202', name: 'Soda', quantity: 6, checked: false },
-          ],
-          isShared: true,
-          createdAt: new Date().toISOString(),
-          archived: false
-        }
-      ];
+      const [listsData, unscheduledListsData] = await Promise.all([
+        getListsByDate(new Date().toISOString().split('T')[0]),
+        getUnscheduledLists()
+      ]);
       
-      const mockArchivedData: ShoppingList[] = [
-        {
-          id: '3',
-          userId: 'user1',
-          name: 'Last Week Shopping',
-          date: '2025-04-18',
-          items: [
-            { id: '301', name: 'Apples', quantity: 5, checked: true },
-            { id: '302', name: 'Bananas', quantity: 4, checked: true },
-          ],
-          isShared: false,
-          createdAt: '2025-04-18T10:00:00Z',
-          archived: true
-        }
-      ];
+      const allLists = [...listsData, ...unscheduledListsData] as ShoppingList[];
       
-      try {
-        const [listsData, unscheduledListsData] = await Promise.all([
-          getListsByDate(new Date().toISOString().split('T')[0]),
-          getUnscheduledLists()
-        ]);
-        
-        const allLists = [...listsData, ...unscheduledListsData] as ShoppingList[];
-        
-        // Use functional updates to avoid race conditions
-        setLists(prevLists => {
-          // Only update if there's actual new data
-          if (allLists.filter(list => !list.archived).length === 0 && prevLists.length > 0) {
-            return prevLists;
-          }
-          return allLists.filter(list => !list.archived);
-        });
-        
-        setArchivedLists(prevArchivedLists => {
-          // Only update if there's actual new data
-          if (allLists.filter(list => list.archived).length === 0 && prevArchivedLists.length > 0) {
-            return prevArchivedLists;
-          }
-          return allLists.filter(list => list.archived);
-        });
-        
-        setRetryCount(0);
-      } catch (error) {
-        console.warn("Falling back to mock data due to API issues");
-        
-        // Only set mock data if we don't have existing data
-        if (lists.length === 0) {
-          setLists(mockData);
+      // Use functional updates to avoid race conditions
+      setLists(prevLists => {
+        // Only update if there's actual new data
+        if (allLists.filter(list => !list.archived).length === 0 && prevLists.length > 0) {
+          return prevLists;
         }
-        
-        if (archivedLists.length === 0) {
-          setArchivedLists(mockArchivedData);
+        return allLists.filter(list => !list.archived);
+      });
+      
+      setArchivedLists(prevArchivedLists => {
+        // Only update if there's actual new data
+        if (allLists.filter(list => list.archived).length === 0 && prevArchivedLists.length > 0) {
+          return prevArchivedLists;
         }
-        
-        setRetryCount(prevCount => prevCount + 1);
-      }
+        return allLists.filter(list => list.archived);
+      });
+      
+      setRetryCount(0);
     } catch (error) {
       console.error("Error loading data:", error);
       setHasError(true);
