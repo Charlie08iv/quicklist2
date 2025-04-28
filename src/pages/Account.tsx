@@ -1,11 +1,10 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { User, Mail, Lock, Trash2, ArrowLeft, LogOut } from "lucide-react";
+import { User, Mail, Lock, Trash2, ArrowLeft, LogOut, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "@/hooks/use-translation";
@@ -19,20 +18,98 @@ const Account = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url, username')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setAvatarUrl(data.avatar_url);
+        setName(data.username || name);
+      }
+    } catch (error: any) {
+      console.error('Error loading profile:', error.message);
+    }
+  };
+
   const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         email: email,
         data: { name: name }
       });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          username: name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user?.id);
+
+      if (profileError) throw profileError;
       
       toast({
         title: t("Profile updated"),
         description: t("Your profile has been successfully updated."),
+      });
+    } catch (error: any) {
+      toast({
+        title: t("Error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setLoading(true);
+      
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${Math.random()}.${fileExt}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      toast({
+        title: t("Profile picture updated"),
+        description: t("Your profile picture has been updated successfully."),
       });
     } catch (error: any) {
       toast({
@@ -61,24 +138,6 @@ const Account = () => {
         title: t("Error"),
         description: error.message,
         variant: "destructive",
-      });
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // Here you would typically upload to Supabase storage
-      // For now, we'll just update the preview
-      toast({
-        title: t("Profile picture updated"),
-        description: t("Your profile picture has been updated successfully."),
       });
     }
   };
@@ -133,56 +192,81 @@ const Account = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold text-white">{t("account")}</h1>
-          <div className="w-8" /> {/* Spacer for centering */}
+          <div className="w-8" />
         </div>
 
-        <div className="flex justify-center mb-8">
-          <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-[#1a472a] bg-[#1a472a]">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback>
-                <User className="h-12 w-12 text-white/60" />
-              </AvatarFallback>
-            </Avatar>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id="avatar-upload"
-              onChange={handleFileChange}
-            />
-            <label
-              htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 p-1.5 bg-[#1a472a] rounded-full cursor-pointer hover:bg-[#2a573a] transition-colors"
-            >
-              <User className="h-4 w-4 text-white" />
-            </label>
+        <form onSubmit={updateProfile} className="space-y-6">
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <Avatar className="h-24 w-24 border-4 border-[#1a472a] bg-[#1a472a]">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback>
+                  <User className="h-12 w-12 text-white/60" />
+                </AvatarFallback>
+              </Avatar>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="avatar-upload"
+                onChange={handleFileChange}
+                disabled={loading}
+              />
+              <label
+                htmlFor="avatar-upload"
+                className="absolute bottom-0 right-0 p-1.5 bg-[#1a472a] rounded-full cursor-pointer hover:bg-[#2a573a] transition-colors"
+              >
+                <User className="h-4 w-4 text-white" />
+              </label>
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-4">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={handleNameClick}
-          >
-            <User className="mr-2 h-5 w-5" />
-            {t("Edit Name")}
-          </Button>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">
+                {t("Name")}
+              </label>
+              <Input
+                id="name-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-[#1a472a] border-[#2a573a] text-white"
+                disabled={loading}
+              />
+            </div>
 
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={handleEmailClick}
-          >
-            <Mail className="mr-2 h-5 w-5" />
-            {t("Change Email")}
-          </Button>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">
+                {t("Email")}
+              </label>
+              <Input
+                id="email-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-[#1a472a] border-[#2a573a] text-white"
+                disabled={loading}
+              />
+            </div>
 
+            <Button
+              type="submit"
+              className="w-full bg-[#1a472a] hover:bg-[#2a573a] text-white"
+              disabled={loading}
+            >
+              <Save className="mr-2 h-5 w-5" />
+              {t("Save Changes")}
+            </Button>
+          </div>
+        </form>
+
+        <div className="space-y-4 pt-6">
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
             onClick={handlePasswordReset}
+            disabled={loading}
           >
             <Lock className="mr-2 h-5 w-5" />
             {t("Change Password")}
@@ -192,6 +276,7 @@ const Account = () => {
             variant="ghost" 
             className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
             onClick={signOut}
+            disabled={loading}
           >
             <LogOut className="mr-2 h-5 w-5" />
             {t("Log Out")}
@@ -201,26 +286,12 @@ const Account = () => {
             variant="ghost"
             className="w-full justify-start text-red-500 text-lg bg-[#1a472a] hover:bg-[#2a573a]"
             onClick={handleDeleteAccount}
+            disabled={loading}
           >
             <Trash2 className="mr-2 h-5 w-5" />
             {t("Delete Account")}
           </Button>
         </div>
-
-        <form onSubmit={updateProfile} className="hidden">
-          <Input
-            id="name-input"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Input
-            id="email-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </form>
       </div>
     </div>
   );
