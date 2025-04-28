@@ -27,9 +27,9 @@ const Groups: React.FC = () => {
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">{t("groups")}</h1>
       
-      <Alert variant="warning" className="mb-6">
-        <InfoIcon className="h-5 w-5" />
-        <AlertTitle>Feature Under Maintenance</AlertTitle>
+      <Alert className="mb-6 border-orange-500 bg-orange-500/10">
+        <InfoIcon className="h-5 w-5 text-orange-500" />
+        <AlertTitle className="text-orange-500">Feature Under Maintenance</AlertTitle>
         <AlertDescription>
           The groups feature is currently under maintenance. We apologize for any inconvenience.
         </AlertDescription>
@@ -75,3 +75,4 @@ const Groups: React.FC = () => {
 };
 
 export default Groups;
+
