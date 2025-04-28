@@ -53,14 +53,8 @@ const units = [
   "pcs",
   "kg",
   "g",
-  "lb",
-  "oz",
   "l",
   "ml",
-  "tbsp",
-  "tsp",
-  "cup",
-  "pack",
   "dkg"
 ];
 
@@ -594,7 +588,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
                   <SelectItem 
                     key={unit} 
                     value={unit}
-                    className="hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/30 text-white"
+                    className="text-white hover:bg-[#2D7A46]/20 focus:bg-[#2D7A46]/40"
                   >
                     {unit}
                   </SelectItem>
