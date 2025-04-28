@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
+
+import React, { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 // Define available languages and translations
 const languages = {
