@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast"; 
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,11 +10,21 @@ import { useAuth } from "@/hooks/useAuth";
 const FeedbackForm: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast(); // Using the proper useToast hook
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!feedback.trim()) {
+      toast({
+        title: t("error"),
+        description: t("Feedback cannot be empty"),
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!user) {
       toast({
@@ -34,18 +44,22 @@ const FeedbackForm: React.FC = () => {
           user_id: user.id
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       setFeedback("");
       toast({
-        title: t("feedback") + " " + t("success").toLowerCase(),
-        description: t("thankYou"),
+        title: t("Success"),
+        description: t("Thank you for your feedback!"),
       });
+      console.log("Feedback submitted successfully");
     } catch (error) {
       console.error('Error sending feedback:', error);
       toast({
-        title: t("error"),
-        description: t("couldntSendFeedback"),
+        title: t("Error"),
+        description: t("Couldn't send your feedback. Please try again."),
         variant: "destructive"
       });
     } finally {
@@ -66,7 +80,7 @@ const FeedbackForm: React.FC = () => {
         className="resize-none text-sm"
       />
       <Button type="submit" disabled={sending || feedback.trim().length === 0} size="sm">
-        {sending ? t("Sending...") : t("sendFeedback")}
+        {sending ? t("Sending...") : t("Send Feedback")}
       </Button>
     </form>
   );
