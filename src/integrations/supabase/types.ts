@@ -39,34 +39,26 @@ export type Database = {
         }
         Relationships: []
       }
-      group_members: {
+      feedback: {
         Row: {
-          group_id: string
+          content: string
+          created_at: string
           id: string
-          joined_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          group_id: string
+          content: string
+          created_at?: string
           id?: string
-          joined_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          group_id?: string
+          content?: string
+          created_at?: string
           id?: string
-          joined_at?: string
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       groups: {
         Row: {
