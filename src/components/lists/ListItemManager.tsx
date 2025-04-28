@@ -180,6 +180,73 @@ const SortableItem: React.FC<SortableItemProps> = ({
   );
 };
 
+const detectCategory = (itemName: string): string => {
+  const lowerName = itemName.toLowerCase();
+  
+  const categoryKeywords: Record<string, string[]> = {
+    "Produce": [
+      "apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable",
+      "ananas", "paprika",
+      "äpple", "äpplen", "banan", "apelsin", "sallad", "tomat", "potatis", "morot", "moröt", "lök", "frukt", "grönsak",
+      "grönsaker", "gurka", "citron", "avokado", "broccoli", "blomkål", "svamp", "rödbetor", "rädisa", "paprika",
+      "squash", "zucchini", "aubergine", "majs", "ärter", "spenat", "sallad", "kål", "rödbeta", "jordgubbar", "hallon", "blåbär"
+    ],
+    "Dairy": [
+      "milk", "cheese", "yogurt", "cream", "butter", "egg",
+      "mjölk", "ost", "yoghurt", "grädde", "smör", "ägg", "fil", "filmjölk", "kvarg", "crème fraiche", "kesella"
+    ],
+    "Meat": [
+      "beef", "chicken", "pork", "steak", "fish", "meat", "sausage",
+      "nötkött", "kyckling", "fläsk", "biff", "fisk", "kött", "korv", "köttfärs", "skinka", "bacon", "kalkon",
+      "lax", "räkor", "torsk", "lamm", "revben", "filé", "kycklingfilé"
+    ],
+    "Bakery": [
+      "bread", "cake", "cookie", "bagel", "muffin", "pastry",
+      "bröd", "kaka", "kakor", "bulle", "bullar", "muffins", "bakverk", "knäckebröd", "tortilla", "croissant",
+      "limpa", "fralla", "scones", "pizza"
+    ],
+    "Frozen Foods": [
+      "frozen", "ice cream",
+      "fryst", "glass", "frysta", "frysmat", "frysta bär", "frysta grönsaker", "frysta räkor", "fryst pizza"
+    ],
+    "Canned Goods": [
+      "can", "soup", "beans", "tuna",
+      "konserv", "konserver", "soppa", "bönor", "tonfisk", "burk", "burkmat", "tomatsås"
+    ],
+    "Beverages": [
+      "water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine",
+      "vatten", "läsk", "juice", "kaffe", "te", "dryck", "öl", "vin", "mjölk", "cider", "saft"
+    ],
+    "Spices": [
+      "salt", "pepper", "spice", "herb",
+      "salt", "peppar", "krydda", "kryddor", "örter", "basilika", "oregano", "timjan", "kanel", "kardemumma", 
+      "vanilj", "chili", "curry", "vitlök"
+    ],
+    "Snacks": [
+      "chip", "candy", "snack", "chocolate", "cookie",
+      "chips", "godis", "snacks", "choklad", "kaka", "kakor", "nötter", "popcorn", "kex"
+    ],
+    "Household": [
+      "paper", "soap", "detergent", "cleaner", "towel",
+      "papper", "tvål", "tvättmedel", "rengöring", "rengöringsmedel", "handduk", "hushåll", "diskmedel", "toapapper",
+      "hushållspapper", "tvättlappar", "hygien", "tandkräm", "tandborste", "schampo", "balsam", "tvättservetter"
+    ],
+    "Dry Goods": [
+      "pasta", "rice", "cereal", "flour", "sugar", "oats",
+      "pasta", "ris", "flingor", "mjöl", "socker", "havre", "müsli", "gryn", "quinoa", "bulgur", "couscous",
+      "linser", "bönor", "nötter", "torkad frukt"
+    ]
+  };
+  
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    if (keywords.some(keyword => lowerName.includes(keyword))) {
+      return category;
+    }
+  }
+  
+  return "Other";
+};
+
 const ListItemManager: React.FC<ListItemManagerProps> = ({ 
   listId, 
   items, 
@@ -212,52 +279,6 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   const getCategoryName = (category: string): string => {
     const key = category.toLowerCase().replace(/\s+/g, '');
     return getText(key) || translatedTexts?.[category] || t(category) || category;
-  };
-
-  const detectCategory = (itemName: string): string => {
-    const lowerName = itemName.toLowerCase();
-    
-    const categoryKeywords: Record<string, string[]> = {
-      "Produce": [
-        "apple", "banana", "orange", "lettuce", "tomato", "potato", "carrot", "onion", "fruit", "vegetable",
-        "ananas", "paprika"
-      ],
-      "Dairy": [
-        "milk", "cheese", "yogurt", "cream", "butter", "egg"
-      ],
-      "Meat": [
-        "beef", "chicken", "pork", "steak", "fish", "meat", "sausage"
-      ],
-      "Bakery": [
-        "bread", "cake", "cookie", "bagel", "muffin", "pastry"
-      ],
-      "Frozen Foods": [
-        "frozen", "ice cream"
-      ],
-      "Canned Goods": [
-        "can", "soup", "beans", "tuna"
-      ],
-      "Beverages": [
-        "water", "soda", "juice", "coffee", "tea", "drink", "beer", "wine"
-      ],
-      "Spices": [
-        "salt", "pepper", "spice", "herb"
-      ],
-      "Snacks": [
-        "chip", "candy", "snack", "chocolate", "cookie"
-      ],
-      "Household": [
-        "paper", "soap", "detergent", "cleaner", "towel"
-      ]
-    };
-    
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (keywords.some(keyword => lowerName.includes(keyword))) {
-        return category;
-      }
-    }
-    
-    return "Other";
   };
 
   const handleAddItem = (e: React.FormEvent) => {
