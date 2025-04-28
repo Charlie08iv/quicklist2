@@ -1,5 +1,4 @@
-
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from "react";
 
 // Define available languages and translations
 const languages = {
@@ -363,9 +362,17 @@ type TranslationContextType = {
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
 export const TranslationProvider = ({ children }: { children: React.ReactNode }) => {
-  // Set Swedish as the default language
-  const [language, setLanguage] = useState<LanguageCode>('sv');
+  // Get initial language from localStorage, fallback to 'sv'
+  const [language, setLanguage] = useState<LanguageCode>(() => {
+    const savedLanguage = localStorage.getItem('preferred-language');
+    return (savedLanguage as LanguageCode) || 'sv';
+  });
   
+  // Save language preference whenever it changes
+  useEffect(() => {
+    localStorage.setItem('preferred-language', language);
+  }, [language]);
+
   const t = useCallback((key: string): string => {
     const translations = languages[language];
     return (translations as Record<string, string>)[key] || key;
