@@ -75,4 +75,3 @@ const Groups: React.FC = () => {
 };
 
 export default Groups;
-
