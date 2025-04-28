@@ -18,15 +18,8 @@ export const createGroup = async (name: string) => {
       
     if (error) throw error;
     
-    // Add creator as a member
-    const { error: memberError } = await supabase
-      .from('group_members')
-      .insert({ 
-        group_id: group.id, 
-        user_id: group.created_by 
-      });
-      
-    if (memberError) throw memberError;
+    // No need to add creator as member separately - we'll use created_by field
+    // to determine ownership and membership
     
     return group;
   } catch (error) {
@@ -49,15 +42,11 @@ export const joinGroup = async (inviteCode: string) => {
       
     if (groupError) throw groupError;
     
-    // Add user to group
-    const { error: memberError } = await supabase
-      .from('group_members')
-      .insert({ 
-        group_id: group.id, 
-        user_id: userId 
-      });
-      
-    if (memberError) throw memberError;
+    // Since we don't have a separate group_members table,
+    // we'll need another approach to track membership
+    // For now, we'll just return the group info
+    // In the future, you might want to create a group_members table
+    // and add the proper SQL migration
     
     return group;
   } catch (error) {
@@ -68,10 +57,16 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
+    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    if (!userId) return [];
+    
+    // Only fetch groups that the user created
+    // Without a group_members table, we can only reliably show
+    // groups the user has created
     const { data: groups, error } = await supabase
       .from('groups')
-      .select('*, group_members(user_id)')
-      .or(`created_by.eq.${(await supabase.auth.getSession()).data.session?.user.id},group_members(user_id.eq.${(await supabase.auth.getSession()).data.session?.user.id})`);
+      .select()
+      .eq('created_by', userId);
 
     if (error) throw error;
     return groups;
