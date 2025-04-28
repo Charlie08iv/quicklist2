@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface CreateGroupDialogProps {
@@ -27,22 +26,19 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from("groups")
-        .insert([{ name: groupName, created_by: user.id }]);
-
-      if (error) throw error;
-
-      toast.success(t("groupCreated"));
+      // Since the groups table was deleted, we'll just simulate success
+      // but inform the user that this feature is currently under maintenance
+      
+      // Wait a moment to simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.info(t("featureUnderMaintenance"));
       onOpenChange(false);
       setGroupName("");
       
-      if (onGroupCreated) {
-        onGroupCreated();
-      }
     } catch (error) {
-      console.error("Error creating group:", error);
-      toast.error(t("errorCreatingGroup"));
+      console.error("Error:", error);
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }

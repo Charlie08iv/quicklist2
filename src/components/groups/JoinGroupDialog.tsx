@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface JoinGroupDialogProps {
@@ -27,30 +26,19 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     
     setIsLoading(true);
     try {
-      const { data: group, error: groupError } = await supabase
-        .from("groups")
-        .select("id")
-        .eq("invite_code", inviteCode)
-        .single();
-
-      if (groupError) throw groupError;
-
-      const { error: memberError } = await supabase
-        .from("group_members")
-        .insert([{ group_id: group.id, user_id: user.id }]);
-
-      if (memberError) throw memberError;
-
-      toast.success(t("joinedGroup"));
+      // Since the groups table was deleted, we'll just simulate success
+      // but inform the user that this feature is currently under maintenance
+      
+      // Wait a moment to simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.info(t("featureUnderMaintenance"));
       onOpenChange(false);
       setInviteCode("");
       
-      if (onGroupJoined) {
-        onGroupJoined();
-      }
     } catch (error) {
-      console.error("Error joining group:", error);
-      toast.error(t("errorJoiningGroup"));
+      console.error("Error:", error);
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
