@@ -35,6 +35,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     
     setIsLoading(true);
     try {
+      // Fix: Pass only one argument to createGroup
       const group = await createGroup(groupName.trim());
       
       if (group) {
