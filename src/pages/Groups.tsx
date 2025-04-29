@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -36,31 +37,17 @@ const Groups: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [authTimeout, setAuthTimeout] = useState(false);
-  
-  // Add a timeout for authentication checks
-  useEffect(() => {
-    if (authLoading) {
-      const timer = setTimeout(() => {
-        console.log("Auth check timeout reached (5 seconds)");
-        setAuthTimeout(true);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [authLoading]);
   
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn && !authTimeout) {
-      console.log('Not logged in or auth is still loading, skipping group fetch');
+    if (!isLoggedIn && !authLoading) {
+      console.log('Not logged in, skipping group fetch');
       return;
     }
 
     console.log('Loading groups - Auth state:', { 
       isLoggedIn, 
       authLoading, 
-      userId: user?.id,
-      authTimeout
+      userId: user?.id
     });
     
     setLoading(true);
@@ -87,20 +74,12 @@ const Groups: React.FC = () => {
       
       if (!activeSession) {
         console.log("No active session found when directly checking");
-        setError("No active session detected. Please login again.");
+        setError("No active session detected. Please login.");
         setLoading(false);
         return;
       }
       
       console.log('Starting group fetch for user:', activeSession?.user?.id);
-      
-      // Direct DB query to debug RLS issues
-      const { data: directGroups, error: directError } = await supabase
-        .from('groups')
-        .select('*');
-      
-      console.log('Direct groups query result:', directGroups, 'Error:', directError);
-      setDebugInfo({ directGroups, directError });
       
       // Use the service function
       const fetchedGroups = await fetchUserGroups();
@@ -119,21 +98,20 @@ const Groups: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, authLoading, user, t, authTimeout]);
+  }, [isLoggedIn, authLoading, user, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
     console.log('Groups component useEffect triggered - Auth state:', { 
       isLoggedIn, 
       authLoading, 
-      userId: user?.id,
-      authTimeout 
+      userId: user?.id
     });
     
-    if (!authLoading || authTimeout) {
+    if (!authLoading || isLoggedIn) {
       loadGroups();
     }
-  }, [loadGroups, authLoading, authTimeout]);
+  }, [loadGroups, authLoading, isLoggedIn]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -145,64 +123,35 @@ const Groups: React.FC = () => {
     loadGroups();
   };
 
-  // Check if still waiting for auth but timeout triggered
-  const isAuthPending = authLoading && !authTimeout;
+  // Create and show main action buttons
+  const MainActions = () => (
+    <div className="grid grid-cols-2 gap-4 mb-8">
+      <Card 
+        className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
+        onClick={() => setJoinDialogOpen(true)}
+      >
+        <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
+        <span className="text-sm font-medium">{t("joinGroup")}</span>
+      </Card>
 
-  // Display auth timeout message
-  if (authTimeout && authLoading) {
-    return (
-      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto">
-        <Alert className="mb-4">
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle className="text-foreground">Authentication Check Timeout</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>Authentication check is taking too long. There might be an issue with the connection.</p>
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" onClick={() => window.location.reload()}>
-                Refresh Page
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleLoginRedirect}>
-                Go to Login
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-        
-        <div className="mt-6 p-4 border rounded bg-muted/50">
-          <h3 className="font-medium mb-2">Debug Information</h3>
-          <p className="text-sm text-muted-foreground mb-1">Current path: {window.location.pathname}</p>
-          <p className="text-sm text-muted-foreground mb-1">Auth loading: {String(authLoading)}</p>
-          <p className="text-sm text-muted-foreground">Is logged in: {String(isLoggedIn)}</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Display loading state
-  if (isAuthPending) {
-    return (
-      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
-        <div className="flex flex-col items-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-muted-foreground">{t("loading")}</p>
-          <p className="text-xs text-muted-foreground mt-2">Checking authentication...</p>
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="mt-4"
-            onClick={handleLoginRedirect}
-          >
-            Go to Login Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
+      <Card 
+        className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
+        onClick={() => setCreateDialogOpen(true)}
+      >
+        <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
+        <span className="text-sm font-medium">{t("createGroup")}</span>
+      </Card>
+    </div>
+  );
   
   // Display login prompt if not logged in
   if (!isLoggedIn && !authLoading) {
     return (
-      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex flex-col justify-center items-center">
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
+        
+        <MainActions />
+        
         <Alert className="mb-4">
           <InfoIcon className="h-4 w-4" />
           <AlertTitle className="text-foreground">{t("notLoggedIn")}</AlertTitle>
@@ -221,23 +170,7 @@ const Groups: React.FC = () => {
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
       
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <Card 
-          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
-          onClick={() => setJoinDialogOpen(true)}
-        >
-          <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
-          <span className="text-sm font-medium">{t("joinGroup")}</span>
-        </Card>
-
-        <Card 
-          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
-          <span className="text-sm font-medium">{t("createGroup")}</span>
-        </Card>
-      </div>
+      <MainActions />
 
       <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 mb-4">
@@ -247,7 +180,14 @@ const Groups: React.FC = () => {
         </TabsList>
         
         <TabsContent value="groups" className="space-y-4">
-          {loading ? (
+          {authLoading && (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <p className="text-muted-foreground">{t("checkingAuthentication")}</p>
+            </div>
+          )}
+          
+          {!authLoading && loading && (
             <div className="space-y-3">
               <Skeleton className="h-[100px] w-full" />
               <Skeleton className="h-[100px] w-full" />
@@ -255,7 +195,9 @@ const Groups: React.FC = () => {
                 <p className="text-sm text-muted-foreground">{t("loadingGroups")}</p>
               </div>
             </div>
-          ) : error ? (
+          )}
+          
+          {error && (
             <Alert variant="destructive" className="mb-4">
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>{t("error")}</AlertTitle>
@@ -272,7 +214,9 @@ const Groups: React.FC = () => {
                 </Button>
               </AlertDescription>
             </Alert>
-          ) : groups.length > 0 ? (
+          )}
+          
+          {!authLoading && !loading && !error && groups.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2">
               {groups.map((group) => (
                 <GroupCard 
@@ -282,7 +226,9 @@ const Groups: React.FC = () => {
                 />
               ))}
             </div>
-          ) : fetchAttempted ? (
+          )}
+          
+          {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
               <p className="text-foreground">{t("noGroupsYet")}</p>
@@ -294,17 +240,6 @@ const Groups: React.FC = () => {
                 {t("createYourFirstGroup")}
               </Button>
             </div>
-          ) : (
-            <Alert className="mb-4">
-              <InfoIcon className="h-4 w-4" />
-              <AlertTitle>{t("unexpectedError")}</AlertTitle>
-              <AlertDescription className="space-y-2">
-                <p>{t("errorFetchingGroups")}</p>
-                <Button size="sm" variant="outline" onClick={handleRetry}>
-                  {t("retry")}
-                </Button>
-              </AlertDescription>
-            </Alert>
           )}
         </TabsContent>
         
@@ -344,7 +279,6 @@ const Groups: React.FC = () => {
           <p>Auth loading: {String(authLoading)}</p>
           <p>Is logged in: {String(isLoggedIn)}</p>
           <p>User ID: {user?.id || "Not available"}</p>
-          <p>Auth timeout reached: {String(authTimeout)}</p>
         </div>
       </div>
     </div>
