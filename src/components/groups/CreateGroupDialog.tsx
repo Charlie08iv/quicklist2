@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -9,8 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { createGroup } from "@/services/groups";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Link, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Copy, Link, Users, Loader2 } from "lucide-react";
+import { supabase, verifyAuth } from "@/integrations/supabase/client";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -24,6 +23,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionVerified, setSessionVerified] = useState(false);
+  const [verifyingAuth, setVerifyingAuth] = useState(false);
   
   // Group creation flow states
   const [step, setStep] = useState<"naming" | "sharing">("naming");
@@ -37,24 +37,29 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       setStep("naming");
       setCreatedGroup(null);
       setSessionVerified(false);
+      setVerifyingAuth(true);
       
       // Verify session when dialog opens
       const verifySession = async () => {
         try {
-          const { data, error } = await supabase.auth.getSession();
-          if (error || !data.session) {
-            console.log("No active session detected in dialog");
-            setSessionVerified(false);
-            if (isLoggedIn) {
-              // Auth hook thinks we're logged in but Supabase disagrees
-              await refreshSession();
-            }
-          } else {
-            console.log("Active session verified in dialog");
-            setSessionVerified(true);
+          console.log("CreateGroupDialog: Verifying session...");
+          const { isAuthenticated } = await verifyAuth();
+          
+          setSessionVerified(isAuthenticated);
+          console.log("CreateGroupDialog: Session verified -", isAuthenticated);
+          
+          if (!isAuthenticated && isLoggedIn) {
+            console.log("Session verification failed but isLoggedIn is true, refreshing session");
+            await refreshSession();
+            
+            // Check again after refresh
+            const { isAuthenticated: refreshedAuth } = await verifyAuth();
+            setSessionVerified(refreshedAuth);
           }
         } catch (e) {
-          console.error("Error verifying session:", e);
+          console.error("Error verifying session in CreateGroupDialog:", e);
+        } finally {
+          setVerifyingAuth(false);
         }
       };
       
@@ -68,14 +73,26 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     // Verify user is logged in before proceeding
     if (!isLoggedIn || !user) {
       console.log("Not logged in, refreshing session before proceeding");
-      await refreshSession();
+      setVerifyingAuth(true);
       
-      const { data } = await supabase.auth.getSession();
-      // Check again after refresh
-      if (!data.session) {
-        toast.error(t("mustBeLoggedIn"));
-        onOpenChange(false); // Close dialog
+      try {
+        await refreshSession();
+        
+        const { isAuthenticated, userId } = await verifyAuth();
+        setSessionVerified(isAuthenticated);
+        
+        // Check again after refresh
+        if (!isAuthenticated || !userId) {
+          toast.error(t("mustBeLoggedIn"));
+          onOpenChange(false); // Close dialog
+          return;
+        }
+      } catch (e) {
+        console.error("Error refreshing session:", e);
+        toast.error(t("sessionRefreshError"));
         return;
+      } finally {
+        setVerifyingAuth(false);
       }
     }
     
@@ -149,7 +166,14 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
           </DialogDescription>
         </DialogHeader>
         
-        {step === "naming" ? (
+        {verifyingAuth && (
+          <div className="flex flex-col items-center justify-center p-6">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
+            <p className="text-muted-foreground text-sm">Verifying authentication...</p>
+          </div>
+        )}
+        
+        {!verifyingAuth && step === "naming" ? (
           <form onSubmit={handleCreateGroup} className="space-y-4">
             <div>
               <Label htmlFor="groupName">{t("groupName")}</Label>
@@ -167,13 +191,13 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
             >
               {isLoading ? t("creating") : t("createGroup")}
             </Button>
-            {!isLoggedIn && (
+            {!isLoggedIn && !sessionVerified && (
               <p className="text-sm text-red-500 mt-2">
                 {t("mustBeLoggedIn")}
               </p>
             )}
           </form>
-        ) : createdGroup ? (
+        ) : !verifyingAuth && createdGroup ? (
           <>
             <div className="space-y-4">
               <div className="bg-muted p-3 rounded-md">

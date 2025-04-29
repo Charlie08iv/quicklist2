@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/use-translation";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserGroups } from "@/services/groups";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, verifyAuth } from "@/integrations/supabase/client";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { GroupActions } from "@/components/groups/GroupActions";
@@ -12,7 +12,8 @@ import { LoginPrompt } from "@/components/groups/LoginPrompt";
 import { GroupsTabsContent } from "@/components/groups/GroupsTabsContent";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Group {
   id: string;
@@ -24,7 +25,7 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading: authLoading, refreshSession } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading, refreshSession, authInitialized } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('code');
@@ -37,65 +38,63 @@ const Groups: React.FC = () => {
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [sessionError, setSessionError] = useState<boolean>(false);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   
-  // Debug state for temporary display
-  const [authDebug, setAuthDebug] = useState<string>("");
+  // Verify Supabase initialization on mount
+  useEffect(() => {
+    const checkSupabase = async () => {
+      try {
+        const { isAuthenticated } = await verifyAuth();
+        console.log("Supabase client verification complete:", isAuthenticated ? "Authenticated" : "Not authenticated");
+        setSupabaseInitialized(true);
+      } catch (e) {
+        console.error("Failed to verify Supabase client:", e);
+        setSupabaseInitialized(true); // Set to true anyway to not block the UI
+      }
+    };
+    
+    checkSupabase();
+  }, []);
   
   // Open join dialog with code if provided in URL
   useEffect(() => {
-    if (inviteCode && !joinDialogOpen && isLoggedIn && !authLoading) {
+    if (inviteCode && !joinDialogOpen && isLoggedIn && !authLoading && authInitialized) {
       setJoinDialogOpen(true);
     }
-  }, [inviteCode, joinDialogOpen, isLoggedIn, authLoading]);
+  }, [inviteCode, joinDialogOpen, isLoggedIn, authLoading, authInitialized]);
 
   // Enhanced loadGroups function with extensive logging
   const loadGroups = useCallback(async () => {
-    const authState = {
-      isLoggedIn,
-      authLoading,
-      userId: user?.id,
-      sessionExists: false
-    };
-    
-    console.log('Loading groups - Auth state:', authState);
-    setAuthDebug(`Auth state: ${JSON.stringify(authState)}`);
+    if (!authInitialized) {
+      console.log("Auth not yet initialized, deferring group fetch");
+      return;
+    }
     
     if (authLoading) {
       console.log('Auth is still loading, deferring group fetch');
       return;
     }
     
+    const authState = {
+      isLoggedIn,
+      authLoading,
+      userId: user?.id,
+      authInitialized
+    };
+    
+    console.log('Loading groups - Auth state:', authState);
+    
     // Verify session explicitly to ensure we have valid credentials
     try {
+      setLoading(true);
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      authState.sessionExists = !!sessionData?.session;
+      const sessionExists = !!sessionData?.session;
       console.log('Session check result:', { 
-        hasSession: authState.sessionExists, 
+        hasSession: sessionExists, 
         userId: sessionData?.session?.user?.id,
         error: sessionError?.message || 'none'
       });
-      
-      setAuthDebug(`Session check: ${authState.sessionExists ? 'Valid' : 'Invalid'} - ${sessionData?.session?.user?.id || 'No user'}`);
-      
-      if (!isLoggedIn || !authState.sessionExists) {
-        console.log('User is not logged in or no valid session, skipping group fetch');
-        setGroups([]);
-        setLoading(false);
-        setFetchAttempted(true);
-        
-        if (isLoggedIn && !authState.sessionExists) {
-          // This indicates a mismatch between our isLoggedIn state and actual session
-          setSessionError(true);
-          setError("Session state mismatch. Please refresh your session.");
-          await refreshSession();
-        }
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      setSessionError(false);
       
       if (sessionError) {
         console.error("Session error:", sessionError);
@@ -105,50 +104,30 @@ const Groups: React.FC = () => {
         return;
       }
       
-      if (!sessionData.session) {
+      if (!sessionExists) {
         console.log("No active session found");
         setGroups([]);
         setLoading(false);
         setFetchAttempted(true);
-        setSessionError(true);
-        setError("Your session has expired. Please refresh your session.");
+        
+        if (isLoggedIn) {
+          // This indicates a mismatch between our isLoggedIn state and actual session
+          setSessionError(true);
+          setError("Session state mismatch. Please refresh your session.");
+          await refreshSession();
+        } else {
+          // User is not logged in and that's expected
+          setError(null);
+          setSessionError(false);
+        }
         return;
       }
       
+      setError(null);
+      setSessionError(false);
+      
       const userId = sessionData.session.user.id;
       console.log('Starting group fetch for user:', userId);
-      
-      // Test if profile exists and create if needed
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        console.log('Profile check result:', { exists: !!profileData, error: profileError?.message || 'none' });
-          
-        if (!profileData && !profileError) {
-          console.log('Creating profile for user:', userId);
-          // Try to create a profile for the user
-          const { error: createProfileError } = await supabase
-            .from('profiles')
-            .insert({ 
-              id: userId,
-              email: sessionData.session.user.email
-            });
-            
-          if (createProfileError) {
-            console.error('Error creating profile:', createProfileError);
-            // Continue anyway, the group fetch might still work
-          } else {
-            console.log('Profile created successfully');
-          }
-        }
-      } catch (profileCheckError) {
-        console.error('Error checking profile:', profileCheckError);
-        // Continue with groups fetch anyway
-      }
       
       // Call the fetchUserGroups function with proper error handling
       try {
@@ -181,21 +160,23 @@ const Groups: React.FC = () => {
       setLoading(false);
     }
     
-  }, [isLoggedIn, authLoading, user, t, refreshSession]);
+  }, [isLoggedIn, authLoading, user, t, refreshSession, authInitialized]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
     console.log('Groups component useEffect triggered - Auth state:', {
       isLoggedIn,
       authLoading,
-      userId: user?.id
+      userId: user?.id,
+      authInitialized,
+      supabaseInitialized
     });
     
-    // Important: Only attempt to load groups once auth is no longer loading
-    if (!authLoading) {
+    // Only attempt to load groups once auth is initialized and no longer loading
+    if (authInitialized && !authLoading && supabaseInitialized) {
       loadGroups();
     }
-  }, [loadGroups, authLoading, isLoggedIn]);
+  }, [loadGroups, authLoading, isLoggedIn, authInitialized, supabaseInitialized]);
 
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -209,22 +190,43 @@ const Groups: React.FC = () => {
     toast.success(t("sessionRefreshed"));
   };
 
+  // Show loading state if auth is not initialized or Supabase is not initialized
+  if (!authInitialized || !supabaseInitialized) {
+    return (
+      <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">
+            {!authInitialized ? "Initializing authentication..." : "Connecting to database..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Render the component
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
       
-      {/* Debug display - temporary for troubleshooting */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="mb-4 p-3 bg-gray-100 rounded-md text-xs font-mono overflow-auto">
-          <p>Auth debug: {authDebug}</p>
-          <p>Auth loading: {authLoading ? 'true' : 'false'}</p>
-          <p>Is logged in: {isLoggedIn ? 'true' : 'false'}</p>
-          <p>User ID: {user?.id || 'none'}</p>
-          <p>Loading state: {loading ? 'true' : 'false'}</p>
-          <p>Fetch attempted: {fetchAttempted ? 'true' : 'false'}</p>
-        </div>
-      )}
+      {/* Authentication status indicator */}
+      <Alert className="mb-4 bg-gray-50">
+        <AlertDescription className="flex items-center justify-between">
+          <span>
+            Status: {isLoggedIn ? (
+              <span className="text-green-600 font-medium">Logged in as {user?.email}</span>
+            ) : (
+              <span className="text-amber-600 font-medium">Not logged in</span>
+            )}
+          </span>
+          {!isLoggedIn && (
+            <Button size="sm" variant="outline" onClick={handleLoginRedirect}>
+              Log in
+            </Button>
+          )}
+        </AlertDescription>
+      </Alert>
       
       {/* Display session error with refresh button */}
       {sessionError && (
@@ -242,12 +244,12 @@ const Groups: React.FC = () => {
         onCreateClick={() => setCreateDialogOpen(true)} 
       />
 
-      {!isLoggedIn && !authLoading ? (
+      {!isLoggedIn ? (
         <LoginPrompt onLoginClick={handleLoginRedirect} />
       ) : (
         <GroupsTabsContent
           groups={groups}
-          loading={loading || authLoading}
+          loading={loading}
           authLoading={authLoading}
           error={!sessionError ? error : null}
           debugInfo={debugInfo}

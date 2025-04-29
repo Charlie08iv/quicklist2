@@ -8,7 +8,9 @@ import { GroupsLoading } from "./GroupsLoading";
 import { GroupsErrorDisplay } from "./GroupsErrorDisplay";
 import { GroupsList } from "./GroupsList";
 import { EmptyGroupState } from "./EmptyGroupState";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, verifyAuth } from "@/integrations/supabase/client";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface Group {
   id: string;
@@ -47,31 +49,49 @@ export function GroupsTabsContent({
   
   // Check session on mount
   useEffect(() => {
+    let mounted = true;
+    
     const checkSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        setSessionState(data.session ? "authenticated" : "unauthenticated");
+        console.log("GroupsTabsContent: Checking session...");
+        const { isAuthenticated } = await verifyAuth();
+        
+        if (mounted) {
+          setSessionState(isAuthenticated ? "authenticated" : "unauthenticated");
+          console.log("GroupsTabsContent: Session state -", isAuthenticated ? "authenticated" : "unauthenticated");
+        }
       } catch (e) {
-        setSessionState("error");
-        console.error("Error checking session:", e);
+        console.error("Error checking session in GroupsTabsContent:", e);
+        if (mounted) {
+          setSessionState("error");
+        }
       }
     };
     
     checkSession();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
     <>
-      {/* Debug session info - temporary for troubleshooting */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="mb-4 p-2 bg-gray-100 rounded-md text-xs">
-          <p>Session check: {sessionState}</p>
-          <p>Auth loading: {authLoading ? 'true' : 'false'}</p>
-          <p>Content loading: {loading ? 'true' : 'false'}</p>
-          <p>Groups count: {groups.length}</p>
-          <p>Fetch attempted: {fetchAttempted ? 'true' : 'false'}</p>
+      {/* Auth Status Indicator - visible in all environments for debugging */}
+      <div className="mb-4 p-2 bg-gray-100 rounded-md text-xs">
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${
+            sessionState === 'authenticated' ? 'bg-green-500' : 
+            sessionState === 'unauthenticated' ? 'bg-red-500' : 
+            'bg-yellow-500'
+          }`}></div>
+          <p>Session: {sessionState}</p>
         </div>
-      )}
+        <p>Auth loading: {authLoading ? 'true' : 'false'}</p>
+        <p>Content loading: {loading ? 'true' : 'false'}</p>
+        <p>Groups count: {groups.length}</p>
+        <p>Fetch attempted: {fetchAttempted ? 'true' : 'false'}</p>
+      </div>
     
       <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 mb-4">
@@ -81,9 +101,28 @@ export function GroupsTabsContent({
         </TabsList>
         
         <TabsContent value="groups" className="space-y-4">
+          {/* Authentication failed alert */}
+          {sessionState === "unauthenticated" && !authLoading && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Authentication Error</AlertTitle>
+              <p className="mt-2 text-sm">
+                You appear to be logged in, but your session couldn't be verified. 
+                Try refreshing the page or logging in again.
+              </p>
+            </Alert>
+          )}
+
           {authLoading && <GroupsLoading type="auth" />}
           
-          {!authLoading && loading && <GroupsLoading type="groups" />}
+          {sessionState === "checking" && !authLoading && (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <p>Verifying your session...</p>
+            </div>
+          )}
+          
+          {!authLoading && loading && sessionState === "authenticated" && <GroupsLoading type="groups" />}
           
           {error && (
             <GroupsErrorDisplay 
@@ -93,11 +132,11 @@ export function GroupsTabsContent({
             />
           )}
           
-          {!authLoading && !loading && !error && groups.length > 0 && (
+          {!authLoading && !loading && !error && groups.length > 0 && sessionState === "authenticated" && (
             <GroupsList groups={groups} onGroupDeleted={onGroupDeleted} />
           )}
           
-          {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
+          {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && sessionState === "authenticated" && (
             <EmptyGroupState onCreateClick={onCreateClick} />
           )}
         </TabsContent>

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { joinGroup } from "@/services/groups";
-import { supabase } from "@/integrations/supabase/client";
+import { verifyAuth } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -22,30 +23,36 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionVerified, setSessionVerified] = useState(false);
+  const [verifyingAuth, setVerifyingAuth] = useState(false);
   
   // Reset form when dialog opens and verify session
   useEffect(() => {
     if (open) {
       setInviteCode("");
       setSessionVerified(false);
+      setVerifyingAuth(true);
       
       // Verify session when dialog opens
       const verifySession = async () => {
         try {
-          const { data, error } = await supabase.auth.getSession();
-          if (error || !data.session) {
-            console.log("No active session detected in dialog");
-            setSessionVerified(false);
-            if (isLoggedIn) {
-              // Auth hook thinks we're logged in but Supabase disagrees
-              await refreshSession();
-            }
-          } else {
-            console.log("Active session verified in dialog");
-            setSessionVerified(true);
+          console.log("JoinGroupDialog: Verifying session...");
+          const { isAuthenticated } = await verifyAuth();
+          
+          setSessionVerified(isAuthenticated);
+          console.log("JoinGroupDialog: Session verified -", isAuthenticated);
+          
+          if (!isAuthenticated && isLoggedIn) {
+            console.log("Session verification failed but isLoggedIn is true, refreshing session");
+            await refreshSession();
+            
+            // Check again after refresh
+            const { isAuthenticated: refreshedAuth } = await verifyAuth();
+            setSessionVerified(refreshedAuth);
           }
         } catch (e) {
-          console.error("Error verifying session:", e);
+          console.error("Error verifying session in JoinGroupDialog:", e);
+        } finally {
+          setVerifyingAuth(false);
         }
       };
       
@@ -59,14 +66,26 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     // Verify user is logged in before proceeding
     if (!isLoggedIn || !user) {
       console.log("Not logged in, refreshing session before proceeding");
-      await refreshSession();
+      setVerifyingAuth(true);
       
-      const { data } = await supabase.auth.getSession();
-      // Check again after refresh
-      if (!data.session) {
-        toast.error(t("mustBeLoggedIn"));
-        onOpenChange(false); // Close dialog
+      try {
+        await refreshSession();
+        
+        const { isAuthenticated, userId } = await verifyAuth();
+        setSessionVerified(isAuthenticated);
+        
+        // Check again after refresh
+        if (!isAuthenticated || !userId) {
+          toast.error(t("mustBeLoggedIn"));
+          onOpenChange(false); // Close dialog
+          return;
+        }
+      } catch (e) {
+        console.error("Error refreshing session:", e);
+        toast.error(t("sessionRefreshError"));
         return;
+      } finally {
+        setVerifyingAuth(false);
       }
     }
     
@@ -113,29 +132,42 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
             {t("enterInviteCodeToJoin")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
-            <Input
-              id="inviteCode"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder={t("enterInviteCode")}
-              required
-            />
+        
+        {verifyingAuth ? (
+          <div className="flex flex-col items-center justify-center p-6">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
+            <p className="text-muted-foreground text-sm">Verifying authentication...</p>
           </div>
-          <Button 
-            type="submit" 
-            disabled={isLoading || !inviteCode.trim() || (!isLoggedIn && !sessionVerified)}
-          >
-            {isLoading ? t("joining") : t("joinGroup")}
-          </Button>
-          {!isLoggedIn && (
-            <p className="text-sm text-red-500 mt-2">
-              {t("mustBeLoggedIn")}
-            </p>
-          )}
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
+              <Input
+                id="inviteCode"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder={t("enterInviteCode")}
+                required
+              />
+            </div>
+            <Button 
+              type="submit" 
+              disabled={isLoading || !inviteCode.trim() || (!isLoggedIn && !sessionVerified)}
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("joining")}
+                </span>
+              ) : t("joinGroup")}
+            </Button>
+            {!isLoggedIn && !sessionVerified && (
+              <p className="text-sm text-red-500 mt-2">
+                {t("mustBeLoggedIn")}
+              </p>
+            )}
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

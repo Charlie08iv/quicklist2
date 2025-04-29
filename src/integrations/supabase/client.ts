@@ -9,6 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Create a single instance of the Supabase client to prevent multiple instances warning
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
@@ -26,4 +27,18 @@ export const getAndLogSession = async () => {
     data.session?.user?.id || "no user", 
     error || "no error");
   return { data, error };
+};
+
+// Export a global function to verify authentication state
+export const verifyAuth = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Auth verification error:", error);
+    return { isAuthenticated: false, userId: null, error };
+  }
+  return { 
+    isAuthenticated: !!data.session, 
+    userId: data.session?.user?.id || null,
+    error: null
+  };
 };

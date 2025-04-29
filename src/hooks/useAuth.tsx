@@ -1,7 +1,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, verifyAuth } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type AuthContextType = {
   session: Session | null;
@@ -11,6 +12,7 @@ type AuthContextType = {
   isGuest: boolean;
   authError: Error | null;
   refreshSession: () => Promise<void>;
+  authInitialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,7 +22,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isGuest: false,
   authError: null,
-  refreshSession: async () => {}
+  refreshSession: async () => {},
+  authInitialized: false
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -29,17 +32,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
   
   // Function to manually refresh the session
   const refreshSession = async () => {
     try {
       console.log("Manually refreshing session");
+      setIsLoading(true);
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
         console.error("Session refresh error:", error);
         setAuthError(error);
+        toast.error("Failed to refresh authentication. Please try logging in again.");
         return;
       }
       
@@ -52,16 +57,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsGuest(!data.session && isGuestAccessiblePath);
       
       console.log("Session refreshed:", data.session?.user?.id || 'No active session');
+      
+      if (data.session) {
+        toast.success("Session refreshed successfully");
+      }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setAuthError(error instanceof Error ? error : new Error('Unknown error refreshing session'));
+      toast.error("Failed to refresh session");
+    } finally {
+      setIsLoading(false);
     }
   };
   
   useEffect(() => {
+    let mounted = true;
+    console.log("Auth provider initializing");
+    
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -107,25 +124,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Auth initialization error:", error);
           setAuthError(error);
           setIsLoading(false);
-          setInitialized(true);
+          setAuthInitialized(true);
           return;
         }
         
         console.log("Auth session retrieved:", data.session?.user?.id || 'No session');
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
         
-        // Check initial guest mode
-        const path = window.location.pathname;
-        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
-        setIsGuest(!data.session && isGuestAccessiblePath);
+        if (mounted) {
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+          
+          // Check initial guest mode
+          const path = window.location.pathname;
+          const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+          setIsGuest(!data.session && isGuestAccessiblePath);
+        }
       } catch (error) {
         console.error("Unexpected error during auth initialization:", error);
         setAuthError(error instanceof Error ? error : new Error('Unknown authentication error'));
       } finally {
-        console.log("Auth initialization completed");
-        setIsLoading(false);
-        setInitialized(true);
+        if (mounted) {
+          console.log("Auth initialization completed");
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
       }
     };
 
@@ -141,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('popstate', handleRouteChange);
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       window.removeEventListener('popstate', handleRouteChange);
     };
@@ -154,7 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading, 
       isGuest,
       authError,
-      refreshSession
+      refreshSession,
+      authInitialized
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchUserGroups = async () => {
@@ -27,43 +26,7 @@ export const fetchUserGroups = async () => {
     
     console.log('Fetching groups for user ID:', userId);
     
-    // Ensure user exists in profiles table
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (profileError) {
-      console.error('Error checking profile:', profileError);
-      // Continue anyway, we'll try to create the profile below if needed
-    }
-    
-    if (!profileData) {
-      console.log('User profile not found. Creating new profile.');
-      // Create profile for the user
-      const email = sessionData.session.user.email;
-      if (email) {
-        try {
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({ id: userId, email });
-            
-          if (insertError) {
-            console.error('Failed to create user profile:', insertError);
-          } else {
-            console.log('Created new user profile for:', userId);
-          }
-        } catch (e) {
-          console.error('Exception creating profile:', e);
-          // Continue anyway
-        }
-      }
-    }
-    
-    console.log('Attempting to fetch groups using RPC function...');
-    
-    // Get user's groups using the database function
+    // Get user's groups using the database function with detailed error handling
     const { data: groups, error } = await supabase
       .rpc('get_user_groups', {
         p_user_id: userId
