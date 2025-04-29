@@ -137,7 +137,7 @@ export const fetchUserGroups = async () => {
     
     if (!userId) {
       console.log('No user ID found, returning empty groups array');
-      return [];
+      throw new Error('User ID not found. Please check if you are logged in.');
     }
     
     console.log('Fetching groups for user ID:', userId);
@@ -150,7 +150,27 @@ export const fetchUserGroups = async () => {
       .single();
       
     if (profileError) {
-      console.log('User profile not found, they might need to be added to profiles table');
+      console.log('User profile not found. Error:', profileError);
+      console.log('This might indicate the user profile needs to be created.');
+      
+      // Attempt to create profile if missing
+      try {
+        const email = sessionData.session?.user?.email;
+        if (email) {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: userId, email })
+            .single();
+            
+          if (insertError) {
+            console.error('Failed to create user profile:', insertError);
+          } else {
+            console.log('Created new user profile for:', userId);
+          }
+        }
+      } catch (e) {
+        console.error('Error creating user profile:', e);
+      }
     }
     
     // Debug: Direct query to check all groups to see if RLS is working
@@ -168,14 +188,29 @@ export const fetchUserGroups = async () => {
       });
     
     if (error) {
-      console.error('Error fetching user groups:', error);
-      throw error;
+      // Try a direct query if the RPC fails
+      console.error('Error fetching user groups with RPC:', error);
+      console.log('Attempting direct query as fallback...');
+      
+      const { data: directGroups, error: directError } = await supabase
+        .from('groups')
+        .select('*')
+        .or(`created_by.eq.${userId},id.in.(select group_id from group_members where user_id = '${userId}')`)
+        .order('created_at', { ascending: false });
+        
+      if (directError) {
+        console.error('Fallback query also failed:', directError);
+        throw directError;
+      }
+      
+      console.log('Fallback query succeeded, found groups:', directGroups?.length || 0);
+      return directGroups || [];
     }
     
-    console.log('Fetched user groups:', groups || []);
+    console.log('Fetched user groups successfully:', groups?.length || 0);
     return groups || [];
   } catch (error) {
-    console.error('Error fetching groups:', error);
+    console.error('Error in fetchUserGroups:', error);
     throw error; // Let the component handle the error
   }
 };

@@ -9,6 +9,7 @@ type AuthContextType = {
   isLoggedIn: boolean;
   isLoading: boolean;
   isGuest: boolean;
+  authError: Error | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: true,
   isGuest: false,
+  authError: null
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
   
   useEffect(() => {
     // Set up auth state listener FIRST to avoid missing auth events
@@ -43,7 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // THEN check for existing session
     const initializeAuth = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        console.log("Starting auth initialization");
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Auth initialization error:", error);
+          setAuthError(error);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Auth session retrieved:", data.session?.user?.id || 'No session');
         setSession(data.session);
         setUser(data.session?.user ?? null);
         
@@ -51,11 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const path = window.location.pathname;
         const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!data.session && isGuestAccessiblePath);
-        
-        console.log('Initial session check:', data.session?.user?.id || 'No session');
       } catch (error) {
-        console.error("Error getting session:", error);
+        console.error("Unexpected error during auth initialization:", error);
+        setAuthError(error instanceof Error ? error : new Error('Unknown authentication error'));
       } finally {
+        console.log("Auth initialization completed");
         setIsLoading(false);
       }
     };
@@ -83,7 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, 
       isLoggedIn: !!user, 
       isLoading, 
-      isGuest 
+      isGuest,
+      authError
     }}>
       {children}
     </AuthContext.Provider>

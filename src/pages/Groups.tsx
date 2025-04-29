@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -37,22 +36,46 @@ const Groups: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [authTimeout, setAuthTimeout] = useState(false);
+  
+  // Add a timeout for authentication checks
+  useEffect(() => {
+    if (authLoading) {
+      const timer = setTimeout(() => {
+        console.log("Auth check timeout reached (5 seconds)");
+        setAuthTimeout(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading]);
   
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn || authLoading) {
+    if (!isLoggedIn && !authTimeout) {
       console.log('Not logged in or auth is still loading, skipping group fetch');
-      setGroups([]);
-      setLoading(false);
       return;
     }
 
-    console.log('Loading groups - Auth state:', { isLoggedIn, authLoading, userId: user?.id });
+    console.log('Loading groups - Auth state:', { 
+      isLoggedIn, 
+      authLoading, 
+      userId: user?.id,
+      authTimeout
+    });
+    
     setLoading(true);
     setError(null);
     
     try {
       // Get current auth session directly to verify
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log("Current session check:", {
+        hasSession: !!sessionData.session,
+        userId: sessionData.session?.user?.id,
+        error: sessionError
+      });
+      
       if (sessionError) {
         console.error("Session error:", sessionError);
         setError("Session error: " + sessionError.message);
@@ -60,14 +83,16 @@ const Groups: React.FC = () => {
         return;
       }
       
-      if (!sessionData.session) {
+      const activeSession = sessionData.session;
+      
+      if (!activeSession) {
         console.log("No active session found when directly checking");
-        setError("No active session. Please login again.");
+        setError("No active session detected. Please login again.");
         setLoading(false);
         return;
       }
       
-      console.log('Starting group fetch for user:', sessionData.session?.user?.id);
+      console.log('Starting group fetch for user:', activeSession?.user?.id);
       
       // Direct DB query to debug RLS issues
       const { data: directGroups, error: directError } = await supabase
@@ -94,20 +119,21 @@ const Groups: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, authLoading, user, t]);
+  }, [isLoggedIn, authLoading, user, t, authTimeout]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
     console.log('Groups component useEffect triggered - Auth state:', { 
       isLoggedIn, 
       authLoading, 
-      userId: user?.id 
+      userId: user?.id,
+      authTimeout 
     });
     
-    if (!authLoading) {
+    if (!authLoading || authTimeout) {
       loadGroups();
     }
-  }, [loadGroups, authLoading]);
+  }, [loadGroups, authLoading, authTimeout]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -118,22 +144,63 @@ const Groups: React.FC = () => {
   const handleRetry = () => {
     loadGroups();
   };
+
+  // Check if still waiting for auth but timeout triggered
+  const isAuthPending = authLoading && !authTimeout;
+
+  // Display auth timeout message
+  if (authTimeout && authLoading) {
+    return (
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto">
+        <Alert className="mb-4">
+          <InfoIcon className="h-4 w-4" />
+          <AlertTitle className="text-foreground">Authentication Check Timeout</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>Authentication check is taking too long. There might be an issue with the connection.</p>
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleLoginRedirect}>
+                Go to Login
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+        
+        <div className="mt-6 p-4 border rounded bg-muted/50">
+          <h3 className="font-medium mb-2">Debug Information</h3>
+          <p className="text-sm text-muted-foreground mb-1">Current path: {window.location.pathname}</p>
+          <p className="text-sm text-muted-foreground mb-1">Auth loading: {String(authLoading)}</p>
+          <p className="text-sm text-muted-foreground">Is logged in: {String(isLoggedIn)}</p>
+        </div>
+      </div>
+    );
+  }
   
   // Display loading state
-  if (authLoading) {
+  if (isAuthPending) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
         <div className="flex flex-col items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-muted-foreground">{t("loading")}</p>
           <p className="text-xs text-muted-foreground mt-2">Checking authentication...</p>
+          <Button 
+            variant="link" 
+            size="sm" 
+            className="mt-4"
+            onClick={handleLoginRedirect}
+          >
+            Go to Login Page
+          </Button>
         </div>
       </div>
     );
   }
   
   // Display login prompt if not logged in
-  if (!isLoggedIn) {
+  if (!isLoggedIn && !authLoading) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex flex-col justify-center items-center">
         <Alert className="mb-4">
@@ -269,6 +336,17 @@ const Groups: React.FC = () => {
         onOpenChange={setJoinDialogOpen}
         onGroupJoined={loadGroups}
       />
+      
+      {/* Debug info for development */}
+      <div className="mt-8 p-3 border rounded bg-muted/30 text-xs">
+        <h4 className="font-medium mb-1">Auth Debug Info:</h4>
+        <div className="space-y-1">
+          <p>Auth loading: {String(authLoading)}</p>
+          <p>Is logged in: {String(isLoggedIn)}</p>
+          <p>User ID: {user?.id || "Not available"}</p>
+          <p>Auth timeout reached: {String(authTimeout)}</p>
+        </div>
+      </div>
     </div>
   );
 };
