@@ -8,10 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { createGroup } from "@/services/groupService";
-import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Link, Users } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -24,7 +22,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const { user, isLoggedIn } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   
   // Group creation flow states
   const [step, setStep] = useState<"naming" | "sharing">("naming");
@@ -40,22 +37,11 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     }
   }, [open]);
 
-  // Check authentication before opening dialog
-  useEffect(() => {
-    if (open && !isLoggedIn) {
-      toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-      onOpenChange(false);
-    }
-  }, [open, isLoggedIn, onOpenChange, t, navigate]);
-
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isLoggedIn || !user) {
+    if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-      onOpenChange(false);
       return;
     }
     

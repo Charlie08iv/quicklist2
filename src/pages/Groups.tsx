@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,15 +26,12 @@ interface Group {
 }
 
 const Groups: React.FC = () => {
-  const {
-    t
-  } = useTranslation();
-  const {
-    user,
-    isLoggedIn,
-    isLoading: authLoading
-  } = useAuth();
+  const { t } = useTranslation();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get('code');
+  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -42,43 +40,62 @@ const Groups: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  
+  // Open join dialog with code if provided in URL
+  useEffect(() => {
+    if (inviteCode && !joinDialogOpen) {
+      setJoinDialogOpen(true);
+    }
+  }, [inviteCode, joinDialogOpen]);
 
   const loadGroups = useCallback(async () => {
     if (!isLoggedIn && !authLoading) {
       console.log('Not logged in, skipping group fetch');
+      setLoading(false);
       return;
     }
+    
     console.log('Loading groups - Auth state:', {
       isLoggedIn,
       authLoading,
       userId: user?.id
     });
+    
     setLoading(true);
     setError(null);
+    
     try {
       // Get current auth session directly to verify
-      const {
-        data: sessionData,
-        error: sessionError
-      } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       console.log("Current session check:", {
         hasSession: !!sessionData.session,
         userId: sessionData.session?.user?.id,
         error: sessionError
       });
+      
       if (sessionError) {
         console.error("Session error:", sessionError);
         setError("Session error: " + sessionError.message);
         setLoading(false);
         return;
       }
+      
       const activeSession = sessionData.session;
-      if (!activeSession) {
-        console.log("No active session found when directly checking");
-        setError("No active session detected. Please login.");
+      if (!activeSession && isLoggedIn) {
+        console.log("Session mismatch: isLoggedIn true but no active session");
+        setError("Session verification failed. Please try logging in again.");
         setLoading(false);
         return;
       }
+      
+      if (!activeSession) {
+        console.log("No active session, showing empty groups");
+        setGroups([]);
+        setLoading(false);
+        setFetchAttempted(true);
+        return;
+      }
+      
       console.log('Starting group fetch for user:', activeSession?.user?.id);
 
       // Use the service function
@@ -86,6 +103,7 @@ const Groups: React.FC = () => {
       console.log('Groups fetch result:', fetchedGroups);
       setGroups(fetchedGroups || []);
       setFetchAttempted(true);
+      
       if (!fetchedGroups || fetchedGroups.length === 0) {
         console.log('No groups found for user');
       }
@@ -105,10 +123,11 @@ const Groups: React.FC = () => {
       authLoading,
       userId: user?.id
     });
-    if (!authLoading || isLoggedIn) {
+    
+    if (!authLoading) {
       loadGroups();
     }
-  }, [loadGroups, authLoading, isLoggedIn]);
+  }, [loadGroups, authLoading]);
 
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -123,12 +142,18 @@ const Groups: React.FC = () => {
   // Create and show main action buttons
   const MainActions = () => (
     <div className="grid grid-cols-2 gap-4 mb-8">
-      <Card className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground" onClick={() => setJoinDialogOpen(true)}>
+      <Card 
+        className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground" 
+        onClick={() => setJoinDialogOpen(true)}
+      >
         <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
         <span className="text-sm font-medium">{t("joinGroup")}</span>
       </Card>
 
-      <Card className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground" onClick={() => setCreateDialogOpen(true)}>
+      <Card 
+        className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground" 
+        onClick={() => setCreateDialogOpen(true)}
+      >
         <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
         <span className="text-sm font-medium">{t("createGroup")}</span>
       </Card>
@@ -153,6 +178,18 @@ const Groups: React.FC = () => {
         <Button onClick={handleLoginRedirect}>
           {t("login")}
         </Button>
+        
+        <CreateGroupDialog 
+          open={createDialogOpen} 
+          onOpenChange={setCreateDialogOpen} 
+          onGroupCreated={loadGroups} 
+        />
+        
+        <JoinGroupDialog 
+          open={joinDialogOpen} 
+          onOpenChange={setJoinDialogOpen} 
+          onGroupJoined={loadGroups} 
+        />
       </div>
     );
   }

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { joinGroup } from "@/services/groupService";
-import { useNavigate } from "react-router-dom";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -21,7 +20,6 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
   const { user, isLoggedIn } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   
   // Reset form when dialog opens
   useEffect(() => {
@@ -29,23 +27,12 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       setInviteCode("");
     }
   }, [open]);
-  
-  // Check authentication before opening dialog
-  useEffect(() => {
-    if (open && !isLoggedIn) {
-      toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-      onOpenChange(false);
-    }
-  }, [open, isLoggedIn, onOpenChange, t, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isLoggedIn || !user) {
+    if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-      onOpenChange(false);
       return;
     }
     
