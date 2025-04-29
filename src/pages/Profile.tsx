@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileActions from "@/components/profile/ProfileActions";
 import SettingsDialog from "@/components/profile/SettingsDialog";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation, LanguageCode } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
