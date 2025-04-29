@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     
     setIsLoading(true);
     try {
-      // Call the createGroup function with just the group name
+      // Call the createGroup function with the group name
       const group = await createGroup(groupName);
       
       toast.success(t("groupCreated"));
@@ -48,6 +48,9 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("createNewGroup")}</DialogTitle>
+          <DialogDescription>
+            {t("createGroupDescription")}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

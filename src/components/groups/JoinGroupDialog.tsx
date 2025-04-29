@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     
     setIsLoading(true);
     try {
-      // Call the joinGroup function with just the invite code
+      // Call the joinGroup function with the invite code
       const group = await joinGroup(inviteCode);
       
       toast.success(t("groupJoined"));
@@ -48,6 +48,9 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("joinGroup")}</DialogTitle>
+          <DialogDescription>
+            {t("enterInviteCodeToJoin")}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
