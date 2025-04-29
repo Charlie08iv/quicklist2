@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 // Define available languages and translations
@@ -175,7 +174,32 @@ const languages = {
     "Change Email": "Change Email",
     "Change Password": "Change Password",
     "Log Out": "Log Out",
-    "Delete Account": "Delete Account"
+    "Delete Account": "Delete Account",
+    
+    // Recipe Dialog translations
+    "addNewRecipe": "Add New Recipe",
+    "title": "Title",
+    "enterRecipeTitle": "Enter Recipe Title",
+    "description": "Description",
+    "enterDescription": "Enter Description",
+    "ingredients": "Ingredients",
+    "addIngredient": "Add Ingredient",
+    "add": "Add",
+    "instructions": "Instructions",
+    "enterInstructions": "Enter Instructions",
+    "cookingTime": "Cooking Time",
+    "prepTime": "Preparation Time",
+    "category": "Category",
+    "selectCategory": "Select Category",
+    "recipeImage": "Recipe Image",
+    "removeImage": "Remove Image",
+    "uploadImage": "Upload Image",
+    "makeThisRecipePublic": "Make this recipe public",
+    "cancel": "Cancel",
+    "createRecipe": "Create Recipe",
+    "recipeCreated": "Recipe Created",
+    "recipeCreatedDescription": "Your new recipe has been created",
+    "or": "or",
   },
   sv: {
     // Base translations
@@ -349,7 +373,31 @@ const languages = {
     "Change Email": "Byt e-post",
     "Change Password": "Byt lösenord",
     "Log Out": "Logga ut",
-    "Delete Account": "Radera konto"
+    "Delete Account": "Radera konto",
+
+    // Recipe Dialog translations
+    "addNewRecipe": "Lägg till nytt recept",
+    "title": "Titel",
+    "enterRecipeTitle": "Ange recepttitel",
+    "description": "Beskrivning",
+    "enterDescription": "Ange beskrivning",
+    "ingredients": "Ingredienser",
+    "addIngredient": "Lägg till ingrediens",
+    "add": "Lägg till",
+    "instructions": "Instruktioner",
+    "enterInstructions": "Ange instruktioner",
+    "cookingTime": "Tillagningstid",
+    "prepTime": "Förberedelsetid",
+    "category": "Kategori",
+    "selectCategory": "Välj kategori",
+    "recipeImage": "Receptbild",
+    "removeImage": "Ta bort bild",
+    "uploadImage": "Ladda upp bild",
+    "makeThisRecipePublic": "Gör detta recept offentligt",
+    "cancel": "Avbryt",
+    "createRecipe": "Skapa recept",
+    "recipeCreated": "Recept skapat",
+    "recipeCreatedDescription": "Ditt nya recept har skapats",
   }
 };
 

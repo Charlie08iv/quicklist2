@@ -247,13 +247,13 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                 <SelectValue placeholder={t("selectCategory")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="breakfast">Breakfast</SelectItem>
-                <SelectItem value="lunch">Lunch</SelectItem>
-                <SelectItem value="dinner">Dinner</SelectItem>
-                <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                <SelectItem value="pasta">Pasta</SelectItem>
-                <SelectItem value="dessert">Dessert</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="breakfast">{t("breakfast")}</SelectItem>
+                <SelectItem value="lunch">{t("lunch")}</SelectItem>
+                <SelectItem value="dinner">{t("dinner")}</SelectItem>
+                <SelectItem value="vegetarian">{t("vegetarian")}</SelectItem>
+                <SelectItem value="pasta">{t("pasta")}</SelectItem>
+                <SelectItem value="dessert">{t("dessert")}</SelectItem>
+                <SelectItem value="other">{t("other")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
