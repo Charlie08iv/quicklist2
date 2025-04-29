@@ -34,24 +34,34 @@ const Groups: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("groups");
   const [error, setError] = useState<string | null>(null);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
   
   const loadGroups = useCallback(async () => {
     if (!isLoggedIn || authLoading) {
+      console.log('Not logged in or auth is still loading, skipping group fetch');
       setGroups([]);
       setLoading(false);
       return;
     }
 
+    console.log('Loading groups - Auth state:', { isLoggedIn, authLoading, userId: user?.id });
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('Loading groups for user:', user?.id);
+      console.log('Starting group fetch for user:', user?.id);
       const fetchedGroups = await fetchUserGroups();
-      console.log('Fetched groups:', fetchedGroups);
+      console.log('Groups fetch result:', fetchedGroups);
+      
       setGroups(fetchedGroups || []);
-    } catch (error) {
+      setFetchAttempted(true);
+      
+      if (!fetchedGroups || fetchedGroups.length === 0) {
+        console.log('No groups found for user');
+      }
+    } catch (error: any) {
       console.error("Error loading groups:", error);
-      setError("Failed to load groups. Please try again.");
+      setError(error.message || "Failed to load groups. Please try again.");
       toast.error(t("errorLoadingGroups")); 
     } finally {
       setLoading(false);
@@ -60,6 +70,12 @@ const Groups: React.FC = () => {
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
+    console.log('Groups component useEffect triggered - Auth state:', { 
+      isLoggedIn, 
+      authLoading, 
+      userId: user?.id 
+    });
+    
     if (!authLoading) {
       loadGroups();
     }
@@ -68,6 +84,11 @@ const Groups: React.FC = () => {
   // Handle login redirect
   const handleLoginRedirect = () => {
     navigate("/auth");
+  };
+
+  // Handle retry when error occurs
+  const handleRetry = () => {
+    loadGroups();
   };
   
   // Display loading state
@@ -134,12 +155,20 @@ const Groups: React.FC = () => {
             <div className="space-y-3">
               <Skeleton className="h-[100px] w-full" />
               <Skeleton className="h-[100px] w-full" />
+              <div className="text-center pt-2">
+                <p className="text-sm text-muted-foreground">{t("loadingGroups")}</p>
+              </div>
             </div>
           ) : error ? (
             <Alert variant="destructive" className="mb-4">
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>{t("error")}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="space-y-2">
+                <p>{error}</p>
+                <Button size="sm" variant="outline" onClick={handleRetry}>
+                  {t("retry")}
+                </Button>
+              </AlertDescription>
             </Alert>
           ) : groups.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -151,7 +180,7 @@ const Groups: React.FC = () => {
                 />
               ))}
             </div>
-          ) : (
+          ) : fetchAttempted ? (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
               <p className="text-foreground">{t("noGroupsYet")}</p>
@@ -163,6 +192,17 @@ const Groups: React.FC = () => {
                 {t("createYourFirstGroup")}
               </Button>
             </div>
+          ) : (
+            <Alert className="mb-4">
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>{t("unexpectedError")}</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>{t("errorFetchingGroups")}</p>
+                <Button size="sm" variant="outline" onClick={handleRetry}>
+                  {t("retry")}
+                </Button>
+              </AlertDescription>
+            </Alert>
           )}
         </TabsContent>
         

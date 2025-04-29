@@ -1,4 +1,3 @@
-
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,8 +117,15 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
+    console.log('Starting fetchUserGroups function');
     // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      throw sessionError;
+    }
+    
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
@@ -127,7 +133,7 @@ export const fetchUserGroups = async () => {
       return [];
     }
     
-    console.log('Fetching groups for user:', userId);
+    console.log('Fetching groups for user ID:', userId);
     
     // Get user's groups using the database function
     const { data: groups, error } = await supabase
@@ -144,7 +150,7 @@ export const fetchUserGroups = async () => {
     return groups || [];
   } catch (error) {
     console.error('Error fetching groups:', error);
-    return [];
+    throw error; // Let the component handle the error
   }
 };
 
