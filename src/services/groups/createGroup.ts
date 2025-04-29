@@ -36,6 +36,12 @@ export const createGroup = async (name: string) => {
       
     if (error) {
       console.error('Supabase error creating group:', error);
+      
+      // Specific error handling for RLS policy violations
+      if (error.code === '42501') {
+        throw new Error('Permission denied. Your session may have expired. Please refresh the page and try again.');
+      }
+      
       throw error;
     }
     

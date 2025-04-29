@@ -11,6 +11,8 @@ import { GroupActions } from "@/components/groups/GroupActions";
 import { LoginPrompt } from "@/components/groups/LoginPrompt";
 import { GroupsTabsContent } from "@/components/groups/GroupsTabsContent";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { RefreshCcw } from "lucide-react";
 
 interface Group {
   id: string;
@@ -22,7 +24,7 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading, refreshSession } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('code');
@@ -34,6 +36,7 @@ const Groups: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [sessionError, setSessionError] = useState<boolean>(false);
   
   // Open join dialog with code if provided in URL
   useEffect(() => {
@@ -51,6 +54,7 @@ const Groups: React.FC = () => {
     
     setLoading(true);
     setError(null);
+    setSessionError(false);
     
     try {
       // Get current auth session directly to verify
@@ -64,6 +68,7 @@ const Groups: React.FC = () => {
       if (sessionError) {
         console.error("Session error:", sessionError);
         setError("Session error: " + sessionError.message);
+        setSessionError(true);
         setLoading(false);
         return;
       }
@@ -76,6 +81,13 @@ const Groups: React.FC = () => {
         setGroups([]);
         setLoading(false);
         setFetchAttempted(true);
+        
+        // If we expected to be logged in but aren't, show session error
+        if (isLoggedIn) {
+          console.log("Session mismatch: Auth hook thinks user is logged in but no active session found");
+          setSessionError(true);
+          setError("Your session may have expired. Please refresh your session.");
+        }
         return;
       }
       
@@ -116,11 +128,29 @@ const Groups: React.FC = () => {
   const handleLoginRedirect = () => {
     navigate("/auth");
   };
+  
+  // Handle refresh session
+  const handleRefreshSession = async () => {
+    await refreshSession();
+    loadGroups();
+    toast.success(t("sessionRefreshed"));
+  };
 
   // Render the component
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
+      
+      {/* Display session error with refresh button */}
+      {sessionError && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="text-yellow-800">{error}</div>
+          <Button size="sm" variant="outline" onClick={handleRefreshSession} className="flex items-center gap-2">
+            <RefreshCcw size={16} />
+            {t("refreshSession")}
+          </Button>
+        </div>
+      )}
       
       <GroupActions 
         onJoinClick={() => setJoinDialogOpen(true)} 
@@ -134,7 +164,7 @@ const Groups: React.FC = () => {
           groups={groups}
           loading={loading}
           authLoading={authLoading}
-          error={error}
+          error={!sessionError ? error : null}
           debugInfo={debugInfo}
           onRetry={loadGroups}
           fetchAttempted={fetchAttempted}

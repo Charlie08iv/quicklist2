@@ -10,6 +10,7 @@ type AuthContextType = {
   isLoading: boolean;
   isGuest: boolean;
   authError: Error | null;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,7 +19,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: true,
   isGuest: false,
-  authError: null
+  authError: null,
+  refreshSession: async () => {}
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -27,6 +29,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  
+  // Function to manually refresh the session
+  const refreshSession = async () => {
+    try {
+      console.log("Manually refreshing session");
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Session refresh error:", error);
+        setAuthError(error);
+        return;
+      }
+      
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      
+      // Update guest mode
+      const path = window.location.pathname;
+      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+      setIsGuest(!data.session && isGuestAccessiblePath);
+      
+      console.log("Session refreshed:", data.session?.user?.id || 'No active session');
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+      setAuthError(error instanceof Error ? error : new Error('Unknown error refreshing session'));
+    }
+  };
   
   useEffect(() => {
     // Set up auth state listener FIRST to avoid missing auth events
@@ -53,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Auth initialization error:", error);
           setAuthError(error);
           setIsLoading(false);
+          setInitialized(true);
           return;
         }
         
@@ -70,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         console.log("Auth initialization completed");
         setIsLoading(false);
+        setInitialized(true);
       }
     };
 
@@ -97,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoggedIn: !!user, 
       isLoading, 
       isGuest,
-      authError
+      authError,
+      refreshSession
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -18,7 +19,7 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoggedIn, refreshSession } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -39,8 +40,18 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Remove the login check since the Groups component already handles this
-    // and we want to create groups even if we're in a guest state for demonstration
+    // Verify user is logged in before proceeding
+    if (!isLoggedIn) {
+      // Try refreshing the session first
+      await refreshSession();
+      
+      // Check again after refresh
+      if (!isLoggedIn) {
+        toast.error(t("mustBeLoggedIn"));
+        onOpenChange(false); // Close dialog
+        return;
+      }
+    }
     
     if (!groupName.trim()) {
       toast.error(t("groupNameRequired"));
@@ -65,7 +76,14 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       
     } catch (error: any) {
       console.error("Error creating group:", error);
-      toast.error(error.message || t("errorOccurred"));
+      
+      // Check for session errors specifically
+      if (error.message?.includes('session') || error.message?.includes('logged in')) {
+        await refreshSession();
+        toast.error(t("sessionRefreshRequired"));
+      } else {
+        toast.error(error.message || t("errorOccurred"));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -209,4 +227,4 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       </DialogContent>
     </Dialog>
   );
-}
+};

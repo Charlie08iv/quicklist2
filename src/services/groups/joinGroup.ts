@@ -4,12 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 export const joinGroup = async (inviteCode: string) => {
   try {
     // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error('Session error: Please try logging in again');
+    }
+    
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
       console.error('User is not authenticated');
-      throw new Error('No user ID found');
+      throw new Error('You need to be logged in to join a group');
     }
     
     // Find group by invite code
@@ -53,6 +59,12 @@ export const joinGroup = async (inviteCode: string) => {
       
     if (joinError) {
       console.error('Error joining group:', joinError);
+      
+      // Specific error handling for RLS policy violations
+      if (joinError.code === '42501') {
+        throw new Error('Permission denied. Your session may have expired. Please refresh the page and try again.');
+      }
+      
       throw joinError;
     }
     

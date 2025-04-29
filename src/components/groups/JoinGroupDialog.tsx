@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,7 +17,7 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoggedIn, refreshSession } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -29,6 +30,19 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verify user is logged in before proceeding
+    if (!isLoggedIn) {
+      // Try refreshing the session first
+      await refreshSession();
+      
+      // Check again after refresh
+      if (!isLoggedIn) {
+        toast.error(t("mustBeLoggedIn"));
+        onOpenChange(false); // Close dialog
+        return;
+      }
+    }
     
     if (!inviteCode.trim()) {
       toast.error(t("inviteCodeRequired"));
@@ -49,7 +63,14 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       
     } catch (error: any) {
       console.error("Error joining group:", error);
-      toast.error(error.message || t("errorOccurred"));
+      
+      // Check for session errors specifically
+      if (error.message?.includes('No user ID found') || error.message?.includes('session')) {
+        await refreshSession();
+        toast.error(t("sessionRefreshRequired"));
+      } else {
+        toast.error(error.message || t("errorOccurred"));
+      }
     } finally {
       setIsLoading(false);
     }
