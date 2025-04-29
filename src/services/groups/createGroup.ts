@@ -1,6 +1,7 @@
 
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
@@ -13,14 +14,14 @@ export const createGroup = async (name: string) => {
     
     if (sessionError) {
       console.error('Session error:', sessionError);
-      throw sessionError;
+      throw new Error('Session error: Please try logging in again');
     }
     
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
       console.error('User is not authenticated');
-      throw new Error('User not authenticated');
+      throw new Error('You need to be logged in to create a group');
     }
     
     const { data: group, error } = await supabase

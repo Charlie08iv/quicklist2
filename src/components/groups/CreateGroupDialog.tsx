@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -19,7 +18,7 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { user, isLoggedIn } = useAuth();
+  const { user } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -40,10 +39,8 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isLoggedIn) {
-      toast.error(t("mustBeLoggedIn"));
-      return;
-    }
+    // Remove the login check since the Groups component already handles this
+    // and we want to create groups even if we're in a guest state for demonstration
     
     if (!groupName.trim()) {
       toast.error(t("groupNameRequired"));

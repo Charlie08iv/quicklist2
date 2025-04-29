@@ -43,12 +43,6 @@ const Groups: React.FC = () => {
   }, [inviteCode, joinDialogOpen]);
 
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn && !authLoading) {
-      console.log('Not logged in, skipping group fetch');
-      setLoading(false);
-      return;
-    }
-    
     console.log('Loading groups - Auth state:', {
       isLoggedIn,
       authLoading,
@@ -75,13 +69,8 @@ const Groups: React.FC = () => {
       }
       
       const activeSession = sessionData.session;
-      if (!activeSession && isLoggedIn) {
-        console.log("Session mismatch: isLoggedIn true but no active session");
-        setError("Session verification failed. Please try logging in again.");
-        setLoading(false);
-        return;
-      }
       
+      // Show empty groups for guests or if no session
       if (!activeSession) {
         console.log("No active session, showing empty groups");
         setGroups([]);
