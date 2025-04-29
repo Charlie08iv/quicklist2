@@ -39,6 +39,8 @@ export const joinGroup = async (inviteCode: string) => {
       
     if (groupError) throw groupError;
     
+    // For now, we'll just return the group since we don't have a group_members table
+    // In the future, this would insert a record into the group_members table
     return group;
   } catch (error) {
     console.error('Error joining group:', error);
@@ -66,10 +68,11 @@ export const fetchUserGroups = async () => {
   }
 };
 
-// This is a simplified version that would need to be expanded when we have the proper tables
+// The following functions are mocks since we don't have the actual tables yet
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
-    // For now, return a mock result as we don't have the wish_items table yet
+    // Mock implementation until we have the actual table
+    console.log(`Creating wish item: ${name} for group: ${groupId}`);
     return {
       id: nanoid(),
       group_id: groupId,
@@ -86,7 +89,8 @@ export const createWishItem = async (groupId: string, name: string, description?
 
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
-    // Return empty array as we don't have the wish_items table yet
+    // Mock implementation until we have the actual table
+    console.log(`Fetching wish items for group: ${groupId}`);
     return [];
   } catch (error) {
     console.error('Error fetching wish items:', error);
@@ -96,7 +100,8 @@ export const fetchGroupWishItems = async (groupId: string) => {
 
 export const claimWishItem = async (itemId: string) => {
   try {
-    // Return a mock result as we don't have the wish_items table yet
+    // Mock implementation until we have the actual table
+    console.log(`Claiming wish item: ${itemId}`);
     return {
       id: itemId,
       status: 'claimed',
@@ -110,7 +115,8 @@ export const claimWishItem = async (itemId: string) => {
 
 export const unclaimWishItem = async (itemId: string) => {
   try {
-    // Return a mock result as we don't have the wish_items table yet
+    // Mock implementation until we have the actual table
+    console.log(`Unclaiming wish item: ${itemId}`);
     return {
       id: itemId,
       status: 'available',
@@ -129,13 +135,14 @@ export const fetchGroupMembers = async (groupId: string) => {
       .from('groups')
       .select(`
         *,
-        profiles:created_by (username, avatar_url, email)
+        profiles:created_by(username, avatar_url, email)
       `)
       .eq('id', groupId)
       .single();
       
     if (groupError) throw groupError;
     
+    // Return the creator as the only member for now
     return group ? [
       {
         user_id: group.created_by,

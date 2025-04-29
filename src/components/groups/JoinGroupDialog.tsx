@@ -27,8 +27,8 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     
     setIsLoading(true);
     try {
-      // Call the joinGroup function with the invite code
-      const group = await joinGroup(inviteCode);
+      // Call the joinGroup function with just the invite code
+      await joinGroup(inviteCode);
       
       toast.success(t("groupJoined"));
       onOpenChange(false);
@@ -36,7 +36,7 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       if (onGroupJoined) onGroupJoined();
       
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error joining group:", error);
       toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
