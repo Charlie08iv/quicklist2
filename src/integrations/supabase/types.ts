@@ -226,6 +226,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_group_member: {
+        Args: { p_group_id: string; p_user_id: string; p_role?: string }
+        Returns: undefined
+      }
+      can_manage_group: {
+        Args: { p_group_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_group_membership: {
+        Args: { p_group_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_group_members: {
+        Args: { p_group_id: string }
+        Returns: {
+          id: string
+          group_id: string
+          user_id: string
+          role: string
+          created_at: string
+          username: string
+          email: string
+          avatar_url: string
+          is_creator: boolean
+        }[]
+      }
+      get_user_groups: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+          name: string
+        }[]
+      }
       user_is_creator_of_group: {
         Args: { group_id_param: string; user_id_param: string }
         Returns: boolean

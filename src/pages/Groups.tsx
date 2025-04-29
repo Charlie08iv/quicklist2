@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -48,7 +47,7 @@ const Groups: React.FC = () => {
       console.log('Loading groups for user:', user?.id);
       const fetchedGroups = await fetchUserGroups();
       console.log('Fetched groups:', fetchedGroups);
-      setGroups(fetchedGroups);
+      setGroups(fetchedGroups || []);  // Ensure we always set an array
     } catch (error) {
       console.error("Error loading groups:", error);
       setError("Failed to load groups. Please try again.");
