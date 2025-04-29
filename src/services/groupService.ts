@@ -1,6 +1,15 @@
 
 import { nanoid } from 'nanoid';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkAuthStatus } from "@/integrations/supabase/client";
+
+// Helper function to ensure we have a valid session
+const ensureAuthenticated = async () => {
+  const { session } = await checkAuthStatus();
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+  return session;
+};
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
@@ -8,12 +17,12 @@ export const createGroup = async (name: string) => {
   try {
     console.log('Creating group with name:', name, 'and invite code:', inviteCode);
     
-    // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
+    // Ensure user is authenticated
+    const session = await ensureAuthenticated();
+    const userId = session.user.id;
     
     if (!userId) {
-      console.error('User is not authenticated');
+      console.error('User ID not found in session');
       throw new Error('User not authenticated');
     }
     
@@ -55,14 +64,9 @@ export const createGroup = async (name: string) => {
 
 export const joinGroup = async (inviteCode: string) => {
   try {
-    // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) {
-      console.error('User is not authenticated');
-      throw new Error('No user ID found');
-    }
+    // Ensure user is authenticated
+    const session = await ensureAuthenticated();
+    const userId = session.user.id;
     
     // Find group by invite code
     const { data: group, error: groupError } = await supabase
@@ -118,15 +122,15 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
-    // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
+    // Ensure user is authenticated
+    const { session } = await checkAuthStatus();
     
-    if (!userId) {
-      console.log('No user ID found, returning empty groups array');
+    if (!session) {
+      console.log('No active session found, cannot fetch groups');
       return [];
     }
     
+    const userId = session.user.id;
     console.log('Fetching groups for user:', userId);
     
     // Get user's groups using the database function
@@ -137,7 +141,19 @@ export const fetchUserGroups = async () => {
     
     if (error) {
       console.error('Error fetching user groups:', error);
-      throw error;
+      // Try direct query as fallback
+      const { data: fallbackGroups, error: fallbackError } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('created_by', userId);
+        
+      if (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        throw error; // Throw original error if fallback also fails
+      }
+      
+      console.log('Fetched groups via fallback:', fallbackGroups);
+      return fallbackGroups || [];
     }
     
     console.log('Fetched user groups:', groups);

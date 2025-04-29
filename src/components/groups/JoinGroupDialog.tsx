@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -9,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { joinGroup } from "@/services/groupService";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -18,26 +18,43 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, initialized } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
   
-  // Reset form when dialog opens
+  // Reset form and check auth when dialog opens
   useEffect(() => {
     if (open) {
       setInviteCode("");
+      
+      // Check auth status when dialog opens
+      if (initialized) {
+        setCheckingAuth(false);
+        if (!isLoggedIn) {
+          toast.error(t("mustBeLoggedIn"));
+          navigate("/auth");
+          onOpenChange(false);
+        }
+      } else {
+        // Keep checking auth status
+        const checkInterval = setInterval(() => {
+          if (initialized) {
+            clearInterval(checkInterval);
+            setCheckingAuth(false);
+            if (!isLoggedIn) {
+              toast.error(t("mustBeLoggedIn"));
+              navigate("/auth");
+              onOpenChange(false);
+            }
+          }
+        }, 500);
+        
+        return () => clearInterval(checkInterval);
+      }
     }
-  }, [open]);
-  
-  // Check authentication before opening dialog
-  useEffect(() => {
-    if (open && !isLoggedIn) {
-      toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-      onOpenChange(false);
-    }
-  }, [open, isLoggedIn, onOpenChange, t, navigate]);
+  }, [open, isLoggedIn, initialized, onOpenChange, t, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,21 +100,39 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
             {t("enterInviteCodeToJoin")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
-            <Input
-              id="inviteCode"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder={t("enterInviteCode")}
-              required
-            />
+        
+        {checkingAuth ? (
+          <div className="flex items-center justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2">{t("checkingAuthentication")}</span>
           </div>
-          <Button type="submit" disabled={isLoading || !inviteCode.trim()}>
-            {isLoading ? t("joining") : t("joinGroup")}
-          </Button>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
+              <Input
+                id="inviteCode"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder={t("enterInviteCode")}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isLoading || !inviteCode.trim() || checkingAuth}>
+              {isLoading ? t("joining") : t("joinGroup")}
+            </Button>
+            
+            {/* Auth debug info */}
+            <details className="text-xs text-muted-foreground">
+              <summary>Debug Info</summary>
+              <div className="pt-1">
+                <p>Auth Ready: {initialized ? "Yes" : "No"}</p>
+                <p>Logged In: {isLoggedIn ? "Yes" : "No"}</p>
+                <p>User ID: {user?.id || "None"}</p>
+              </div>
+            </details>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

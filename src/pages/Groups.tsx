@@ -6,7 +6,7 @@ import { UserCircle2, Plus, Users, MessageSquare, Heart } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserGroups } from "@/services/groupService";
 import { GroupCard } from "@/components/groups/GroupCard";
@@ -26,7 +26,7 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading, initialized } = useAuth();
   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -36,48 +36,58 @@ const Groups: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn || authLoading) {
+    // Don't try to load groups if auth isn't initialized yet
+    if (!initialized) {
+      console.log("Auth not initialized yet, waiting...");
+      return;
+    }
+    
+    // Clear groups if not logged in
+    if (!isLoggedIn) {
+      console.log("Not logged in, clearing groups");
       setGroups([]);
       setLoading(false);
       return;
     }
 
+    console.log("Loading groups for user:", user?.id);
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('Loading groups for user:', user?.id);
       const fetchedGroups = await fetchUserGroups();
       console.log('Fetched groups:', fetchedGroups);
       setGroups(fetchedGroups || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading groups:", error);
-      setError("Failed to load groups. Please try again.");
+      const errorMessage = error.message || "Failed to load groups. Please try again.";
+      setError(errorMessage);
       toast.error(t("errorLoadingGroups")); 
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, authLoading, user, t]);
+  }, [isLoggedIn, initialized, user, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
-    if (!authLoading) {
+    if (initialized) {
+      console.log("Auth initialized, loading groups");
       loadGroups();
     }
-  }, [loadGroups, authLoading]);
+  }, [loadGroups, initialized, isLoggedIn]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
     navigate("/auth");
   };
   
-  // Display loading state
-  if (authLoading) {
+  // Display loading state during auth initialization
+  if (!initialized || authLoading) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
-        <div className="w-full space-y-4">
-          <Skeleton className="h-[60px] w-full" />
-          <Skeleton className="h-[100px] w-full" />
-          <Skeleton className="h-[100px] w-full" />
+        <div className="w-full text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Initializing authentication...</p>
         </div>
       </div>
     );
@@ -138,7 +148,7 @@ const Groups: React.FC = () => {
             </div>
           ) : error ? (
             <Alert variant="destructive" className="mb-4">
-              <InfoIcon className="h-4 w-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>{t("error")}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -183,6 +193,22 @@ const Groups: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Auth status debugger */}
+      <div className="mt-8 p-4 border border-dashed rounded-md bg-muted/30">
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Debug Information</summary>
+          <div className="pt-2 space-y-1">
+            <p>Auth Initialized: {initialized ? "Yes" : "No"}</p>
+            <p>Auth Loading: {authLoading ? "Yes" : "No"}</p>
+            <p>Logged In: {isLoggedIn ? "Yes" : "No"}</p>
+            <p>User ID: {user?.id || "None"}</p>
+            <p>Groups Loading: {loading ? "Yes" : "No"}</p>
+            <p>Groups Count: {groups.length}</p>
+            <p>Error: {error || "None"}</p>
+          </div>
+        </details>
+      </div>
 
       <CreateGroupDialog 
         open={createDialogOpen} 

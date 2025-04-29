@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkAuthStatus } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   session: Session | null;
@@ -9,6 +9,7 @@ type AuthContextType = {
   isLoggedIn: boolean;
   isLoading: boolean;
   isGuest: boolean;
+  initialized: boolean; // Add flag to track initialization
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: true,
   isGuest: false,
+  initialized: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -24,8 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   
   useEffect(() => {
+    console.log("Auth provider initializing...");
+    
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -43,7 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // THEN check for existing session
     const initializeAuth = async () => {
       try {
+        console.log("Checking for existing session...");
         const { data } = await supabase.auth.getSession();
+        console.log("Session check result:", data.session ? "Session found" : "No session");
+        
         setSession(data.session);
         setUser(data.session?.user ?? null);
         
@@ -52,11 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!data.session && isGuestAccessiblePath);
         
-        console.log('Initial session check:', data.session?.user?.id || 'No session');
+        console.log('Initial session:', data.session?.user?.id || 'No session');
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {
         setIsLoading(false);
+        setInitialized(true); // Mark auth as initialized regardless of outcome
+        console.log("Auth initialization complete");
       }
     };
 
@@ -83,7 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, 
       isLoggedIn: !!user, 
       isLoading, 
-      isGuest 
+      isGuest,
+      initialized
     }}>
       {children}
     </AuthContext.Provider>
