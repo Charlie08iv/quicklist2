@@ -33,7 +33,7 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme="light">
         <TranslationProvider>
           <TooltipProvider>
             <AuthProvider>
@@ -56,11 +56,7 @@ const App = () => (
                 </Route>
                 <Route
                   path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout />
-                    </ProtectedRoute>
-                  }
+                  element={<AppLayout />}
                 >
                   <Route index element={<Profile />} />
                 </Route>

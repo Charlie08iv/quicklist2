@@ -152,7 +152,7 @@ export const fetchUserGroups = async () => {
 // Wishlist functions
 // Instead of directly accessing tables, we'll use custom functions
 
-// Create a wish item using RPC instead of direct table access
+// Create a wish item using edge function
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -160,14 +160,19 @@ export const createWishItem = async (groupId: string, name: string, description?
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to create wish item - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('create_wish_item', {
-      body: {
-        p_group_id: groupId,
-        p_name: name,
-        p_description: description || null,
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/create_wish_item`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        group_id: groupId,
+        name,
+        description: description || null,
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     
@@ -178,7 +183,7 @@ export const createWishItem = async (groupId: string, name: string, description?
   }
 };
 
-// Fetch group wish items using RPC
+// Fetch group wish items using edge function
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -186,12 +191,17 @@ export const fetchGroupWishItems = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use RPC to get wish items - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('get_group_wish_items', {
-      body: {
-        p_group_id: groupId
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/get_group_wish_items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        group_id: groupId
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     
@@ -202,7 +212,7 @@ export const fetchGroupWishItems = async (groupId: string) => {
   }
 };
 
-// Claim wish item using RPC
+// Claim wish item using edge function
 export const claimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -210,13 +220,18 @@ export const claimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to claim item - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('claim_wish_item', {
-      body: {
-        p_item_id: itemId,
-        p_user_id: userId
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/claim_wish_item`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        item_id: itemId,
+        user_id: userId
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     
@@ -227,7 +242,7 @@ export const claimWishItem = async (itemId: string) => {
   }
 };
 
-// Unclaim wish item using RPC
+// Unclaim wish item using edge function
 export const unclaimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -235,13 +250,18 @@ export const unclaimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to unclaim item - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('unclaim_wish_item', {
-      body: {
-        p_item_id: itemId,
-        p_user_id: userId
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/unclaim_wish_item`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        item_id: itemId,
+        user_id: userId
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     
@@ -385,7 +405,7 @@ export const addFriendToGroup = async (groupId: string, email: string) => {
   }
 };
 
-// Group chat functionality using RPC
+// Group chat functionality using edge function
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -393,13 +413,18 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to send message - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('send_group_message', {
-      body: {
-        p_group_id: groupId,
-        p_content: content
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/send_group_message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        group_id: groupId,
+        content: content
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     
@@ -410,7 +435,7 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
   }
 };
 
-// Function for fetching group chat messages with RPC
+// Function for fetching group chat messages with edge function
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -418,12 +443,17 @@ export const fetchGroupChatMessages = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use RPC to fetch messages - using functions.invoke to work with any custom RPC
-    const { data, error } = await supabase.functions.invoke('get_group_messages', {
-      body: {
-        p_group_id: groupId
-      }
-    });
+    // Call edge function
+    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/get_group_messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session?.access_token}`
+      },
+      body: JSON.stringify({
+        group_id: groupId
+      })
+    }).then(res => res.json());
     
     if (error) throw error;
     

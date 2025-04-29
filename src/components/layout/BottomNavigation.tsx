@@ -1,7 +1,7 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Calendar, BookOpen, Users, UserCircle } from "lucide-react";
+import { List, BookOpen, Users, UserCircle } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ export const BottomNavigation = () => {
     {
       path: "/lists",
       label: t("lists"),
-      icon: <Calendar className="h-5 w-5" />,
+      icon: <List className="h-5 w-5" />,
     },
     {
       path: "/recipes",

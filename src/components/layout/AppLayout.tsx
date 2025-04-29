@@ -2,19 +2,18 @@
 import React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BottomNavigation } from "./BottomNavigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "../ui/button";
 
 const AppLayout = () => {
-  const { session } = useAuth();
+  const { isLoggedIn, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
   // List of paths that can be accessed without authentication
   const publicPaths = ['/lists', '/recipes'];
   const isPublicPath = publicPaths.includes(location.pathname);
-  const isAuthPath = location.pathname === '/auth';
-  const showLoginButton = !session && isPublicPath;
+  const showLoginButton = !isLoggedIn && !isLoading && isPublicPath;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
