@@ -13,6 +13,7 @@ import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Group {
   id: string;
@@ -24,7 +25,8 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoggedIn, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -52,10 +54,34 @@ const Groups: React.FC = () => {
     }
   };
 
+  // Redirect to login if not authenticated and not currently loading
   useEffect(() => {
-    console.log('Groups component mounted, user:', user);
-    loadGroups();
-  }, [user]);
+    if (!isLoading && !isLoggedIn) {
+      toast.error(t("mustBeLoggedIn"));
+      navigate("/auth");
+    }
+  }, [isLoggedIn, isLoading, navigate, t]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      console.log('Groups component mounted, user:', user);
+      loadGroups();
+    }
+  }, [isLoggedIn, user]);
+  
+  // Don't render anything until we're done checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+  
+  // Don't render if not logged in
+  if (!isLoggedIn) {
+    return null;
+  }
   
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">

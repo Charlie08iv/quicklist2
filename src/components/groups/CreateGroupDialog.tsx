@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,15 +17,23 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setGroupName("");
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
+      onOpenChange(false);
       return;
     }
     
