@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const joinGroup = async (inviteCode: string) => {
   try {
-    // Get current session
+    // Get current session with fresh check
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -11,11 +11,46 @@ export const joinGroup = async (inviteCode: string) => {
       throw new Error('Session error: Please try logging in again');
     }
     
-    const userId = sessionData.session?.user?.id;
+    if (!sessionData.session) {
+      console.error('No active session found');
+      throw new Error('You need to be logged in to join a group');
+    }
+    
+    const userId = sessionData.session.user.id;
     
     if (!userId) {
-      console.error('User is not authenticated');
-      throw new Error('You need to be logged in to join a group');
+      console.error('User ID not found in session');
+      throw new Error('User ID not found. Please try logging in again');
+    }
+    
+    console.log('Joining group with invite code:', inviteCode, 'for user:', userId);
+    
+    // Ensure user exists in profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+      
+    if (profileError) {
+      console.error('Error checking profile:', profileError);
+      // Continue anyway, we'll try to create the profile if needed
+    }
+    
+    if (!profileData) {
+      console.log('Creating profile for user:', userId);
+      // Try to create a profile for the user
+      const { error: createProfileError } = await supabase
+        .from('profiles')
+        .insert({ 
+          id: userId,
+          email: sessionData.session.user.email
+        });
+        
+      if (createProfileError) {
+        console.error('Error creating profile:', createProfileError);
+        // Continue anyway, the group join might still work
+      }
     }
     
     // Find group by invite code
@@ -23,9 +58,9 @@ export const joinGroup = async (inviteCode: string) => {
       .from('groups')
       .select()
       .eq('invite_code', inviteCode)
-      .single();
+      .maybeSingle();
       
-    if (groupError) {
+    if (groupError || !group) {
       console.error('Error finding group with invite code:', inviteCode, groupError);
       throw new Error('Invalid invite code');
     }

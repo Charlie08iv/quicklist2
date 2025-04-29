@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { createGroup } from "@/services/groups";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Link, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -22,31 +23,56 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const { user, isLoggedIn, refreshSession } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionVerified, setSessionVerified] = useState(false);
   
   // Group creation flow states
   const [step, setStep] = useState<"naming" | "sharing">("naming");
   const [createdGroup, setCreatedGroup] = useState<{id: string, name: string, invite_code: string} | null>(null);
   const [activeTab, setActiveTab] = useState<"code" | "link">("code");
   
-  // Reset form when dialog opens
+  // Reset form and verify session when dialog opens
   useEffect(() => {
     if (open) {
       setGroupName("");
       setStep("naming");
       setCreatedGroup(null);
+      setSessionVerified(false);
+      
+      // Verify session when dialog opens
+      const verifySession = async () => {
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          if (error || !data.session) {
+            console.log("No active session detected in dialog");
+            setSessionVerified(false);
+            if (isLoggedIn) {
+              // Auth hook thinks we're logged in but Supabase disagrees
+              await refreshSession();
+            }
+          } else {
+            console.log("Active session verified in dialog");
+            setSessionVerified(true);
+          }
+        } catch (e) {
+          console.error("Error verifying session:", e);
+        }
+      };
+      
+      verifySession();
     }
-  }, [open]);
+  }, [open, isLoggedIn, refreshSession]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Verify user is logged in before proceeding
-    if (!isLoggedIn) {
-      // Try refreshing the session first
+    if (!isLoggedIn || !user) {
+      console.log("Not logged in, refreshing session before proceeding");
       await refreshSession();
       
+      const { data } = await supabase.auth.getSession();
       // Check again after refresh
-      if (!isLoggedIn) {
+      if (!data.session) {
         toast.error(t("mustBeLoggedIn"));
         onOpenChange(false); // Close dialog
         return;
@@ -135,9 +161,17 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
                 required
               />
             </div>
-            <Button type="submit" disabled={isLoading || !groupName.trim()}>
+            <Button 
+              type="submit" 
+              disabled={isLoading || !groupName.trim() || (!isLoggedIn && !sessionVerified)}
+            >
               {isLoading ? t("creating") : t("createGroup")}
             </Button>
+            {!isLoggedIn && (
+              <p className="text-sm text-red-500 mt-2">
+                {t("mustBeLoggedIn")}
+              </p>
+            )}
           </form>
         ) : createdGroup ? (
           <>
@@ -227,4 +261,4 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       </DialogContent>
     </Dialog>
   );
-};
+}

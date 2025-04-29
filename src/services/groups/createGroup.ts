@@ -9,7 +9,7 @@ export const createGroup = async (name: string) => {
   try {
     console.log('Creating group with name:', name, 'and invite code:', inviteCode);
     
-    // Get current session
+    // Get current session with fresh check
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -17,13 +17,49 @@ export const createGroup = async (name: string) => {
       throw new Error('Session error: Please try logging in again');
     }
     
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) {
-      console.error('User is not authenticated');
+    if (!sessionData.session) {
+      console.error('No active session found');
       throw new Error('You need to be logged in to create a group');
     }
     
+    const userId = sessionData.session.user.id;
+    
+    if (!userId) {
+      console.error('User ID not found in session');
+      throw new Error('User ID not found. Please try logging in again');
+    }
+    
+    console.log('Creating group for user ID:', userId);
+    
+    // Ensure user exists in profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+      
+    if (profileError) {
+      console.error('Error checking profile:', profileError);
+      // Continue anyway, we'll try to create the profile if needed
+    }
+    
+    if (!profileData) {
+      console.log('Creating profile for user:', userId);
+      // Try to create a profile for the user
+      const { error: createProfileError } = await supabase
+        .from('profiles')
+        .insert({ 
+          id: userId,
+          email: sessionData.session.user.email
+        });
+        
+      if (createProfileError) {
+        console.error('Error creating profile:', createProfileError);
+        // Continue anyway, the group creation might still work
+      }
+    }
+    
+    // Create the group
     const { data: group, error } = await supabase
       .from('groups')
       .insert({ 

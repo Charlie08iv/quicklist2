@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { joinGroup } from "@/services/groups";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -20,24 +21,49 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
   const { user, isLoggedIn, refreshSession } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionVerified, setSessionVerified] = useState(false);
   
-  // Reset form when dialog opens
+  // Reset form when dialog opens and verify session
   useEffect(() => {
     if (open) {
       setInviteCode("");
+      setSessionVerified(false);
+      
+      // Verify session when dialog opens
+      const verifySession = async () => {
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          if (error || !data.session) {
+            console.log("No active session detected in dialog");
+            setSessionVerified(false);
+            if (isLoggedIn) {
+              // Auth hook thinks we're logged in but Supabase disagrees
+              await refreshSession();
+            }
+          } else {
+            console.log("Active session verified in dialog");
+            setSessionVerified(true);
+          }
+        } catch (e) {
+          console.error("Error verifying session:", e);
+        }
+      };
+      
+      verifySession();
     }
-  }, [open]);
+  }, [open, isLoggedIn, refreshSession]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Verify user is logged in before proceeding
-    if (!isLoggedIn) {
-      // Try refreshing the session first
+    if (!isLoggedIn || !user) {
+      console.log("Not logged in, refreshing session before proceeding");
       await refreshSession();
       
+      const { data } = await supabase.auth.getSession();
       // Check again after refresh
-      if (!isLoggedIn) {
+      if (!data.session) {
         toast.error(t("mustBeLoggedIn"));
         onOpenChange(false); // Close dialog
         return;
@@ -65,7 +91,9 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       console.error("Error joining group:", error);
       
       // Check for session errors specifically
-      if (error.message?.includes('No user ID found') || error.message?.includes('session')) {
+      if (error.message?.includes('No user ID found') || 
+          error.message?.includes('session') || 
+          error.message?.includes('logged in')) {
         await refreshSession();
         toast.error(t("sessionRefreshRequired"));
       } else {
@@ -96,9 +124,17 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
               required
             />
           </div>
-          <Button type="submit" disabled={isLoading || !inviteCode.trim()}>
+          <Button 
+            type="submit" 
+            disabled={isLoading || !inviteCode.trim() || (!isLoggedIn && !sessionVerified)}
+          >
             {isLoading ? t("joining") : t("joinGroup")}
           </Button>
+          {!isLoggedIn && (
+            <p className="text-sm text-red-500 mt-2">
+              {t("mustBeLoggedIn")}
+            </p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

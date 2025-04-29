@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -70,6 +70,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const path = window.location.pathname;
         const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!currentSession && isGuestAccessiblePath);
+        
+        // If we get a SIGNED_IN event but don't have a user profile yet, create one
+        if (event === 'SIGNED_IN' && currentSession) {
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', currentSession.user.id)
+              .maybeSingle();
+              
+            if (!data && !error) {
+              // Profile doesn't exist, create it
+              console.log('Creating profile for user:', currentSession.user.id);
+              await supabase
+                .from('profiles')
+                .insert({ 
+                  id: currentSession.user.id,
+                  email: currentSession.user.email
+                });
+            }
+          } catch (e) {
+            console.error('Error checking/creating profile:', e);
+          }
+        }
       }
     );
     

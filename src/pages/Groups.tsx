@@ -40,10 +40,10 @@ const Groups: React.FC = () => {
   
   // Open join dialog with code if provided in URL
   useEffect(() => {
-    if (inviteCode && !joinDialogOpen) {
+    if (inviteCode && !joinDialogOpen && isLoggedIn && !authLoading) {
       setJoinDialogOpen(true);
     }
-  }, [inviteCode, joinDialogOpen]);
+  }, [inviteCode, joinDialogOpen, isLoggedIn, authLoading]);
 
   const loadGroups = useCallback(async () => {
     console.log('Loading groups - Auth state:', {
@@ -52,18 +52,26 @@ const Groups: React.FC = () => {
       userId: user?.id
     });
     
+    if (authLoading) {
+      console.log('Auth is still loading, deferring group fetch');
+      return;
+    }
+    
+    if (!isLoggedIn) {
+      console.log('User is not logged in, skipping group fetch');
+      setGroups([]);
+      setLoading(false);
+      setFetchAttempted(true);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     setSessionError(false);
     
     try {
-      // Get current auth session directly to verify
+      // Verify session directly
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      console.log("Current session check:", {
-        hasSession: !!sessionData.session,
-        userId: sessionData.session?.user?.id,
-        error: sessionError
-      });
       
       if (sessionError) {
         console.error("Session error:", sessionError);
@@ -73,25 +81,18 @@ const Groups: React.FC = () => {
         return;
       }
       
-      const activeSession = sessionData.session;
-      
-      // Show empty groups for guests or if no session
-      if (!activeSession) {
-        console.log("No active session, showing empty groups");
+      if (!sessionData.session) {
+        console.log("No active session found");
         setGroups([]);
         setLoading(false);
         setFetchAttempted(true);
-        
-        // If we expected to be logged in but aren't, show session error
-        if (isLoggedIn) {
-          console.log("Session mismatch: Auth hook thinks user is logged in but no active session found");
-          setSessionError(true);
-          setError("Your session may have expired. Please refresh your session.");
-        }
+        setSessionError(true);
+        setError("Your session has expired. Please refresh your session.");
         return;
       }
       
-      console.log('Starting group fetch for user:', activeSession?.user?.id);
+      const userId = sessionData.session.user.id;
+      console.log('Starting group fetch for user:', userId);
 
       // Use the service function
       const fetchedGroups = await fetchUserGroups();
@@ -105,11 +106,17 @@ const Groups: React.FC = () => {
     } catch (error: any) {
       console.error("Error loading groups:", error);
       setError(error.message || "Failed to load groups. Please try again.");
-      toast.error(t("errorLoadingGroups"));
+      
+      if (error.message?.includes('session') || error.message?.includes('logged in')) {
+        setSessionError(true);
+        await refreshSession();
+      } else {
+        toast.error(t("errorLoadingGroups"));
+      }
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, authLoading, user, t]);
+  }, [isLoggedIn, authLoading, user, t, refreshSession]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
@@ -122,7 +129,7 @@ const Groups: React.FC = () => {
     if (!authLoading) {
       loadGroups();
     }
-  }, [loadGroups, authLoading]);
+  }, [loadGroups, authLoading, isLoggedIn]);
 
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -162,7 +169,7 @@ const Groups: React.FC = () => {
       ) : (
         <GroupsTabsContent
           groups={groups}
-          loading={loading}
+          loading={loading || authLoading}
           authLoading={authLoading}
           error={!sessionError ? error : null}
           debugInfo={debugInfo}
