@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { createGroup } from "@/services/groupService";
+import { useNavigate } from "react-router-dom";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   const { user, isLoggedIn } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   // Reset form when dialog opens
   useEffect(() => {
@@ -32,15 +34,17 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   useEffect(() => {
     if (open && !isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
+      navigate("/auth");
       onOpenChange(false);
     }
-  }, [open, isLoggedIn, onOpenChange, t]);
+  }, [open, isLoggedIn, onOpenChange, t, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isLoggedIn || !user) {
       toast.error(t("mustBeLoggedIn"));
+      navigate("/auth");
       onOpenChange(false);
       return;
     }

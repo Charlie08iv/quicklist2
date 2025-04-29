@@ -1,5 +1,8 @@
 
-// Empty component as toast functionality is disabled
+import { Toaster as Sonner } from "sonner";
+
 export function Toaster() {
-  return null
+  return (
+    <Sonner position="top-center" className="toaster group" />
+  );
 }

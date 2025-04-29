@@ -69,11 +69,15 @@ const Groups: React.FC = () => {
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
-    if (isLoggedIn && user?.id) {
-      console.log('Groups component mounted, user logged in:', user?.id);
-      loadGroups();
+    if (!authLoading) {
+      if (isLoggedIn && user?.id) {
+        console.log('Groups component mounted, user logged in:', user?.id);
+        loadGroups();
+      } else {
+        setLoading(false);
+      }
     }
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, authLoading]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
