@@ -1,7 +1,6 @@
 
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
@@ -33,7 +32,7 @@ export const createGroup = async (name: string) => {
       throw error;
     }
     
-    // Add creator as a member of the group with a custom function call
+    // Add creator as a member of the group
     const { error: memberError } = await supabase
       .rpc('add_group_member', {
         p_group_id: group.id,
@@ -79,7 +78,7 @@ export const joinGroup = async (inviteCode: string) => {
     
     console.log('Found group to join:', group);
     
-    // Check if the user is already a member of this group (using stored function)
+    // Check if the user is already a member of this group
     const { data: isMember, error: checkError } = await supabase
       .rpc('check_group_membership', {
         p_group_id: group.id,
@@ -96,7 +95,7 @@ export const joinGroup = async (inviteCode: string) => {
       return group;
     }
     
-    // Add user to group (using stored function)
+    // Add user to group
     const { error: joinError } = await supabase
       .rpc('add_group_member', {
         p_group_id: group.id,
@@ -111,7 +110,7 @@ export const joinGroup = async (inviteCode: string) => {
     
     console.log('Successfully joined group');
     return group;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error joining group:', error);
     throw error;
   }
@@ -130,7 +129,7 @@ export const fetchUserGroups = async () => {
     
     console.log('Fetching groups for user:', userId);
     
-    // Get user's groups (using a stored procedure)
+    // Get user's groups using the database function
     const { data: groups, error } = await supabase
       .rpc('get_user_groups', {
         p_user_id: userId
@@ -149,145 +148,6 @@ export const fetchUserGroups = async () => {
   }
 };
 
-// Wishlist functions - We'll use edge functions for this
-
-// Create a wish item using edge function
-export const createWishItem = async (groupId: string, name: string, description?: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    const userId = sessionData.session?.user?.id;
-    
-    if (!token || !userId) throw new Error('User not authenticated');
-    
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create_wish_item`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        group_id: groupId,
-        name,
-        description: description || null,
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create wish item');
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error creating wish item:', error);
-    throw error;
-  }
-};
-
-// Fetch group wish items using edge function
-export const fetchGroupWishItems = async (groupId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    const userId = sessionData.session?.user?.id;
-    
-    if (!token || !userId) return [];
-    
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_group_wish_items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        group_id: groupId
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error in response:', errorData);
-      return [];
-    }
-    
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching wish items:', error);
-    return [];
-  }
-};
-
-// Claim wish item using edge function
-export const claimWishItem = async (itemId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    const userId = sessionData.session?.user?.id;
-    
-    if (!token || !userId) throw new Error('User not authenticated');
-    
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claim_wish_item`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        item_id: itemId,
-        user_id: userId
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to claim wish item');
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error claiming wish item:', error);
-    throw error;
-  }
-};
-
-// Unclaim wish item using edge function
-export const unclaimWishItem = async (itemId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    const userId = sessionData.session?.user?.id;
-    
-    if (!token || !userId) throw new Error('User not authenticated');
-    
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/unclaim_wish_item`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        item_id: itemId,
-        user_id: userId
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to unclaim wish item');
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error unclaiming wish item:', error);
-    throw error;
-  }
-};
-
 export const fetchGroupMembers = async (groupId: string) => {
   try {
     // Get current session
@@ -299,23 +159,7 @@ export const fetchGroupMembers = async (groupId: string) => {
       throw new Error('User not authenticated');
     }
     
-    // Check if user is a member of this group (using stored function)
-    const { data: isMember, error: checkError } = await supabase
-      .rpc('check_group_membership', {
-        p_group_id: groupId,
-        p_user_id: userId
-      });
-    
-    if (checkError) {
-      console.error('Error checking membership:', checkError);
-      throw checkError;
-    }
-    
-    if (!isMember) {
-      throw new Error('You are not a member of this group');
-    }
-    
-    // Get group members (using stored function)
+    // Get group members using the database function
     const { data: members, error } = await supabase
       .rpc('get_group_members', {
         p_group_id: groupId
@@ -330,6 +174,59 @@ export const fetchGroupMembers = async (groupId: string) => {
   } catch (error) {
     console.error('Error fetching group members:', error);
     return [];
+  }
+};
+
+export const addFriendToGroup = async (groupId: string, email: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Check if current user has permission to add members
+    const { data: hasPermission, error: permError } = await supabase
+      .rpc('can_manage_group', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+    
+    if (permError || !hasPermission) {
+      throw new Error('You do not have permission to add members to this group');
+    }
+    
+    // Find the user by email
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .single();
+      
+    if (profileError || !userProfile) {
+      throw new Error('User not found with this email');
+    }
+    
+    // Add the user to the group
+    const { error: addError } = await supabase
+      .rpc('add_group_member', {
+        p_group_id: groupId,
+        p_user_id: userProfile.id,
+        p_role: 'member'
+      });
+    
+    if (addError) {
+      if (addError.message.includes('duplicate key')) {
+        throw new Error('User is already a member of this group');
+      }
+      throw addError;
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding friend to group:', error);
+    throw error;
   }
 };
 
@@ -361,93 +258,115 @@ export const createGroupList = async (groupId: string, name: string, date?: stri
   }
 };
 
-// New function to add friend to group
-export const addFriendToGroup = async (groupId: string, email: string) => {
+// Wishlist functions
+export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) {
-      console.error('User is not authenticated');
-      throw new Error('User not authenticated');
-    }
+    if (!userId) throw new Error('User not authenticated');
     
-    // Check if the current user has permission to add members to this group
-    const { data: hasPermission, error: permError } = await supabase
-      .rpc('can_manage_group', {
-        p_group_id: groupId,
-        p_user_id: userId
-      });
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('create_wish_item', {
+      p_group_id: groupId,
+      p_name: name,
+      p_description: description || null
+    });
     
-    if (permError) {
-      console.error('Error checking permissions:', permError);
-      throw permError;
-    }
+    if (error) throw error;
     
-    if (!hasPermission) {
-      throw new Error('You do not have permission to add members to this group');
-    }
-    
-    // Find the user by email
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .single();
-      
-    if (profileError || !userProfile) {
-      throw new Error('User not found with this email');
-    }
-    
-    // Add the user to the group (using stored function)
-    const { error: addError } = await supabase
-      .rpc('add_group_member', {
-        p_group_id: groupId,
-        p_user_id: userProfile.id,
-        p_role: 'member'
-      });
-    
-    if (addError) {
-      if (addError.message.includes('duplicate key')) {
-        throw new Error('User is already a member of this group');
-      }
-      throw addError;
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error adding friend to group:', error);
+    return data;
+  } catch (error) {
+    console.error('Error creating wish item:', error);
     throw error;
   }
 };
 
-// Group chat functionality using edge function
+// Fetch group wish items
+export const fetchGroupWishItems = async (groupId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) return [];
+    
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('get_group_wish_items', {
+      p_group_id: groupId
+    });
+    
+    if (error) {
+      console.error('Error fetching wish items:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching wish items:', error);
+    return [];
+  }
+};
+
+// Claim wish item
+export const claimWishItem = async (itemId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase.rpc('claim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error claiming wish item:', error);
+    throw error;
+  }
+};
+
+// Unclaim wish item
+export const unclaimWishItem = async (itemId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase.rpc('unclaim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error unclaiming wish item:', error);
+    throw error;
+  }
+};
+
+// Group chat functionality
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!token || !userId) throw new Error('User not authenticated');
+    if (!userId) throw new Error('User not authenticated');
     
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send_group_message`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        group_id: groupId,
-        content: content
-      })
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('send_group_message', {
+      p_group_id: groupId,
+      p_content: content
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to send message');
-    }
+    if (error) throw error;
     
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error sending message:', error);
@@ -455,36 +374,63 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
   }
 };
 
-// Function for fetching group chat messages with edge function
+// Fetch group chat messages
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!token || !userId) return [];
+    if (!userId) return [];
     
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_group_messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        group_id: groupId
-      })
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('get_group_messages', {
+      p_group_id: groupId
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error in response:', errorData);
+    if (error) {
+      console.error('Error fetching messages:', error);
       return [];
     }
     
-    const data = await response.json();
     return data || [];
   } catch (error) {
     console.error('Error fetching messages:', error);
     return [];
+  }
+};
+
+// Delete a group (only for group creators)
+export const deleteGroup = async (groupId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Check if the current user is the creator of the group
+    const { data: isCreator, error: checkError } = await supabase
+      .rpc('user_is_creator_of_group', {
+        group_id_param: groupId,
+        user_id_param: userId
+      });
+    
+    if (checkError || !isCreator) {
+      throw new Error('You do not have permission to delete this group');
+    }
+    
+    // Delete the group
+    const { error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId);
+      
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    throw error;
   }
 };

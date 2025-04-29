@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addFriendToGroup } from "@/services/groupService";
+import { addFriendToGroup, deleteGroup } from "@/services/groupService";
 
 interface GroupCardProps {
   group: {
@@ -61,14 +61,13 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
     
     setIsDeleting(true);
     try {
-      // We would add actual deletion logic here
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await deleteGroup(group.id);
       toast.success(t("groupDeleted"));
       setDeleteDialogOpen(false);
       if (onDeleted) onDeleted();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(error.message || t("errorOccurred"));
     } finally {
       setIsDeleting(false);
     }
@@ -99,9 +98,23 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
     }
   };
 
+  // Handle navigation to lists, chat, or wishlist pages
+  const handleNavigateToGroupFeature = (feature: string) => {
+    // This is temporary until the features are implemented
+    if (feature === 'lists') {
+      navigate(`/groups/${group.id}/lists`);
+    } else if (feature === 'chat') {
+      navigate(`/groups/${group.id}/chat`);
+    } else if (feature === 'wishlist') {
+      navigate(`/groups/${group.id}/wishlist`);
+    } else {
+      toast.info(t("featureComingSoon"));
+    }
+  };
+
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className="hover:shadow-md transition-shadow dark:border-border">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-lg text-foreground">{group.name}</CardTitle>
           <div className="flex gap-2">
@@ -158,7 +171,7 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
               variant="outline"
               size="sm"
               className="text-xs flex items-center gap-1"
-              onClick={() => toast.info(t("featureUnderDevelopment"))}
+              onClick={() => handleNavigateToGroupFeature('lists')}
             >
               <List className="h-3 w-3" />
               {t("lists")}
@@ -168,7 +181,7 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
               variant="outline"
               size="sm"
               className="text-xs flex items-center gap-1"
-              onClick={() => toast.info(t("featureUnderDevelopment"))}
+              onClick={() => handleNavigateToGroupFeature('chat')}
             >
               <MessageSquare className="h-3 w-3" />
               {t("chat")}
@@ -178,7 +191,7 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
               variant="outline"
               size="sm"
               className="text-xs flex items-center gap-1"
-              onClick={() => toast.info(t("featureUnderDevelopment"))}
+              onClick={() => handleNavigateToGroupFeature('wishlist')}
             >
               <Heart className="h-3 w-3" />
               {t("wishlist")}

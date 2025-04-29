@@ -48,7 +48,7 @@ const Groups: React.FC = () => {
       console.log('Loading groups for user:', user?.id);
       const fetchedGroups = await fetchUserGroups();
       console.log('Fetched groups:', fetchedGroups);
-      setGroups(fetchedGroups || []);  // Ensure we always set an array
+      setGroups(fetchedGroups || []);
     } catch (error) {
       console.error("Error loading groups:", error);
       setError("Failed to load groups. Please try again.");
@@ -89,8 +89,8 @@ const Groups: React.FC = () => {
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex flex-col justify-center items-center">
         <Alert className="mb-4">
           <InfoIcon className="h-4 w-4" />
-          <AlertTitle>{t("notLoggedIn")}</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="text-foreground">{t("notLoggedIn")}</AlertTitle>
+          <AlertDescription className="text-foreground">
             {t("loginToAccessGroups")}
           </AlertDescription>
         </Alert>
@@ -103,7 +103,7 @@ const Groups: React.FC = () => {
   
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">{t("groups")}</h1>
+      <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
       
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card 
@@ -153,9 +153,9 @@ const Groups: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
-              <p>{t("noGroupsYet")}</p>
+              <p className="text-foreground">{t("noGroupsYet")}</p>
               <Button 
                 variant="outline" 
                 className="mt-4" 
@@ -168,18 +168,18 @@ const Groups: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="shared">
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-12">
             <MessageSquare className="h-12 w-12 text-muted-foreground/60 mb-3" />
-            <p>{t("noSharedListsYet")}</p>
-            <p className="text-sm mt-2">{t("createGroupToShareLists")}</p>
+            <p className="text-foreground">{t("noSharedListsYet")}</p>
+            <p className="text-sm mt-2 text-muted-foreground">{t("createGroupToShareLists")}</p>
           </div>
         </TabsContent>
         
         <TabsContent value="wishlist">
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-12">
             <Heart className="h-12 w-12 text-muted-foreground/60 mb-3" />
-            <p>{t("noWishListsYet")}</p>
-            <p className="text-sm mt-2">{t("joinGroupToSeeWishLists")}</p>
+            <p className="text-foreground">{t("noWishListsYet")}</p>
+            <p className="text-sm mt-2 text-muted-foreground">{t("joinGroupToSeeWishLists")}</p>
           </div>
         </TabsContent>
       </Tabs>

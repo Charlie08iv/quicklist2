@@ -12,11 +12,11 @@ const AppLayout = () => {
   
   // List of paths that can be accessed without authentication
   const publicPaths = ['/lists', '/recipes'];
-  const isPublicPath = publicPaths.includes(location.pathname);
+  const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
   const showLoginButton = !isLoggedIn && !isLoading && isPublicPath;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {showLoginButton && (
         <div className="bg-primary/10 p-2 text-center">
           <span className="text-sm">You're in guest mode. </span>
@@ -30,7 +30,7 @@ const AppLayout = () => {
         </div>
       )}
       
-      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in text-foreground">
+      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in">
         <Outlet />
       </main>
       <BottomNavigation />

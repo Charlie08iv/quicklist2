@@ -23,7 +23,6 @@ import Account from "./pages/Account";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Reduce the amount of loading state flashing
       refetchOnWindowFocus: false,
       retry: 1
     },
@@ -53,6 +52,10 @@ const App = () => (
                 </Route>
                 <Route path="/groups" element={<AppLayout />}>
                   <Route index element={<Groups />} />
+                  {/* Add routes for group features - these will be implemented later */}
+                  <Route path=":groupId/lists" element={<NotFound />} />
+                  <Route path=":groupId/chat" element={<NotFound />} />
+                  <Route path=":groupId/wishlist" element={<NotFound />} />
                 </Route>
                 <Route
                   path="/profile"
