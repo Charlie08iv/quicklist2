@@ -12,6 +12,7 @@ import { fetchUserGroups } from "@/services/groupService";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface Group {
   id: string;
