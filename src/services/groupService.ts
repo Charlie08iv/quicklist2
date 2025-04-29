@@ -282,12 +282,18 @@ export const createWishItem = async (groupId: string, name: string, description?
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('create_wish_item', {
-      p_group_id: groupId,
-      p_name: name,
-      p_description: description || null
-    });
+    // Use direct table insert instead of RPC
+    const { data, error } = await supabase
+      .from('wish_items')
+      .insert({
+        group_id: groupId,
+        name,
+        description: description || null,
+        created_by: userId,
+        status: 'available'
+      })
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -306,10 +312,15 @@ export const fetchGroupWishItems = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('get_group_wish_items', {
-      p_group_id: groupId
-    });
+    // Use direct query instead of RPC
+    const { data, error } = await supabase
+      .from('wish_items')
+      .select(`
+        *,
+        profiles!created_by(username, avatar_url),
+        claimed_profiles:profiles!claimed_by(username, avatar_url)
+      `)
+      .eq('group_id', groupId);
     
     if (error) {
       console.error('Error fetching wish items:', error);
@@ -331,10 +342,28 @@ export const claimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase.rpc('claim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
-    });
+    // Check if user can claim this item
+    const { data: canClaim, error: checkError } = await supabase
+      .rpc('user_can_claim_wish_item', {
+        item_id_param: itemId,
+        user_id_param: userId
+      });
+    
+    if (checkError || !canClaim) {
+      throw new Error('You cannot claim this item');
+    }
+    
+    // Update the item directly
+    const { data, error } = await supabase
+      .from('wish_items')
+      .update({
+        claimed_by: userId,
+        claimed_at: new Date().toISOString(),
+        status: 'claimed'
+      })
+      .eq('id', itemId)
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -353,10 +382,28 @@ export const unclaimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase.rpc('unclaim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
-    });
+    // Check if user can unclaim this item
+    const { data: canUnclaim, error: checkError } = await supabase
+      .rpc('user_can_unclaim_wish_item', {
+        item_id_param: itemId,
+        user_id_param: userId
+      });
+    
+    if (checkError || !canUnclaim) {
+      throw new Error('You cannot unclaim this item');
+    }
+    
+    // Update the item directly
+    const { data, error } = await supabase
+      .from('wish_items')
+      .update({
+        claimed_by: null,
+        claimed_at: null,
+        status: 'available'
+      })
+      .eq('id', itemId)
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -375,11 +422,19 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('send_group_message', {
-      p_group_id: groupId,
-      p_content: content
-    });
+    // Insert message directly
+    const { data, error } = await supabase
+      .from('group_messages')
+      .insert({
+        group_id: groupId,
+        user_id: userId,
+        content
+      })
+      .select(`
+        *,
+        profiles!user_id(username, avatar_url)
+      `)
+      .single();
     
     if (error) throw error;
     
@@ -398,10 +453,16 @@ export const fetchGroupChatMessages = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('get_group_messages', {
-      p_group_id: groupId
-    });
+    // Query messages directly
+    const { data, error } = await supabase
+      .from('group_messages')
+      .select(`
+        *,
+        profiles!user_id(username, avatar_url)
+      `)
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false })
+      .limit(50);
     
     if (error) {
       console.error('Error fetching messages:', error);
