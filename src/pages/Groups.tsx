@@ -1,47 +1,39 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
 import { UserCircle2, Plus } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
-import { GroupCard } from "@/components/groups/GroupCard";
-import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups, Group } from "@/services/groupService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
+
+interface Group {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
+  invite_code: string;
+}
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   
-  const loadGroups = async () => {
-    if (!user) {
-      setGroups([]);
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const userGroups = await fetchUserGroups();
-      setGroups(userGroups);
-    } catch (error) {
-      console.error("Error loading groups:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Since the groups feature is under maintenance, we won't try to fetch any groups
   
-  useEffect(() => {
-    loadGroups();
-  }, [user]);
-
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">{t("groups")}</h1>
+      
+      <Alert className="mb-6 border-orange-500 bg-orange-500/10">
+        <InfoIcon className="h-5 w-5 text-orange-500" />
+        <AlertTitle className="text-orange-500">Feature Under Maintenance</AlertTitle>
+        <AlertDescription>
+          The groups feature is currently under maintenance. We apologize for any inconvenience.
+        </AlertDescription>
+      </Alert>
       
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card 
@@ -64,37 +56,19 @@ const Groups: React.FC = () => {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">{t("yourGroups")}</h2>
         
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p>{t("loading")}</p>
-          </div>
-        ) : groups.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {groups.map(group => (
-              <GroupCard 
-                key={group.id} 
-                group={group} 
-                onGroupDeleted={loadGroups}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>{t("noGroupsYet")}</p>
-          </div>
-        )}
+        <div className="text-center py-12 text-muted-foreground">
+          <p>{t("noGroupsYet")}</p>
+        </div>
       </div>
 
       <CreateGroupDialog 
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen}
-        onGroupCreated={loadGroups}
       />
       
       <JoinGroupDialog 
         open={joinDialogOpen} 
         onOpenChange={setJoinDialogOpen}
-        onGroupJoined={loadGroups}
       />
     </div>
   );
