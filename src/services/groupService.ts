@@ -149,7 +149,10 @@ export const fetchUserGroups = async () => {
   }
 };
 
-// Placeholder functions for future implementation
+// Wishlist functions
+// Instead of directly accessing tables, we'll use custom functions
+
+// Create a wish item using RPC instead of direct table access
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -157,18 +160,12 @@ export const createWishItem = async (groupId: string, name: string, description?
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Create wish item in the wish_items table
-    const { data, error } = await supabase
-      .from('wish_items')
-      .insert({
-        group_id: groupId,
-        name,
-        description,
-        created_by: userId,
-        status: 'available'
-      })
-      .select()
-      .single();
+    // Use RPC to create wish item
+    const { data, error } = await supabase.rpc('create_wish_item', {
+      p_group_id: groupId,
+      p_name: name,
+      p_description: description || null,
+    });
     
     if (error) throw error;
     
@@ -179,6 +176,7 @@ export const createWishItem = async (groupId: string, name: string, description?
   }
 };
 
+// Fetch group wish items using RPC
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -186,30 +184,10 @@ export const fetchGroupWishItems = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Check if the user is a member of the group
-    const { data: isMember, error: memberError } = await supabase
-      .rpc('check_group_membership', {
-        p_group_id: groupId,
-        p_user_id: userId
-      });
-    
-    if (memberError || !isMember) return [];
-    
-    // Fetch wish items for the group
-    const { data, error } = await supabase
-      .from('wish_items')
-      .select(`
-        id, 
-        name, 
-        description,
-        created_by,
-        status,
-        claimed_by,
-        claimed_at,
-        profiles!created_by(username, avatar_url)
-      `)
-      .eq('group_id', groupId)
-      .order('created_at', { ascending: false });
+    // Use RPC to get wish items
+    const { data, error } = await supabase.rpc('get_group_wish_items', {
+      p_group_id: groupId
+    });
     
     if (error) throw error;
     
@@ -220,6 +198,7 @@ export const fetchGroupWishItems = async (groupId: string) => {
   }
 };
 
+// Claim wish item using RPC
 export const claimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -227,16 +206,11 @@ export const claimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase
-      .from('wish_items')
-      .update({
-        status: 'claimed',
-        claimed_by: userId,
-        claimed_at: new Date().toISOString()
-      })
-      .eq('id', itemId)
-      .select()
-      .single();
+    // Use RPC to claim item
+    const { data, error } = await supabase.rpc('claim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
     
     if (error) throw error;
     
@@ -247,6 +221,7 @@ export const claimWishItem = async (itemId: string) => {
   }
 };
 
+// Unclaim wish item using RPC
 export const unclaimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -254,17 +229,11 @@ export const unclaimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase
-      .from('wish_items')
-      .update({
-        status: 'available',
-        claimed_by: null,
-        claimed_at: null
-      })
-      .eq('id', itemId)
-      .eq('claimed_by', userId) // Only the person who claimed can unclaim
-      .select()
-      .single();
+    // Use RPC to unclaim item
+    const { data, error } = await supabase.rpc('unclaim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
     
     if (error) throw error;
     
@@ -408,7 +377,7 @@ export const addFriendToGroup = async (groupId: string, email: string) => {
   }
 };
 
-// Function for group chat functionality
+// Group chat functionality using RPC
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -416,22 +385,11 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Insert message into group_messages table
-    const { data, error } = await supabase
-      .from('group_messages')
-      .insert({
-        group_id: groupId,
-        user_id: userId,
-        content
-      })
-      .select(`
-        id,
-        content, 
-        created_at,
-        user_id,
-        profiles!user_id(username, avatar_url)
-      `)
-      .single();
+    // Use RPC to send message
+    const { data, error } = await supabase.rpc('send_group_message', {
+      p_group_id: groupId,
+      p_content: content
+    });
     
     if (error) throw error;
     
@@ -442,7 +400,7 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
   }
 };
 
-// Function for fetching group chat messages
+// Function for fetching group chat messages with RPC
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -450,28 +408,10 @@ export const fetchGroupChatMessages = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Check if the user is a member of this group
-    const { data: isMember, error: checkError } = await supabase
-      .rpc('check_group_membership', {
-        p_group_id: groupId,
-        p_user_id: userId
-      });
-    
-    if (checkError || !isMember) return [];
-    
-    // Fetch messages with user profiles
-    const { data, error } = await supabase
-      .from('group_messages')
-      .select(`
-        id, 
-        content,
-        created_at,
-        user_id,
-        profiles!user_id(username, avatar_url)
-      `)
-      .eq('group_id', groupId)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    // Use RPC to fetch messages
+    const { data, error } = await supabase.rpc('get_group_messages', {
+      p_group_id: groupId
+    });
     
     if (error) throw error;
     
