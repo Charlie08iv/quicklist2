@@ -17,7 +17,7 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user, isLoggedIn } = useAuth();
+  const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -30,11 +30,6 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isLoggedIn) {
-      toast.error(t("mustBeLoggedIn"));
-      return;
-    }
     
     if (!inviteCode.trim()) {
       toast.error(t("inviteCodeRequired"));
