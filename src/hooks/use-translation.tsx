@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 // Define available languages and translations
@@ -15,8 +16,6 @@ const languages = {
     shopping_list: "Shopping List",
     today: "Today",
     searchRecipes: "Search recipes...",
-    ingredients: "Ingredients",
-    instructions: "Instructions",
     prepTime: "Prep Time",
     cookTime: "Cook Time",
     addToList: "Add to List",
@@ -162,6 +161,9 @@ const languages = {
     "inspiration": "Inspiration",
     "noPersonalRecipes": "No Personal Recipes",
     "createYourFirstRecipe": "Create your first recipe",
+    "vegetarian": "Vegetarian",
+    "pasta": "Pasta",
+    "dessert": "Dessert",
     
     // Groups page
     "Your Groups": "Your Groups",
@@ -188,18 +190,22 @@ const languages = {
     "instructions": "Instructions",
     "enterInstructions": "Enter Instructions",
     "cookingTime": "Cooking Time",
-    "prepTime": "Preparation Time",
-    "category": "Category",
     "selectCategory": "Select Category",
     "recipeImage": "Recipe Image",
     "removeImage": "Remove Image",
     "uploadImage": "Upload Image",
     "makeThisRecipePublic": "Make this recipe public",
     "cancel": "Cancel",
-    "createRecipe": "Create Recipe",
     "recipeCreated": "Recipe Created",
     "recipeCreatedDescription": "Your new recipe has been created",
     "or": "or",
+    "min": "min",
+    "servings": "Servings",
+    "adding": "Adding...",
+    "liked": "Liked",
+    "like": "Like",
+    "ingredientsAdded": "Ingredients Added",
+    "ingredientsAddedToList": "Ingredients have been added to your shopping list",
   },
   sv: {
     // Base translations
@@ -361,6 +367,9 @@ const languages = {
     "inspiration": "Inspiration",
     "noPersonalRecipes": "Inga personliga recept",
     "createYourFirstRecipe": "Skapa ditt första recept",
+    "vegetarian": "Vegetarisk",
+    "pasta": "Pasta",
+    "dessert": "Efterrätt",
     
     // Groups page
     "Your Groups": "Dina grupper",
@@ -381,23 +390,25 @@ const languages = {
     "enterRecipeTitle": "Ange recepttitel",
     "description": "Beskrivning",
     "enterDescription": "Ange beskrivning",
-    "ingredients": "Ingredienser",
     "addIngredient": "Lägg till ingrediens",
     "add": "Lägg till",
-    "instructions": "Instruktioner",
     "enterInstructions": "Ange instruktioner",
     "cookingTime": "Tillagningstid",
-    "prepTime": "Förberedelsetid",
-    "category": "Kategori",
     "selectCategory": "Välj kategori",
     "recipeImage": "Receptbild",
     "removeImage": "Ta bort bild",
     "uploadImage": "Ladda upp bild",
     "makeThisRecipePublic": "Gör detta recept offentligt",
     "cancel": "Avbryt",
-    "createRecipe": "Skapa recept",
     "recipeCreated": "Recept skapat",
     "recipeCreatedDescription": "Ditt nya recept har skapats",
+    "min": "min",
+    "servings": "Portioner",
+    "adding": "Lägger till...",
+    "liked": "Gillad",
+    "like": "Gilla",
+    "ingredientsAdded": "Ingredienser tillagda",
+    "ingredientsAddedToList": "Ingredienser har lagts till i din inköpslista",
   }
 };
 
