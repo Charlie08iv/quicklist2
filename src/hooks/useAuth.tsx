@@ -26,22 +26,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isGuest, setIsGuest] = useState(false);
   
   useEffect(() => {
-    // Check if user is in guest mode
-    const checkGuestMode = () => {
-      const path = window.location.pathname;
-      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
-      setIsGuest(!session && isGuestAccessiblePath);
-    };
+    // Set up auth state listener FIRST to avoid missing auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log('Auth state changed:', event, currentSession?.user?.id);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // Check guest mode after auth state changes
+        const path = window.location.pathname;
+        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+        setIsGuest(!currentSession && isGuestAccessiblePath);
+      }
+    );
     
-    // First, check for existing session
+    // THEN check for existing session
     const initializeAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        const currentSession = data.session;
-        console.log('Initial session check:', currentSession?.user?.id);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        checkGuestMode();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        
+        // Check initial guest mode
+        const path = window.location.pathname;
+        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+        setIsGuest(!data.session && isGuestAccessiblePath);
+        
+        console.log('Initial session check:', data.session?.user?.id || 'No session');
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {
@@ -49,22 +60,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('Auth state changed:', event, currentSession?.user?.id);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        checkGuestMode();
-      }
-    );
-
     initializeAuth();
-    window.addEventListener('popstate', checkGuestMode);
+    
+    // Monitor URL changes for guest mode
+    const handleRouteChange = () => {
+      const path = window.location.pathname;
+      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+      setIsGuest(!session && isGuestAccessiblePath);
+    };
+    
+    window.addEventListener('popstate', handleRouteChange);
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('popstate', checkGuestMode);
+      window.removeEventListener('popstate', handleRouteChange);
     };
   }, []);
 

@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
-import { UserCircle2, Plus, Users } from "lucide-react";
+import { UserCircle2, Plus, Users, MessageSquare, Heart } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,8 +35,8 @@ const Groups: React.FC = () => {
   const [activeTab, setActiveTab] = useState("groups");
   const [error, setError] = useState<string | null>(null);
   
-  const loadGroups = async () => {
-    if (!isLoggedIn) {
+  const loadGroups = useCallback(async () => {
+    if (!isLoggedIn || authLoading) {
       setGroups([]);
       setLoading(false);
       return;
@@ -56,7 +56,7 @@ const Groups: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoggedIn, authLoading, user, t]);
 
   // Handle authentication
   useEffect(() => {
@@ -77,7 +77,7 @@ const Groups: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [isLoggedIn, user, authLoading]);
+  }, [isLoggedIn, user, authLoading, loadGroups]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -138,9 +138,10 @@ const Groups: React.FC = () => {
       </div>
 
       <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 mb-4">
+        <TabsList className="grid grid-cols-3 mb-4">
           <TabsTrigger value="groups">{t("yourGroups")}</TabsTrigger>
           <TabsTrigger value="shared">{t("sharedLists")}</TabsTrigger>
+          <TabsTrigger value="wishlist">{t("wishlist")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="groups" className="space-y-4">
@@ -181,8 +182,18 @@ const Groups: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="shared">
-          <div className="text-center py-12 text-muted-foreground">
-            <p>{t("comingSoon")}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <MessageSquare className="h-12 w-12 text-muted-foreground/60 mb-3" />
+            <p>{t("noSharedListsYet")}</p>
+            <p className="text-sm mt-2">{t("createGroupToShareLists")}</p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="wishlist">
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Heart className="h-12 w-12 text-muted-foreground/60 mb-3" />
+            <p>{t("noWishListsYet")}</p>
+            <p className="text-sm mt-2">{t("joinGroupToSeeWishLists")}</p>
           </div>
         </TabsContent>
       </Tabs>

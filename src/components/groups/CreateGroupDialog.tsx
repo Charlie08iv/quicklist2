@@ -66,9 +66,9 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       setGroupName("");
       if (onGroupCreated) onGroupCreated();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating group:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(error.message || t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }

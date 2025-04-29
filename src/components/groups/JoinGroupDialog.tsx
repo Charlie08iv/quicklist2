@@ -66,9 +66,9 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
       setInviteCode("");
       if (onGroupJoined) onGroupJoined();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error joining group:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(error.message || t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
