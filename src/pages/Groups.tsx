@@ -39,16 +39,20 @@ const Groups: React.FC = () => {
 
     setLoading(true);
     try {
+      console.log('Loading groups for user:', user.id);
       const fetchedGroups = await fetchUserGroups();
+      console.log('Fetched groups:', fetchedGroups);
       setGroups(fetchedGroups);
     } catch (error) {
       console.error("Error loading groups:", error);
+      toast.error(t("errorLoadingGroups")); 
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('Groups component mounted, user:', user);
     loadGroups();
   }, [user]);
   

@@ -6,18 +6,32 @@ export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
   
   try {
+    console.log('Creating group with name:', name, 'and invite code:', inviteCode);
+    
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    if (!userId) {
+      console.error('User is not authenticated');
+      throw new Error('User not authenticated');
+    }
+    
     const { data: group, error } = await supabase
       .from('groups')
       .insert({ 
         name, 
         invite_code: inviteCode,
-        created_by: (await supabase.auth.getSession()).data.session?.user.id 
+        created_by: userId
       })
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error creating group:', error);
+      throw error;
+    }
     
+    console.log('Group created successfully:', group);
     return group;
   } catch (error) {
     console.error('Error creating group:', error);
@@ -27,8 +41,13 @@ export const createGroup = async (name: string) => {
 
 export const joinGroup = async (inviteCode: string) => {
   try {
-    const userId = (await supabase.auth.getSession()).data.session?.user.id;
-    if (!userId) throw new Error('No user ID found');
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    if (!userId) {
+      console.error('User is not authenticated');
+      throw new Error('No user ID found');
+    }
     
     // Find group by invite code
     const { data: group, error: groupError } = await supabase
@@ -37,7 +56,12 @@ export const joinGroup = async (inviteCode: string) => {
       .eq('invite_code', inviteCode)
       .single();
       
-    if (groupError) throw groupError;
+    if (groupError) {
+      console.error('Error finding group with invite code:', inviteCode, groupError);
+      throw groupError;
+    }
+    
+    console.log('Found group to join:', group);
     
     // For now, we'll just return the group since we don't have a group_members table
     // In the future, this would insert a record into the group_members table
@@ -50,8 +74,15 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
-    const userId = (await supabase.auth.getSession()).data.session?.user.id;
-    if (!userId) return [];
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    if (!userId) {
+      console.log('No user ID found, returning empty groups array');
+      return [];
+    }
+    
+    console.log('Fetching groups for user:', userId);
     
     // For now, just fetch groups created by the user
     const { data: groups, error: groupsError } = await supabase
@@ -59,8 +90,12 @@ export const fetchUserGroups = async () => {
       .select('*')
       .eq('created_by', userId);
       
-    if (groupsError) throw groupsError;
+    if (groupsError) {
+      console.error('Error fetching groups:', groupsError);
+      throw groupsError;
+    }
     
+    console.log('Fetched user groups:', groups);
     return groups || [];
   } catch (error) {
     console.error('Error fetching groups:', error);
@@ -158,7 +193,9 @@ export const fetchGroupMembers = async (groupId: string) => {
 
 export const createGroupList = async (groupId: string, name: string, date?: string) => {
   try {
-    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
     if (!userId) throw new Error('No user ID found');
     
     const { data, error } = await supabase

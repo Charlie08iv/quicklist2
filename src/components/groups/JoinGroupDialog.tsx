@@ -23,13 +23,23 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error(t("mustBeLoggedIn"));
+      return;
+    }
+    
+    if (!inviteCode.trim()) {
+      toast.error(t("inviteCodeRequired"));
+      return;
+    }
     
     setIsLoading(true);
     try {
-      // Call the joinGroup function with just the invite code
-      await joinGroup(inviteCode);
+      console.log('Joining group with invite code:', inviteCode);
+      // Call the joinGroup function with the invite code
+      const group = await joinGroup(inviteCode);
       
+      console.log('Group joined:', group);
       toast.success(t("groupJoined"));
       onOpenChange(false);
       setInviteCode("");
