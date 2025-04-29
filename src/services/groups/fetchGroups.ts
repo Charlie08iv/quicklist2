@@ -44,18 +44,24 @@ export const fetchUserGroups = async () => {
       // Create profile for the user
       const email = sessionData.session.user.email;
       if (email) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({ id: userId, email })
-          .single();
-          
-        if (insertError) {
-          console.error('Failed to create user profile:', insertError);
-        } else {
-          console.log('Created new user profile for:', userId);
+        try {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: userId, email });
+            
+          if (insertError) {
+            console.error('Failed to create user profile:', insertError);
+          } else {
+            console.log('Created new user profile for:', userId);
+          }
+        } catch (e) {
+          console.error('Exception creating profile:', e);
+          // Continue anyway
         }
       }
     }
+    
+    console.log('Attempting to fetch groups using RPC function...');
     
     // Get user's groups using the database function
     const { data: groups, error } = await supabase
@@ -68,22 +74,28 @@ export const fetchUserGroups = async () => {
       console.error('Error fetching user groups with RPC:', error);
       console.log('Attempting direct query as fallback...');
       
-      const { data: directGroups, error: directError } = await supabase
-        .from('groups')
-        .select('*')
-        .or(`created_by.eq.${userId},id.in.(select group_id from group_members where user_id = '${userId}')`)
-        .order('created_at', { ascending: false });
+      try {
+        // Fallback to direct query
+        const { data: directGroups, error: directError } = await supabase
+          .from('groups')
+          .select('*')
+          .or(`created_by.eq.${userId},id.in.(select group_id from group_members where user_id = '${userId}')`)
+          .order('created_at', { ascending: false });
+          
+        if (directError) {
+          console.error('Fallback query also failed:', directError);
+          throw new Error(`Error fetching groups: ${directError.message}`);
+        }
         
-      if (directError) {
-        console.error('Fallback query also failed:', directError);
-        throw new Error(`Error fetching groups: ${directError.message}`);
+        console.log('Fallback query succeeded, found groups:', directGroups?.length || 0);
+        return directGroups || [];
+      } catch (fallbackError) {
+        console.error('Error in fallback query:', fallbackError);
+        throw fallbackError;
       }
-      
-      console.log('Fallback query succeeded, found groups:', directGroups?.length || 0);
-      return directGroups || [];
     }
     
-    console.log('Fetched user groups successfully:', groups?.length || 0);
+    console.log('Fetched user groups successfully:', groups?.length || 0, groups);
     return groups || [];
   } catch (error) {
     console.error('Error in fetchUserGroups:', error);

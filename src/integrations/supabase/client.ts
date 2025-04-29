@@ -14,5 +14,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit'
   }
 });
+
+// Add a function to check and log the session for debugging
+export const getAndLogSession = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  console.log("Current session:", data.session ? "exists" : "none", 
+    data.session?.user?.id || "no user", 
+    error || "no error");
+  return { data, error };
+};

@@ -8,6 +8,7 @@ import { GroupsLoading } from "./GroupsLoading";
 import { GroupsErrorDisplay } from "./GroupsErrorDisplay";
 import { GroupsList } from "./GroupsList";
 import { EmptyGroupState } from "./EmptyGroupState";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Group {
   id: string;
@@ -42,44 +43,73 @@ export function GroupsTabsContent({
 }: GroupsTabsContentProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("groups");
+  const [sessionState, setSessionState] = useState<string>("checking");
+  
+  // Check session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSessionState(data.session ? "authenticated" : "unauthenticated");
+      } catch (e) {
+        setSessionState("error");
+        console.error("Error checking session:", e);
+      }
+    };
+    
+    checkSession();
+  }, []);
 
   return (
-    <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid grid-cols-3 mb-4">
-        <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
-        <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
-        <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="groups" className="space-y-4">
-        {authLoading && <GroupsLoading type="auth" />}
+    <>
+      {/* Debug session info - temporary for troubleshooting */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="mb-4 p-2 bg-gray-100 rounded-md text-xs">
+          <p>Session check: {sessionState}</p>
+          <p>Auth loading: {authLoading ? 'true' : 'false'}</p>
+          <p>Content loading: {loading ? 'true' : 'false'}</p>
+          <p>Groups count: {groups.length}</p>
+          <p>Fetch attempted: {fetchAttempted ? 'true' : 'false'}</p>
+        </div>
+      )}
+    
+      <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
+          <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
+          <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
+        </TabsList>
         
-        {!authLoading && loading && <GroupsLoading type="groups" />}
+        <TabsContent value="groups" className="space-y-4">
+          {authLoading && <GroupsLoading type="auth" />}
+          
+          {!authLoading && loading && <GroupsLoading type="groups" />}
+          
+          {error && (
+            <GroupsErrorDisplay 
+              error={error} 
+              debugInfo={debugInfo} 
+              onRetry={onRetry} 
+            />
+          )}
+          
+          {!authLoading && !loading && !error && groups.length > 0 && (
+            <GroupsList groups={groups} onGroupDeleted={onGroupDeleted} />
+          )}
+          
+          {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
+            <EmptyGroupState onCreateClick={onCreateClick} />
+          )}
+        </TabsContent>
         
-        {error && (
-          <GroupsErrorDisplay 
-            error={error} 
-            debugInfo={debugInfo} 
-            onRetry={onRetry} 
-          />
-        )}
+        <TabsContent value="shared">
+          <TabContentShared />
+        </TabsContent>
         
-        {!authLoading && !loading && !error && groups.length > 0 && (
-          <GroupsList groups={groups} onGroupDeleted={onGroupDeleted} />
-        )}
-        
-        {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
-          <EmptyGroupState onCreateClick={onCreateClick} />
-        )}
-      </TabsContent>
-      
-      <TabsContent value="shared">
-        <TabContentShared />
-      </TabsContent>
-      
-      <TabsContent value="wishlist">
-        <TabContentWishlist />
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="wishlist">
+          <TabContentWishlist />
+        </TabsContent>
+      </Tabs>
+    </>
   );
 }
