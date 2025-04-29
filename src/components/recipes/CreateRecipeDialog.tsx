@@ -58,7 +58,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   const [prepTime, setPrepTime] = useState(15);
   const [cookTime, setCookTime] = useState(15);
   const [category, setCategory] = useState("other");
-  const [imageUrl, setImageUrl] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [instructions, setInstructions] = useState<string>("");
   const [newIngredient, setNewIngredient] = useState("");
@@ -73,7 +72,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
       reader.onload = (event) => {
         if (event.target?.result) {
           setUploadedImage(event.target.result.toString());
-          setImageUrl(""); // Clear the URL field when an image is uploaded
         }
       };
       reader.readAsDataURL(file);
@@ -83,8 +81,8 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Choose a random default image if no image is provided
-    let finalImage = uploadedImage || imageUrl;
+    // Choose a random default image if no image is uploaded
+    let finalImage = uploadedImage;
     if (!finalImage) {
       const randomIndex = Math.floor(Math.random() * DEFAULT_RECIPE_IMAGES.length);
       finalImage = DEFAULT_RECIPE_IMAGES[randomIndex];
@@ -118,7 +116,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     setPrepTime(15);
     setCookTime(15);
     setCategory("other");
-    setImageUrl("");
     setIngredients([]);
     setInstructions("");
     setNewIngredient("");
@@ -299,26 +296,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="hidden"
-              />
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-muted" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    {t("or")}
-                  </span>
-                </div>
-              </div>
-              
-              <Input
-                id="imageUrl"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
-                className="border-input focus-visible:ring-1"
-                disabled={!!uploadedImage}
               />
             </div>
           </div>
