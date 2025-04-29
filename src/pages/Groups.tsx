@@ -6,7 +6,7 @@ import { UserCircle2, Plus, Users, MessageSquare, Heart } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserGroups } from "@/services/groupService";
 import { GroupCard } from "@/components/groups/GroupCard";
@@ -74,10 +74,9 @@ const Groups: React.FC = () => {
   if (authLoading) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
-        <div className="w-full space-y-4">
-          <Skeleton className="h-[60px] w-full" />
-          <Skeleton className="h-[100px] w-full" />
-          <Skeleton className="h-[100px] w-full" />
+        <div className="flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p className="text-muted-foreground">{t("loading")}</p>
         </div>
       </div>
     );
