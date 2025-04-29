@@ -1,3 +1,4 @@
+
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,7 +9,13 @@ export const createGroup = async (name: string) => {
     console.log('Creating group with name:', name, 'and invite code:', inviteCode);
     
     // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw sessionError;
+    }
+    
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
@@ -135,6 +142,25 @@ export const fetchUserGroups = async () => {
     
     console.log('Fetching groups for user ID:', userId);
     
+    // First check if the user exists in profiles
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+      
+    if (profileError) {
+      console.log('User profile not found, they might need to be added to profiles table');
+    }
+    
+    // Debug: Direct query to check all groups to see if RLS is working
+    const { data: allGroups, error: allGroupsError } = await supabase
+      .from('groups')
+      .select('*')
+      .limit(20);
+      
+    console.log('Direct groups query (check RLS):', { allGroups, allGroupsError });
+    
     // Get user's groups using the database function
     const { data: groups, error } = await supabase
       .rpc('get_user_groups', {
@@ -146,7 +172,7 @@ export const fetchUserGroups = async () => {
       throw error;
     }
     
-    console.log('Fetched user groups:', groups);
+    console.log('Fetched user groups:', groups || []);
     return groups || [];
   } catch (error) {
     console.error('Error fetching groups:', error);

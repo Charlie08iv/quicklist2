@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Group {
   id: string;
@@ -35,6 +36,7 @@ const Groups: React.FC = () => {
   const [activeTab, setActiveTab] = useState("groups");
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   const loadGroups = useCallback(async () => {
     if (!isLoggedIn || authLoading) {
@@ -49,7 +51,33 @@ const Groups: React.FC = () => {
     setError(null);
     
     try {
-      console.log('Starting group fetch for user:', user?.id);
+      // Get current auth session directly to verify
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        setError("Session error: " + sessionError.message);
+        setLoading(false);
+        return;
+      }
+      
+      if (!sessionData.session) {
+        console.log("No active session found when directly checking");
+        setError("No active session. Please login again.");
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Starting group fetch for user:', sessionData.session?.user?.id);
+      
+      // Direct DB query to debug RLS issues
+      const { data: directGroups, error: directError } = await supabase
+        .from('groups')
+        .select('*');
+      
+      console.log('Direct groups query result:', directGroups, 'Error:', directError);
+      setDebugInfo({ directGroups, directError });
+      
+      // Use the service function
       const fetchedGroups = await fetchUserGroups();
       console.log('Groups fetch result:', fetchedGroups);
       
@@ -98,6 +126,7 @@ const Groups: React.FC = () => {
         <div className="flex flex-col items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-muted-foreground">{t("loading")}</p>
+          <p className="text-xs text-muted-foreground mt-2">Checking authentication...</p>
         </div>
       </div>
     );
@@ -165,6 +194,12 @@ const Groups: React.FC = () => {
               <AlertTitle>{t("error")}</AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>{error}</p>
+                {debugInfo && (
+                  <div className="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-40">
+                    <p>Debug info:</p>
+                    <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                  </div>
+                )}
                 <Button size="sm" variant="outline" onClick={handleRetry}>
                   {t("retry")}
                 </Button>
