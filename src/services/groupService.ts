@@ -160,11 +160,13 @@ export const createWishItem = async (groupId: string, name: string, description?
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to create wish item
-    const { data, error } = await supabase.rpc('create_wish_item', {
-      p_group_id: groupId,
-      p_name: name,
-      p_description: description || null,
+    // Use RPC to create wish item - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('create_wish_item', {
+      body: {
+        p_group_id: groupId,
+        p_name: name,
+        p_description: description || null,
+      }
     });
     
     if (error) throw error;
@@ -184,9 +186,11 @@ export const fetchGroupWishItems = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use RPC to get wish items
-    const { data, error } = await supabase.rpc('get_group_wish_items', {
-      p_group_id: groupId
+    // Use RPC to get wish items - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('get_group_wish_items', {
+      body: {
+        p_group_id: groupId
+      }
     });
     
     if (error) throw error;
@@ -206,10 +210,12 @@ export const claimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to claim item
-    const { data, error } = await supabase.rpc('claim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
+    // Use RPC to claim item - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('claim_wish_item', {
+      body: {
+        p_item_id: itemId,
+        p_user_id: userId
+      }
     });
     
     if (error) throw error;
@@ -229,10 +235,12 @@ export const unclaimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to unclaim item
-    const { data, error } = await supabase.rpc('unclaim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
+    // Use RPC to unclaim item - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('unclaim_wish_item', {
+      body: {
+        p_item_id: itemId,
+        p_user_id: userId
+      }
     });
     
     if (error) throw error;
@@ -385,10 +393,12 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use RPC to send message
-    const { data, error } = await supabase.rpc('send_group_message', {
-      p_group_id: groupId,
-      p_content: content
+    // Use RPC to send message - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('send_group_message', {
+      body: {
+        p_group_id: groupId,
+        p_content: content
+      }
     });
     
     if (error) throw error;
@@ -408,9 +418,11 @@ export const fetchGroupChatMessages = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use RPC to fetch messages
-    const { data, error } = await supabase.rpc('get_group_messages', {
-      p_group_id: groupId
+    // Use RPC to fetch messages - using functions.invoke to work with any custom RPC
+    const { data, error } = await supabase.functions.invoke('get_group_messages', {
+      body: {
+        p_group_id: groupId
+      }
     });
     
     if (error) throw error;
