@@ -9,13 +9,7 @@ export const createGroup = async (name: string) => {
     console.log('Creating group with name:', name, 'and invite code:', inviteCode);
     
     // Get current session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw sessionError;
-    }
-    
+    const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
@@ -124,62 +118,16 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
-    console.log('Starting fetchUserGroups function');
     // Get current session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Error getting session:', sessionError);
-      throw sessionError;
-    }
-    
+    const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user?.id;
     
     if (!userId) {
       console.log('No user ID found, returning empty groups array');
-      throw new Error('User ID not found. Please check if you are logged in.');
+      return [];
     }
     
-    console.log('Fetching groups for user ID:', userId);
-    
-    // First check if the user exists in profiles
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-      
-    if (profileError) {
-      console.log('User profile not found. Error:', profileError);
-      console.log('This might indicate the user profile needs to be created.');
-      
-      // Attempt to create profile if missing
-      try {
-        const email = sessionData.session?.user?.email;
-        if (email) {
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({ id: userId, email })
-            .single();
-            
-          if (insertError) {
-            console.error('Failed to create user profile:', insertError);
-          } else {
-            console.log('Created new user profile for:', userId);
-          }
-        }
-      } catch (e) {
-        console.error('Error creating user profile:', e);
-      }
-    }
-    
-    // Debug: Direct query to check all groups to see if RLS is working
-    const { data: allGroups, error: allGroupsError } = await supabase
-      .from('groups')
-      .select('*')
-      .limit(20);
-      
-    console.log('Direct groups query (check RLS):', { allGroups, allGroupsError });
+    console.log('Fetching groups for user:', userId);
     
     // Get user's groups using the database function
     const { data: groups, error } = await supabase
@@ -188,30 +136,15 @@ export const fetchUserGroups = async () => {
       });
     
     if (error) {
-      // Try a direct query if the RPC fails
-      console.error('Error fetching user groups with RPC:', error);
-      console.log('Attempting direct query as fallback...');
-      
-      const { data: directGroups, error: directError } = await supabase
-        .from('groups')
-        .select('*')
-        .or(`created_by.eq.${userId},id.in.(select group_id from group_members where user_id = '${userId}')`)
-        .order('created_at', { ascending: false });
-        
-      if (directError) {
-        console.error('Fallback query also failed:', directError);
-        throw directError;
-      }
-      
-      console.log('Fallback query succeeded, found groups:', directGroups?.length || 0);
-      return directGroups || [];
+      console.error('Error fetching user groups:', error);
+      throw error;
     }
     
-    console.log('Fetched user groups successfully:', groups?.length || 0);
+    console.log('Fetched user groups:', groups);
     return groups || [];
   } catch (error) {
-    console.error('Error in fetchUserGroups:', error);
-    throw error; // Let the component handle the error
+    console.error('Error fetching groups:', error);
+    return [];
   }
 };
 
@@ -322,6 +255,147 @@ export const createGroupList = async (groupId: string, name: string, date?: stri
   } catch (error) {
     console.error('Error creating group list:', error);
     throw error;
+  }
+};
+
+// Wishlist functions
+export const createWishItem = async (groupId: string, name: string, description?: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('create_wish_item', {
+      p_group_id: groupId,
+      p_name: name,
+      p_description: description || null
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating wish item:', error);
+    throw error;
+  }
+};
+
+// Fetch group wish items
+export const fetchGroupWishItems = async (groupId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) return [];
+    
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('get_group_wish_items', {
+      p_group_id: groupId
+    });
+    
+    if (error) {
+      console.error('Error fetching wish items:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching wish items:', error);
+    return [];
+  }
+};
+
+// Claim wish item
+export const claimWishItem = async (itemId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase.rpc('claim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error claiming wish item:', error);
+    throw error;
+  }
+};
+
+// Unclaim wish item
+export const unclaimWishItem = async (itemId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase.rpc('unclaim_wish_item', {
+      p_item_id: itemId,
+      p_user_id: userId
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error unclaiming wish item:', error);
+    throw error;
+  }
+};
+
+// Group chat functionality
+export const sendGroupChatMessage = async (groupId: string, content: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) throw new Error('User not authenticated');
+    
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('send_group_message', {
+      p_group_id: groupId,
+      p_content: content
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+// Fetch group chat messages
+export const fetchGroupChatMessages = async (groupId: string) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) return [];
+    
+    // Use the database function directly
+    const { data, error } = await supabase.rpc('get_group_messages', {
+      p_group_id: groupId
+    });
+    
+    if (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return [];
   }
 };
 

@@ -1,19 +1,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups } from "@/services/groups";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase, verifyAuth } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { UserCircle2, Plus, Users, MessageSquare, Heart } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
-import { GroupActions } from "@/components/groups/GroupActions";
-import { LoginPrompt } from "@/components/groups/LoginPrompt";
-import { GroupsTabsContent } from "@/components/groups/GroupsTabsContent";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchUserGroups } from "@/services/groupService";
+import { GroupCard } from "@/components/groups/GroupCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Group {
   id: string;
@@ -25,251 +26,174 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading: authLoading, refreshSession, authInitialized } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const inviteCode = searchParams.get('code');
-  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("groups");
   const [error, setError] = useState<string | null>(null);
-  const [fetchAttempted, setFetchAttempted] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [sessionError, setSessionError] = useState<boolean>(false);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   
-  // Verify Supabase initialization on mount
-  useEffect(() => {
-    const checkSupabase = async () => {
-      try {
-        const { isAuthenticated } = await verifyAuth();
-        console.log("Supabase client verification complete:", isAuthenticated ? "Authenticated" : "Not authenticated");
-        setSupabaseInitialized(true);
-      } catch (e) {
-        console.error("Failed to verify Supabase client:", e);
-        setSupabaseInitialized(true); // Set to true anyway to not block the UI
-      }
-    };
-    
-    checkSupabase();
-  }, []);
-  
-  // Open join dialog with code if provided in URL
-  useEffect(() => {
-    if (inviteCode && !joinDialogOpen && isLoggedIn && !authLoading && authInitialized) {
-      setJoinDialogOpen(true);
-    }
-  }, [inviteCode, joinDialogOpen, isLoggedIn, authLoading, authInitialized]);
-
-  // Enhanced loadGroups function with extensive logging
   const loadGroups = useCallback(async () => {
-    if (!authInitialized) {
-      console.log("Auth not yet initialized, deferring group fetch");
+    if (!isLoggedIn || authLoading) {
+      setGroups([]);
+      setLoading(false);
       return;
     }
-    
-    if (authLoading) {
-      console.log('Auth is still loading, deferring group fetch');
-      return;
-    }
-    
-    const authState = {
-      isLoggedIn,
-      authLoading,
-      userId: user?.id,
-      authInitialized
-    };
-    
-    console.log('Loading groups - Auth state:', authState);
-    
-    // Verify session explicitly to ensure we have valid credentials
+
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      const sessionExists = !!sessionData?.session;
-      console.log('Session check result:', { 
-        hasSession: sessionExists, 
-        userId: sessionData?.session?.user?.id,
-        error: sessionError?.message || 'none'
-      });
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        setError("Session error: " + sessionError.message);
-        setSessionError(true);
-        setLoading(false);
-        return;
-      }
-      
-      if (!sessionExists) {
-        console.log("No active session found");
-        setGroups([]);
-        setLoading(false);
-        setFetchAttempted(true);
-        
-        if (isLoggedIn) {
-          // This indicates a mismatch between our isLoggedIn state and actual session
-          setSessionError(true);
-          setError("Session state mismatch. Please refresh your session.");
-          await refreshSession();
-        } else {
-          // User is not logged in and that's expected
-          setError(null);
-          setSessionError(false);
-        }
-        return;
-      }
-      
-      setError(null);
-      setSessionError(false);
-      
-      const userId = sessionData.session.user.id;
-      console.log('Starting group fetch for user:', userId);
-      
-      // Call the fetchUserGroups function with proper error handling
-      try {
-        const fetchedGroups = await fetchUserGroups();
-        console.log('Groups fetch result:', fetchedGroups);
-        
-        setGroups(fetchedGroups || []);
-        setFetchAttempted(true);
-        
-        if (!fetchedGroups || fetchedGroups.length === 0) {
-          console.log('No groups found for user');
-        }
-      } catch (error: any) {
-        console.error("Error loading groups:", error);
-        setError(error.message || "Failed to load groups. Please try again.");
-        
-        if (error.message?.includes('session') || error.message?.includes('logged in')) {
-          setSessionError(true);
-          await refreshSession();
-        } else {
-          toast.error(t("errorLoadingGroups"));
-        }
-      } finally {
-        // Ensure loading is always set to false at the end
-        setLoading(false);
-      }
-    } catch (outerError) {
-      console.error("Unexpected error during groups fetch:", outerError);
-      setError("Unexpected error: " + (outerError instanceof Error ? outerError.message : String(outerError)));
+      console.log('Loading groups for user:', user?.id);
+      const fetchedGroups = await fetchUserGroups();
+      console.log('Fetched groups:', fetchedGroups);
+      setGroups(fetchedGroups || []);
+    } catch (error) {
+      console.error("Error loading groups:", error);
+      setError("Failed to load groups. Please try again.");
+      toast.error(t("errorLoadingGroups")); 
+    } finally {
       setLoading(false);
     }
-    
-  }, [isLoggedIn, authLoading, user, t, refreshSession, authInitialized]);
+  }, [isLoggedIn, authLoading, user, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
-    console.log('Groups component useEffect triggered - Auth state:', {
-      isLoggedIn,
-      authLoading,
-      userId: user?.id,
-      authInitialized,
-      supabaseInitialized
-    });
-    
-    // Only attempt to load groups once auth is initialized and no longer loading
-    if (authInitialized && !authLoading && supabaseInitialized) {
+    if (!authLoading) {
       loadGroups();
     }
-  }, [loadGroups, authLoading, isLoggedIn, authInitialized, supabaseInitialized]);
-
+  }, [loadGroups, authLoading]);
+  
   // Handle login redirect
   const handleLoginRedirect = () => {
     navigate("/auth");
   };
   
-  // Handle refresh session
-  const handleRefreshSession = async () => {
-    await refreshSession();
-    loadGroups();
-    toast.success(t("sessionRefreshed"));
-  };
-
-  // Show loading state if auth is not initialized or Supabase is not initialized
-  if (!authInitialized || !supabaseInitialized) {
+  // Display loading state
+  if (authLoading) {
     return (
-      <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">
-            {!authInitialized ? "Initializing authentication..." : "Connecting to database..."}
-          </p>
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
+        <div className="w-full space-y-4">
+          <Skeleton className="h-[60px] w-full" />
+          <Skeleton className="h-[100px] w-full" />
+          <Skeleton className="h-[100px] w-full" />
         </div>
       </div>
     );
   }
-
-  // Render the component
+  
+  // Display login prompt if not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex flex-col justify-center items-center">
+        <Alert className="mb-4">
+          <InfoIcon className="h-4 w-4" />
+          <AlertTitle className="text-foreground">{t("notLoggedIn")}</AlertTitle>
+          <AlertDescription className="text-foreground">
+            {t("loginToAccessGroups")}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={handleLoginRedirect}>
+          {t("login")}
+        </Button>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
       
-      {/* Authentication status indicator */}
-      <Alert className="mb-4 bg-gray-50">
-        <AlertDescription className="flex items-center justify-between">
-          <span>
-            Status: {isLoggedIn ? (
-              <span className="text-green-600 font-medium">Logged in as {user?.email}</span>
-            ) : (
-              <span className="text-amber-600 font-medium">Not logged in</span>
-            )}
-          </span>
-          {!isLoggedIn && (
-            <Button size="sm" variant="outline" onClick={handleLoginRedirect}>
-              Log in
-            </Button>
-          )}
-        </AlertDescription>
-      </Alert>
-      
-      {/* Display session error with refresh button */}
-      {sessionError && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
-          <div className="text-yellow-800">{error}</div>
-          <Button size="sm" variant="outline" onClick={handleRefreshSession} className="flex items-center gap-2">
-            <RefreshCcw size={16} />
-            {t("refreshSession")}
-          </Button>
-        </div>
-      )}
-      
-      <GroupActions 
-        onJoinClick={() => setJoinDialogOpen(true)} 
-        onCreateClick={() => setCreateDialogOpen(true)} 
-      />
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <Card 
+          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
+          onClick={() => setJoinDialogOpen(true)}
+        >
+          <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
+          <span className="text-sm font-medium">{t("joinGroup")}</span>
+        </Card>
 
-      {!isLoggedIn ? (
-        <LoginPrompt onLoginClick={handleLoginRedirect} />
-      ) : (
-        <GroupsTabsContent
-          groups={groups}
-          loading={loading}
-          authLoading={authLoading}
-          error={!sessionError ? error : null}
-          debugInfo={debugInfo}
-          onRetry={loadGroups}
-          fetchAttempted={fetchAttempted}
-          onCreateClick={() => setCreateDialogOpen(true)}
-          onGroupDeleted={loadGroups}
-        />
-      )}
+        <Card 
+          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
+          onClick={() => setCreateDialogOpen(true)}
+        >
+          <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
+          <span className="text-sm font-medium">{t("createGroup")}</span>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
+          <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
+          <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="groups" className="space-y-4">
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-[100px] w-full" />
+              <Skeleton className="h-[100px] w-full" />
+            </div>
+          ) : error ? (
+            <Alert variant="destructive" className="mb-4">
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>{t("error")}</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : groups.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {groups.map((group) => (
+                <GroupCard 
+                  key={group.id} 
+                  group={group}
+                  onDeleted={loadGroups}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
+              <p className="text-foreground">{t("noGroupsYet")}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                {t("createYourFirstGroup")}
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="shared">
+          <div className="flex flex-col items-center justify-center py-12">
+            <MessageSquare className="h-12 w-12 text-muted-foreground/60 mb-3" />
+            <p className="text-foreground">{t("noSharedListsYet")}</p>
+            <p className="text-sm mt-2 text-muted-foreground">{t("createGroupToShareLists")}</p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="wishlist">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Heart className="h-12 w-12 text-muted-foreground/60 mb-3" />
+            <p className="text-foreground">{t("noWishListsYet")}</p>
+            <p className="text-sm mt-2 text-muted-foreground">{t("joinGroupToSeeWishLists")}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <CreateGroupDialog 
         open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen} 
-        onGroupCreated={loadGroups} 
+        onOpenChange={setCreateDialogOpen}
+        onGroupCreated={loadGroups}
       />
       
       <JoinGroupDialog 
         open={joinDialogOpen} 
-        onOpenChange={setJoinDialogOpen} 
-        onGroupJoined={loadGroups} 
+        onOpenChange={setJoinDialogOpen}
+        onGroupJoined={loadGroups}
       />
     </div>
   );
