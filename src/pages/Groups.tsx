@@ -1,12 +1,17 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
-import { UserCircle2, Plus } from "lucide-react";
+import { UserCircle2, Plus, Users } from "lucide-react";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchUserGroups } from "@/services/groupService";
+import { GroupCard } from "@/components/groups/GroupCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Group {
   id: string;
@@ -18,22 +23,38 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("groups");
   
-  // Since the groups feature is under maintenance, we won't try to fetch any groups
+  const loadGroups = async () => {
+    if (!user) {
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const fetchedGroups = await fetchUserGroups();
+      setGroups(fetchedGroups);
+    } catch (error) {
+      console.error("Error loading groups:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadGroups();
+  }, [user]);
   
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">{t("groups")}</h1>
-      
-      <Alert className="mb-6 border-orange-500 bg-orange-500/10">
-        <InfoIcon className="h-5 w-5 text-orange-500" />
-        <AlertTitle className="text-orange-500">Feature Under Maintenance</AlertTitle>
-        <AlertDescription>
-          The groups feature is currently under maintenance. We apologize for any inconvenience.
-        </AlertDescription>
-      </Alert>
       
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card 
@@ -53,22 +74,53 @@ const Groups: React.FC = () => {
         </Card>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">{t("yourGroups")}</h2>
+      <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 mb-4">
+          <TabsTrigger value="groups">{t("yourGroups")}</TabsTrigger>
+          <TabsTrigger value="shared">{t("sharedLists")}</TabsTrigger>
+        </TabsList>
         
-        <div className="text-center py-12 text-muted-foreground">
-          <p>{t("noGroupsYet")}</p>
-        </div>
-      </div>
+        <TabsContent value="groups" className="space-y-4">
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-[100px] w-full" />
+              <Skeleton className="h-[100px] w-full" />
+            </div>
+          ) : groups.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {groups.map((group) => (
+                <GroupCard 
+                  key={group.id} 
+                  group={group}
+                  onDeleted={loadGroups}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
+              <p>{t("noGroupsYet")}</p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="shared">
+          <div className="text-center py-12 text-muted-foreground">
+            <p>{t("comingSoon")}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <CreateGroupDialog 
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen}
+        onGroupCreated={loadGroups}
       />
       
       <JoinGroupDialog 
         open={joinDialogOpen} 
         onOpenChange={setJoinDialogOpen}
+        onGroupJoined={loadGroups}
       />
     </div>
   );

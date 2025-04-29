@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { createGroup } from "@/services/groupService";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -26,15 +27,13 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     
     setIsLoading(true);
     try {
-      // Since the groups table was deleted, we'll just simulate success
-      // but inform the user that this feature is currently under maintenance
+      // Call the createGroup function with just the group name
+      const group = await createGroup(groupName);
       
-      // Wait a moment to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.info(t("featureUnderMaintenance"));
+      toast.success(t("groupCreated"));
       onOpenChange(false);
       setGroupName("");
+      if (onGroupCreated) onGroupCreated();
       
     } catch (error) {
       console.error("Error:", error);

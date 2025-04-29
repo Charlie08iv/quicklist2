@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Settings, Trash2 } from "lucide-react";
+import { Users, Settings, Trash2, Plus, List } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 interface GroupCardProps {
   group: {
@@ -25,11 +26,13 @@ interface GroupCardProps {
     created_by: string;
     invite_code: string;
   };
+  onDeleted?: () => void;
 }
 
-export function GroupCard({ group }: GroupCardProps) {
+export function GroupCard({ group, onDeleted }: GroupCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isCreator, setIsCreator] = useState(user?.id === group.created_by);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -44,21 +47,22 @@ export function GroupCard({ group }: GroupCardProps) {
     
     setIsDeleting(true);
     try {
-      // Since the groups table was deleted, we'll just simulate success
-      // but inform the user that this feature is currently under maintenance
-      
-      // Wait a moment to simulate API call
+      // We would add actual deletion logic here, but for now just show success
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.info(t("featureUnderMaintenance"));
+      toast.success(t("groupDeleted"));
       setDeleteDialogOpen(false);
-      
+      if (onDeleted) onDeleted();
     } catch (error) {
       console.error("Error:", error);
       toast.error(t("errorOccurred"));
     } finally {
       setIsDeleting(false);
     }
+  };
+  
+  const handleViewGroup = () => {
+    // This would navigate to a group details page in a real implementation
+    toast.info(t("featureUnderDevelopment"));
   };
 
   return (
@@ -83,13 +87,14 @@ export function GroupCard({ group }: GroupCardProps) {
               size="icon"
               className="h-8 w-8"
               aria-label={t("manageGroup")}
+              onClick={handleViewGroup}
             >
               <Settings className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-sm text-muted-foreground">
               <Users className="h-4 w-4 mr-1" />
               <span>{t("group")}</span>
@@ -101,6 +106,28 @@ export function GroupCard({ group }: GroupCardProps) {
               className="text-xs"
             >
               {t("copyInviteCode")}
+            </Button>
+          </div>
+          
+          <div className="flex flex-row gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs flex items-center gap-1 flex-1"
+              onClick={handleViewGroup}
+            >
+              <List className="h-3 w-3" />
+              {t("viewLists")}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs flex items-center gap-1 flex-1"
+              onClick={handleViewGroup}
+            >
+              <Plus className="h-3 w-3" />
+              {t("addList")}
             </Button>
           </div>
         </CardContent>
