@@ -258,7 +258,7 @@ export const createGroupList = async (groupId: string, name: string, date?: stri
   }
 };
 
-// Wishlist functions
+// Wishlist functions - modified to use direct table operations instead of RPC calls
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -266,12 +266,29 @@ export const createWishItem = async (groupId: string, name: string, description?
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('create_wish_item', {
-      p_group_id: groupId,
-      p_name: name,
-      p_description: description || null
-    });
+    // Check if user is member of the group
+    const { data: isMember, error: checkError } = await supabase
+      .rpc('check_group_membership', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+    
+    if (checkError || !isMember) {
+      throw new Error('You are not a member of this group');
+    }
+    
+    // Insert directly to the wish_items table
+    const { data, error } = await supabase
+      .from('wish_items')
+      .insert({
+        group_id: groupId,
+        name: name,
+        description: description || null,
+        created_by: userId,
+        status: 'available'
+      })
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -282,7 +299,7 @@ export const createWishItem = async (groupId: string, name: string, description?
   }
 };
 
-// Fetch group wish items
+// Fetch group wish items - direct table query
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -290,10 +307,26 @@ export const fetchGroupWishItems = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('get_group_wish_items', {
-      p_group_id: groupId
-    });
+    // Check if user is member of the group
+    const { data: isMember, error: checkError } = await supabase
+      .rpc('check_group_membership', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+    
+    if (checkError || !isMember) {
+      console.error('You are not a member of this group');
+      return [];
+    }
+    
+    // Fetch items directly from the table with creator profiles
+    const { data, error } = await supabase
+      .from('wish_items')
+      .select(`
+        *,
+        creator:created_by(username, avatar_url)
+      `)
+      .eq('group_id', groupId);
     
     if (error) {
       console.error('Error fetching wish items:', error);
@@ -307,7 +340,7 @@ export const fetchGroupWishItems = async (groupId: string) => {
   }
 };
 
-// Claim wish item
+// Claim wish item - direct update
 export const claimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -315,10 +348,44 @@ export const claimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase.rpc('claim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
-    });
+    // First get the item to check permissions
+    const { data: item, error: getError } = await supabase
+      .from('wish_items')
+      .select('group_id, status')
+      .eq('id', itemId)
+      .single();
+    
+    if (getError || !item) {
+      throw new Error('Item not found');
+    }
+    
+    if (item.status !== 'available') {
+      throw new Error('Item is not available for claiming');
+    }
+    
+    // Check if user is member of the group
+    const { data: isMember, error: checkError } = await supabase
+      .rpc('check_group_membership', {
+        p_group_id: item.group_id,
+        p_user_id: userId
+      });
+    
+    if (checkError || !isMember) {
+      throw new Error('You are not a member of this group');
+    }
+    
+    // Update the item
+    const { data, error } = await supabase
+      .from('wish_items')
+      .update({
+        status: 'claimed',
+        claimed_by: userId,
+        claimed_at: new Date().toISOString()
+      })
+      .eq('id', itemId)
+      .eq('status', 'available')
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -329,7 +396,7 @@ export const claimWishItem = async (itemId: string) => {
   }
 };
 
-// Unclaim wish item
+// Unclaim wish item - direct update
 export const unclaimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -337,10 +404,18 @@ export const unclaimWishItem = async (itemId: string) => {
     
     if (!userId) throw new Error('User not authenticated');
     
-    const { data, error } = await supabase.rpc('unclaim_wish_item', {
-      p_item_id: itemId,
-      p_user_id: userId
-    });
+    // Update the item
+    const { data, error } = await supabase
+      .from('wish_items')
+      .update({
+        status: 'available',
+        claimed_by: null,
+        claimed_at: null
+      })
+      .eq('id', itemId)
+      .eq('claimed_by', userId)
+      .select()
+      .single();
     
     if (error) throw error;
     
@@ -351,7 +426,7 @@ export const unclaimWishItem = async (itemId: string) => {
   }
 };
 
-// Group chat functionality
+// Group chat functionality - direct insert
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -359,11 +434,30 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
     
     if (!userId) throw new Error('User not authenticated');
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('send_group_message', {
-      p_group_id: groupId,
-      p_content: content
-    });
+    // Check if user is member of the group
+    const { data: isMember, error: checkError } = await supabase
+      .rpc('check_group_membership', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+    
+    if (checkError || !isMember) {
+      throw new Error('You are not a member of this group');
+    }
+    
+    // Insert the message directly
+    const { data, error } = await supabase
+      .from('group_messages')
+      .insert({
+        group_id: groupId,
+        user_id: userId,
+        content: content
+      })
+      .select(`
+        *,
+        profile:user_id(username, avatar_url)
+      `)
+      .single();
     
     if (error) throw error;
     
@@ -374,7 +468,7 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
   }
 };
 
-// Fetch group chat messages
+// Fetch group chat messages - direct query
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -382,10 +476,27 @@ export const fetchGroupChatMessages = async (groupId: string) => {
     
     if (!userId) return [];
     
-    // Use the database function directly
-    const { data, error } = await supabase.rpc('get_group_messages', {
-      p_group_id: groupId
-    });
+    // Check if user is member of the group
+    const { data: isMember, error: checkError } = await supabase
+      .rpc('check_group_membership', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+    
+    if (checkError || !isMember) {
+      console.error('You are not a member of this group');
+      return [];
+    }
+    
+    // Fetch messages with profile information
+    const { data, error } = await supabase
+      .from('group_messages')
+      .select(`
+        *,
+        profile:user_id(username, avatar_url)
+      `)
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false });
     
     if (error) {
       console.error('Error fetching messages:', error);
