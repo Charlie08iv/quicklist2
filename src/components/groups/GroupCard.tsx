@@ -103,7 +103,7 @@ export function GroupCard({ group, onDeleted }: GroupCardProps) {
     <>
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">{group.name}</CardTitle>
+          <CardTitle className="text-lg text-foreground">{group.name}</CardTitle>
           <div className="flex gap-2">
             {isCreator && (
               <Button

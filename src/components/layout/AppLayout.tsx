@@ -30,7 +30,7 @@ const AppLayout = () => {
         </div>
       )}
       
-      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in">
+      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in text-foreground">
         <Outlet />
       </main>
       <BottomNavigation />

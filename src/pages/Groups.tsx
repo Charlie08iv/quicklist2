@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -57,26 +58,12 @@ const Groups: React.FC = () => {
     }
   }, [isLoggedIn, authLoading, user, t]);
 
-  // Handle authentication
-  useEffect(() => {
-    if (!authLoading && !isLoggedIn) {
-      console.log("User not logged in, redirecting to auth");
-      toast.error(t("mustBeLoggedIn"));
-      navigate("/auth");
-    }
-  }, [isLoggedIn, authLoading, navigate, t]);
-
   // Load groups when component mounts or auth status changes
   useEffect(() => {
     if (!authLoading) {
-      if (isLoggedIn && user?.id) {
-        console.log('Groups component mounted, user logged in:', user?.id);
-        loadGroups();
-      } else {
-        setLoading(false);
-      }
+      loadGroups();
     }
-  }, [isLoggedIn, user, authLoading, loadGroups]);
+  }, [loadGroups, authLoading]);
   
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -120,7 +107,7 @@ const Groups: React.FC = () => {
       
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card 
-          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed"
+          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
           onClick={() => setJoinDialogOpen(true)}
         >
           <UserCircle2 className="h-8 w-8 mb-2 text-muted-foreground" />
@@ -128,7 +115,7 @@ const Groups: React.FC = () => {
         </Card>
 
         <Card 
-          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed"
+          className="p-4 flex flex-col items-center justify-center hover:bg-accent/50 transition-colors cursor-pointer border-dashed text-foreground"
           onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="h-8 w-8 mb-2 text-muted-foreground" />
@@ -138,9 +125,9 @@ const Groups: React.FC = () => {
 
       <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 mb-4">
-          <TabsTrigger value="groups">{t("yourGroups")}</TabsTrigger>
-          <TabsTrigger value="shared">{t("sharedLists")}</TabsTrigger>
-          <TabsTrigger value="wishlist">{t("wishlist")}</TabsTrigger>
+          <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
+          <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
+          <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="groups" className="space-y-4">

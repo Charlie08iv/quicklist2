@@ -149,33 +149,36 @@ export const fetchUserGroups = async () => {
   }
 };
 
-// Wishlist functions
-// Instead of directly accessing tables, we'll use custom functions
+// Wishlist functions - We'll use edge functions for this
 
 // Create a wish item using edge function
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) throw new Error('User not authenticated');
+    if (!token || !userId) throw new Error('User not authenticated');
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/create_wish_item`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create_wish_item`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         group_id: groupId,
         name,
         description: description || null,
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create wish item');
+    }
     
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error creating wish item:', error);
@@ -187,24 +190,29 @@ export const createWishItem = async (groupId: string, name: string, description?
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) return [];
+    if (!token || !userId) return [];
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/get_group_wish_items`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_group_wish_items`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         group_id: groupId
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error in response:', errorData);
+      return [];
+    }
     
+    const data = await response.json();
     return data || [];
   } catch (error) {
     console.error('Error fetching wish items:', error);
@@ -216,25 +224,29 @@ export const fetchGroupWishItems = async (groupId: string) => {
 export const claimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) throw new Error('User not authenticated');
+    if (!token || !userId) throw new Error('User not authenticated');
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/claim_wish_item`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claim_wish_item`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         item_id: itemId,
         user_id: userId
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to claim wish item');
+    }
     
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error claiming wish item:', error);
@@ -246,25 +258,29 @@ export const claimWishItem = async (itemId: string) => {
 export const unclaimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) throw new Error('User not authenticated');
+    if (!token || !userId) throw new Error('User not authenticated');
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/unclaim_wish_item`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/unclaim_wish_item`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         item_id: itemId,
         user_id: userId
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to unclaim wish item');
+    }
     
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error unclaiming wish item:', error);
@@ -409,25 +425,29 @@ export const addFriendToGroup = async (groupId: string, email: string) => {
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) throw new Error('User not authenticated');
+    if (!token || !userId) throw new Error('User not authenticated');
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/send_group_message`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send_group_message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         group_id: groupId,
         content: content
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send message');
+    }
     
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error sending message:', error);
@@ -439,24 +459,29 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
     const userId = sessionData.session?.user?.id;
     
-    if (!userId) return [];
+    if (!token || !userId) return [];
     
-    // Call edge function
-    const { data, error } = await fetch(`https://wbrgkzijdovhkoklmoei.supabase.co/functions/v1/get_group_messages`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_group_messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         group_id: groupId
       })
-    }).then(res => res.json());
+    });
     
-    if (error) throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error in response:', errorData);
+      return [];
+    }
     
+    const data = await response.json();
     return data || [];
   } catch (error) {
     console.error('Error fetching messages:', error);
