@@ -258,7 +258,8 @@ export const createGroupList = async (groupId: string, name: string, date?: stri
   }
 };
 
-// Wishlist functions - modified to use direct table operations instead of RPC calls
+// Use type casting to bypass TypeScript errors temporarily
+// This is a workaround until the types are properly generated from the database schema
 export const createWishItem = async (groupId: string, name: string, description?: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -277,9 +278,9 @@ export const createWishItem = async (groupId: string, name: string, description?
       throw new Error('You are not a member of this group');
     }
     
-    // Insert directly to the wish_items table
-    const { data, error } = await supabase
-      .from('wish_items')
+    // Use 'from' with type assertion to bypass TypeScript error
+    const { data, error } = await (supabase
+      .from('wish_items' as any)
       .insert({
         group_id: groupId,
         name: name,
@@ -287,19 +288,18 @@ export const createWishItem = async (groupId: string, name: string, description?
         created_by: userId,
         status: 'available'
       })
-      .select()
-      .single();
+      .select() as any);
     
     if (error) throw error;
     
-    return data;
+    return data ? data[0] : null;
   } catch (error) {
     console.error('Error creating wish item:', error);
     throw error;
   }
 };
 
-// Fetch group wish items - direct table query
+// Fetch group wish items with type assertions
 export const fetchGroupWishItems = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -319,14 +319,14 @@ export const fetchGroupWishItems = async (groupId: string) => {
       return [];
     }
     
-    // Fetch items directly from the table with creator profiles
-    const { data, error } = await supabase
-      .from('wish_items')
+    // Use type assertion to bypass TypeScript error
+    const { data, error } = await (supabase
+      .from('wish_items' as any)
       .select(`
         *,
         creator:created_by(username, avatar_url)
       `)
-      .eq('group_id', groupId);
+      .eq('group_id', groupId) as any);
     
     if (error) {
       console.error('Error fetching wish items:', error);
@@ -340,7 +340,7 @@ export const fetchGroupWishItems = async (groupId: string) => {
   }
 };
 
-// Claim wish item - direct update
+// Claim wish item with type assertions
 export const claimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -349,11 +349,11 @@ export const claimWishItem = async (itemId: string) => {
     if (!userId) throw new Error('User not authenticated');
     
     // First get the item to check permissions
-    const { data: item, error: getError } = await supabase
-      .from('wish_items')
+    const { data: item, error: getError } = await (supabase
+      .from('wish_items' as any)
       .select('group_id, status')
       .eq('id', itemId)
-      .single();
+      .single() as any);
     
     if (getError || !item) {
       throw new Error('Item not found');
@@ -375,8 +375,8 @@ export const claimWishItem = async (itemId: string) => {
     }
     
     // Update the item
-    const { data, error } = await supabase
-      .from('wish_items')
+    const { data, error } = await (supabase
+      .from('wish_items' as any)
       .update({
         status: 'claimed',
         claimed_by: userId,
@@ -384,19 +384,18 @@ export const claimWishItem = async (itemId: string) => {
       })
       .eq('id', itemId)
       .eq('status', 'available')
-      .select()
-      .single();
+      .select() as any);
     
     if (error) throw error;
     
-    return data;
+    return data ? data[0] : null;
   } catch (error) {
     console.error('Error claiming wish item:', error);
     throw error;
   }
 };
 
-// Unclaim wish item - direct update
+// Unclaim wish item with type assertions
 export const unclaimWishItem = async (itemId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -405,8 +404,8 @@ export const unclaimWishItem = async (itemId: string) => {
     if (!userId) throw new Error('User not authenticated');
     
     // Update the item
-    const { data, error } = await supabase
-      .from('wish_items')
+    const { data, error } = await (supabase
+      .from('wish_items' as any)
       .update({
         status: 'available',
         claimed_by: null,
@@ -414,19 +413,18 @@ export const unclaimWishItem = async (itemId: string) => {
       })
       .eq('id', itemId)
       .eq('claimed_by', userId)
-      .select()
-      .single();
+      .select() as any);
     
     if (error) throw error;
     
-    return data;
+    return data ? data[0] : null;
   } catch (error) {
     console.error('Error unclaiming wish item:', error);
     throw error;
   }
 };
 
-// Group chat functionality - direct insert
+// Group chat functionality with type assertions
 export const sendGroupChatMessage = async (groupId: string, content: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -445,9 +443,9 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
       throw new Error('You are not a member of this group');
     }
     
-    // Insert the message directly
-    const { data, error } = await supabase
-      .from('group_messages')
+    // Use type assertion to bypass TypeScript error
+    const { data, error } = await (supabase
+      .from('group_messages' as any)
       .insert({
         group_id: groupId,
         user_id: userId,
@@ -456,19 +454,18 @@ export const sendGroupChatMessage = async (groupId: string, content: string) => 
       .select(`
         *,
         profile:user_id(username, avatar_url)
-      `)
-      .single();
+      `) as any);
     
     if (error) throw error;
     
-    return data;
+    return data ? data[0] : null;
   } catch (error) {
     console.error('Error sending message:', error);
     throw error;
   }
 };
 
-// Fetch group chat messages - direct query
+// Fetch group chat messages with type assertions
 export const fetchGroupChatMessages = async (groupId: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -488,15 +485,15 @@ export const fetchGroupChatMessages = async (groupId: string) => {
       return [];
     }
     
-    // Fetch messages with profile information
-    const { data, error } = await supabase
-      .from('group_messages')
+    // Use type assertion to bypass TypeScript error
+    const { data, error } = await (supabase
+      .from('group_messages' as any)
       .select(`
         *,
         profile:user_id(username, avatar_url)
       `)
       .eq('group_id', groupId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as any);
     
     if (error) {
       console.error('Error fetching messages:', error);
