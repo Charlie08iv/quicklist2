@@ -39,7 +39,7 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !user) {
       toast.error(t("mustBeLoggedIn"));
       onOpenChange(false);
       return;

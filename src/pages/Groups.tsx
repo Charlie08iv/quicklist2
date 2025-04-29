@@ -26,7 +26,7 @@ interface Group {
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -60,16 +60,16 @@ const Groups: React.FC = () => {
 
   // Handle authentication
   useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
+    if (!authLoading && !isLoggedIn) {
       console.log("User not logged in, redirecting to auth");
       toast.error(t("mustBeLoggedIn"));
       navigate("/auth");
     }
-  }, [isLoggedIn, isLoading, navigate, t]);
+  }, [isLoggedIn, authLoading, navigate, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && user?.id) {
       console.log('Groups component mounted, user logged in:', user?.id);
       loadGroups();
     }
@@ -81,7 +81,7 @@ const Groups: React.FC = () => {
   };
   
   // Display loading state
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
         <div className="w-full space-y-4">
