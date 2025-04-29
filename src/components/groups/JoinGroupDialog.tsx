@@ -35,7 +35,6 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     
     setIsLoading(true);
     try {
-      // Only pass the inviteCode parameter, not a second parameter
       const group = await joinGroup(inviteCode.trim());
       
       if (group) {
