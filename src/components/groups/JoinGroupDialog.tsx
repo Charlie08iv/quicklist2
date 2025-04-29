@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,14 +17,31 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setInviteCode("");
+    }
+  }, [open]);
+  
+  // Check authentication before opening dialog
+  useEffect(() => {
+    if (open && !isLoggedIn) {
+      toast.error(t("mustBeLoggedIn"));
+      onOpenChange(false);
+    }
+  }, [open, isLoggedIn, onOpenChange, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
+    
+    if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
+      onOpenChange(false);
       return;
     }
     

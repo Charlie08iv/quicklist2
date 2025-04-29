@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Setup auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -45,14 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log('Initial session check:', currentSession?.user?.id);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
-      checkGuestMode();
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('Initial session check:', currentSession?.user?.id);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        setIsLoading(false);
+        checkGuestMode();
+      } catch (error) {
+        console.error("Error getting session:", error);
+        setIsLoading(false);
+      }
+    };
 
+    initializeAuth();
     window.addEventListener('popstate', checkGuestMode);
 
     return () => {

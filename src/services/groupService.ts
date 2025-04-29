@@ -1,6 +1,7 @@
 
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);

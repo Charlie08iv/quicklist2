@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface Group {
   id: string;
@@ -32,55 +33,82 @@ const Groups: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("groups");
+  const [error, setError] = useState<string | null>(null);
   
   const loadGroups = async () => {
-    if (!user) {
+    if (!isLoggedIn) {
       setGroups([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    setError(null);
     try {
-      console.log('Loading groups for user:', user.id);
+      console.log('Loading groups for user:', user?.id);
       const fetchedGroups = await fetchUserGroups();
       console.log('Fetched groups:', fetchedGroups);
       setGroups(fetchedGroups);
     } catch (error) {
       console.error("Error loading groups:", error);
+      setError("Failed to load groups. Please try again.");
       toast.error(t("errorLoadingGroups")); 
     } finally {
       setLoading(false);
     }
   };
 
-  // Redirect to login if not authenticated and not currently loading
+  // Handle authentication
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
+      console.log("User not logged in, redirecting to auth");
       toast.error(t("mustBeLoggedIn"));
       navigate("/auth");
     }
   }, [isLoggedIn, isLoading, navigate, t]);
 
+  // Load groups when component mounts or auth status changes
   useEffect(() => {
     if (isLoggedIn) {
-      console.log('Groups component mounted, user:', user);
+      console.log('Groups component mounted, user logged in:', user?.id);
       loadGroups();
     }
   }, [isLoggedIn, user]);
   
-  // Don't render anything until we're done checking auth
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    navigate("/auth");
+  };
+  
+  // Display loading state
   if (isLoading) {
     return (
       <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex justify-center items-center">
-        <Skeleton className="h-[400px] w-full" />
+        <div className="w-full space-y-4">
+          <Skeleton className="h-[60px] w-full" />
+          <Skeleton className="h-[100px] w-full" />
+          <Skeleton className="h-[100px] w-full" />
+        </div>
       </div>
     );
   }
   
-  // Don't render if not logged in
+  // Display login prompt if not logged in
   if (!isLoggedIn) {
-    return null;
+    return (
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto flex flex-col justify-center items-center">
+        <Alert className="mb-4">
+          <InfoIcon className="h-4 w-4" />
+          <AlertTitle>{t("notLoggedIn")}</AlertTitle>
+          <AlertDescription>
+            {t("loginToAccessGroups")}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={handleLoginRedirect}>
+          {t("login")}
+        </Button>
+      </div>
+    );
   }
   
   return (
@@ -117,6 +145,12 @@ const Groups: React.FC = () => {
               <Skeleton className="h-[100px] w-full" />
               <Skeleton className="h-[100px] w-full" />
             </div>
+          ) : error ? (
+            <Alert variant="destructive" className="mb-4">
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>{t("error")}</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : groups.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
               {groups.map((group) => (
@@ -131,6 +165,13 @@ const Groups: React.FC = () => {
             <div className="text-center py-12 text-muted-foreground">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
               <p>{t("noGroupsYet")}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                {t("createYourFirstGroup")}
+              </Button>
             </div>
           )}
         </TabsContent>

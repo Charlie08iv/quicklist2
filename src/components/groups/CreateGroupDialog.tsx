@@ -28,6 +28,14 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     }
   }, [open]);
 
+  // Check authentication before submitting
+  useEffect(() => {
+    if (open && !isLoggedIn) {
+      toast.error(t("mustBeLoggedIn"));
+      onOpenChange(false);
+    }
+  }, [open, isLoggedIn, onOpenChange, t]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
