@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { joinGroup } from "@/services/groupService";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -22,23 +23,29 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error(t("pleaseSignIn"));
+      return;
+    }
+    
+    if (!inviteCode.trim()) {
+      toast.error(t("pleaseEnterInviteCode"));
+      return;
+    }
     
     setIsLoading(true);
     try {
-      // Since the groups table was deleted, we'll just simulate success
-      // but inform the user that this feature is currently under maintenance
+      const group = await joinGroup(inviteCode.trim());
       
-      // Wait a moment to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.info(t("featureUnderMaintenance"));
-      onOpenChange(false);
-      setInviteCode("");
-      
+      if (group) {
+        toast.success(t("joinedGroup", { name: group.name }));
+        onOpenChange(false);
+        setInviteCode("");
+        if (onGroupJoined) onGroupJoined();
+      }
     } catch (error) {
       console.error("Error:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(t("invalidInviteCode"));
     } finally {
       setIsLoading(false);
     }

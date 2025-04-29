@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { deleteGroup } from "@/services/groupService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +26,10 @@ interface GroupCardProps {
     created_by: string;
     invite_code: string;
   };
+  onGroupDeleted?: () => void;
 }
 
-export function GroupCard({ group }: GroupCardProps) {
+export function GroupCard({ group, onGroupDeleted }: GroupCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isCreator, setIsCreator] = useState(user?.id === group.created_by);
@@ -44,18 +46,18 @@ export function GroupCard({ group }: GroupCardProps) {
     
     setIsDeleting(true);
     try {
-      // Since the groups table was deleted, we'll just simulate success
-      // but inform the user that this feature is currently under maintenance
+      const success = await deleteGroup(group.id);
       
-      // Wait a moment to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.info(t("featureUnderMaintenance"));
-      setDeleteDialogOpen(false);
-      
+      if (success) {
+        toast.success(t("groupDeleted"));
+        setDeleteDialogOpen(false);
+        if (onGroupDeleted) onGroupDeleted();
+      } else {
+        throw new Error("Failed to delete group");
+      }
     } catch (error) {
       console.error("Error:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(t("errorDeletingGroup"));
     } finally {
       setIsDeleting(false);
     }

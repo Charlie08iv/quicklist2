@@ -1,6 +1,22 @@
 
 import { nanoid } from 'nanoid';
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export interface Group {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
+  invite_code: string;
+}
+
+export interface GroupMember {
+  id: string;
+  user_id: string;
+  group_id: string;
+  role: 'owner' | 'member';
+}
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
@@ -17,9 +33,6 @@ export const createGroup = async (name: string) => {
       .single();
       
     if (error) throw error;
-    
-    // No need to add creator as member separately - we'll use created_by field
-    // to determine ownership and membership
     
     return group;
   } catch (error) {
@@ -41,12 +54,7 @@ export const joinGroup = async (inviteCode: string) => {
       .single();
       
     if (groupError) throw groupError;
-    
-    // Since we don't have a separate group_members table,
-    // we'll need another approach to track membership
-    // For now, we'll just return the group info
-    // In the future, you might want to create a group_members table
-    // and add the proper SQL migration
+    if (!group) throw new Error('Group not found');
     
     return group;
   } catch (error) {
@@ -55,23 +63,53 @@ export const joinGroup = async (inviteCode: string) => {
   }
 };
 
-export const fetchUserGroups = async () => {
+export const fetchUserGroups = async (): Promise<Group[]> => {
   try {
     const userId = (await supabase.auth.getSession()).data.session?.user.id;
     if (!userId) return [];
     
-    // Only fetch groups that the user created
-    // Without a group_members table, we can only reliably show
-    // groups the user has created
+    // Fetch groups created by the user
     const { data: groups, error } = await supabase
       .from('groups')
       .select()
       .eq('created_by', userId);
 
     if (error) throw error;
-    return groups;
+    return groups || [];
   } catch (error) {
     console.error('Error fetching groups:', error);
     return [];
   }
 };
+
+export const getGroupById = async (groupId: string): Promise<Group | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .select()
+      .eq('id', groupId)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching group details:', error);
+    return null;
+  }
+};
+
+export const deleteGroup = async (groupId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    return false;
+  }
+};
+

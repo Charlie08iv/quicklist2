@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { createGroup } from "@/services/groupService";
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -22,23 +23,29 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error(t("pleaseSignIn"));
+      return;
+    }
+    
+    if (!groupName.trim()) {
+      toast.error(t("pleaseEnterGroupName"));
+      return;
+    }
     
     setIsLoading(true);
     try {
-      // Since the groups table was deleted, we'll just simulate success
-      // but inform the user that this feature is currently under maintenance
+      const group = await createGroup(groupName.trim());
       
-      // Wait a moment to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.info(t("featureUnderMaintenance"));
-      onOpenChange(false);
-      setGroupName("");
-      
+      if (group) {
+        toast.success(t("groupCreated", { name: groupName }));
+        onOpenChange(false);
+        setGroupName("");
+        if (onGroupCreated) onGroupCreated();
+      }
     } catch (error) {
       console.error("Error:", error);
-      toast.error(t("errorOccurred"));
+      toast.error(t("errorCreatingGroup"));
     } finally {
       setIsLoading(false);
     }
