@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Settings, Trash2, Plus, List, MessageSquare, Heart } from "lucide-react";
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addFriendToGroup, deleteGroup } from "@/services/groupService";
+import { addFriendToGroup, deleteGroup } from "@/services/groups";
 
 interface GroupCardProps {
   group: {

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups } from "@/services/groupService";
+import { fetchUserGroups } from "@/services/groups";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
