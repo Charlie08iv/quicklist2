@@ -52,6 +52,7 @@ const App = () => (
                 </Route>
                 <Route path="/groups" element={<AppLayout />}>
                   <Route index element={<Groups />} />
+                  <Route path="join" element={<Groups />} />
                   {/* Add routes for group features - these will be implemented later */}
                   <Route path=":groupId/lists" element={<NotFound />} />
                   <Route path=":groupId/chat" element={<NotFound />} />

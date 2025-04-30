@@ -9,7 +9,7 @@ type AuthContextType = {
   isLoggedIn: boolean;
   isLoading: boolean;
   isGuest: boolean;
-  initialized: boolean;
+  authError: Error | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: true,
   isGuest: false,
-  initialized: false,
+  authError: null
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -26,25 +26,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
   
   useEffect(() => {
-    console.log("Auth provider initializing...");
-    
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
-        
-        // Update state with the new session information
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        setIsLoading(false);
-        setInitialized(true);
         
         // Check guest mode after auth state changes
         const path = window.location.pathname;
-        const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
+        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!currentSession && isGuestAccessiblePath);
       }
     );
@@ -52,26 +46,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // THEN check for existing session
     const initializeAuth = async () => {
       try {
-        console.log("Checking for existing session...");
-        const { data } = await supabase.auth.getSession();
+        console.log("Starting auth initialization");
+        const { data, error } = await supabase.auth.getSession();
         
-        // Important: set the user state right away based on what we found
+        if (error) {
+          console.error("Auth initialization error:", error);
+          setAuthError(error);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Auth session retrieved:", data.session?.user?.id || 'No session');
         setSession(data.session);
         setUser(data.session?.user ?? null);
         
-        console.log("Session check result:", data.session ? "Session found" : "No session");
-        
         // Check initial guest mode
         const path = window.location.pathname;
-        const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
+        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!data.session && isGuestAccessiblePath);
       } catch (error) {
-        console.error("Error getting session:", error);
+        console.error("Unexpected error during auth initialization:", error);
+        setAuthError(error instanceof Error ? error : new Error('Unknown authentication error'));
       } finally {
-        // Mark as initialized and not loading whether we got a session or not
-        setInitialized(true);
+        console.log("Auth initialization completed");
         setIsLoading(false);
-        console.log("Auth initialization complete");
       }
     };
 
@@ -80,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Monitor URL changes for guest mode
     const handleRouteChange = () => {
       const path = window.location.pathname;
-      const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
+      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
       setIsGuest(!session && isGuestAccessiblePath);
     };
     
@@ -99,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoggedIn: !!user, 
       isLoading, 
       isGuest,
-      initialized
+      authError
     }}>
       {children}
     </AuthContext.Provider>

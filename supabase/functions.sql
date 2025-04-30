@@ -121,273 +121,44 @@ BEGIN
 END;
 $$;
 
--- Create wish item (replacing direct table access)
-CREATE OR REPLACE FUNCTION public.create_wish_item(
-  p_group_id UUID,
-  p_name TEXT,
-  p_description TEXT DEFAULT NULL
-)
-RETURNS JSONB
+-- Check if a user is the creator of a group
+CREATE OR REPLACE FUNCTION public.user_is_creator_of_group(group_id_param UUID, user_id_param UUID)
+RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-  v_user_id UUID;
-  v_result JSONB;
 BEGIN
-  -- Get current user ID
-  v_user_id := auth.uid();
-  
-  -- Check if user is member of the group
-  IF NOT public.check_group_membership(p_group_id, v_user_id) THEN
-    RAISE EXCEPTION 'You are not a member of this group';
-  END IF;
-  
-  -- Insert the wish item
-  INSERT INTO public.wish_items(
-    group_id,
-    name,
-    description,
-    created_by,
-    status
-  )
-  VALUES (
-    p_group_id,
-    p_name,
-    p_description,
-    v_user_id,
-    'available'
-  )
-  RETURNING jsonb_build_object(
-    'id', id,
-    'name', name,
-    'description', description,
-    'status', status,
-    'created_by', created_by
-  ) INTO v_result;
-  
-  RETURN v_result;
+  RETURN EXISTS (
+    SELECT 1 FROM public.groups
+    WHERE id = group_id_param AND created_by = user_id_param
+  );
 END;
 $$;
 
--- Get group wish items 
-CREATE OR REPLACE FUNCTION public.get_group_wish_items(p_group_id UUID)
-RETURNS JSONB
+-- Check if a user is a member of a group
+CREATE OR REPLACE FUNCTION public.user_is_member_of_group(group_id_param UUID, user_id_param UUID)
+RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-  v_user_id UUID;
-  v_items JSONB;
 BEGIN
-  -- Get current user ID
-  v_user_id := auth.uid();
-  
-  -- Check if user is member of the group
-  IF NOT public.check_group_membership(p_group_id, v_user_id) THEN
-    RAISE EXCEPTION 'You are not a member of this group';
-  END IF;
-  
-  -- Get wish items with profile information
-  SELECT jsonb_agg(jsonb_build_object(
-    'id', wi.id,
-    'name', wi.name,
-    'description', wi.description,
-    'status', wi.status,
-    'created_by', wi.created_by,
-    'claimed_by', wi.claimed_by,
-    'claimed_at', wi.claimed_at,
-    'creator', jsonb_build_object(
-      'username', p.username,
-      'avatar_url', p.avatar_url
-    )
-  ))
-  FROM public.wish_items wi
-  JOIN public.profiles p ON p.id = wi.created_by
-  WHERE wi.group_id = p_group_id
-  INTO v_items;
-  
-  -- Handle case when no items exist
-  IF v_items IS NULL THEN
-    v_items := '[]'::jsonb;
-  END IF;
-  
-  RETURN v_items;
+  RETURN EXISTS (
+    SELECT 1 FROM public.group_members 
+    WHERE group_id = group_id_param AND user_id = user_id_param
+  );
 END;
 $$;
 
--- Claim a wish item
-CREATE OR REPLACE FUNCTION public.claim_wish_item(
-  p_item_id UUID,
-  p_user_id UUID
-)
-RETURNS JSONB
+-- Check if a user owns a shopping item
+CREATE OR REPLACE FUNCTION public.user_owns_shopping_item(list_id_param UUID, user_id_param UUID)
+RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-  v_group_id UUID;
-  v_result JSONB;
 BEGIN
-  -- Get the group id for the wish item
-  SELECT group_id INTO v_group_id FROM public.wish_items WHERE id = p_item_id;
-  
-  -- Check if user is member of the group
-  IF NOT public.check_group_membership(v_group_id, p_user_id) THEN
-    RAISE EXCEPTION 'You are not a member of this group';
-  END IF;
-  
-  -- Update the wish item to claimed status
-  UPDATE public.wish_items
-  SET 
-    status = 'claimed',
-    claimed_by = p_user_id,
-    claimed_at = NOW()
-  WHERE 
-    id = p_item_id AND 
-    status = 'available'
-  RETURNING jsonb_build_object(
-    'id', id,
-    'status', status,
-    'claimed_by', claimed_by,
-    'claimed_at', claimed_at
-  ) INTO v_result;
-  
-  IF v_result IS NULL THEN
-    RAISE EXCEPTION 'Item is not available for claiming';
-  END IF;
-  
-  RETURN v_result;
-END;
-$$;
-
--- Unclaim a wish item
-CREATE OR REPLACE FUNCTION public.unclaim_wish_item(
-  p_item_id UUID,
-  p_user_id UUID
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_result JSONB;
-BEGIN
-  -- Update the wish item back to available status
-  UPDATE public.wish_items
-  SET 
-    status = 'available',
-    claimed_by = NULL,
-    claimed_at = NULL
-  WHERE 
-    id = p_item_id AND 
-    claimed_by = p_user_id
-  RETURNING jsonb_build_object(
-    'id', id,
-    'status', status
-  ) INTO v_result;
-  
-  IF v_result IS NULL THEN
-    RAISE EXCEPTION 'You did not claim this item or it does not exist';
-  END IF;
-  
-  RETURN v_result;
-END;
-$$;
-
--- Send a group chat message
-CREATE OR REPLACE FUNCTION public.send_group_message(
-  p_group_id UUID,
-  p_content TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_user_id UUID;
-  v_result JSONB;
-BEGIN
-  -- Get current user ID
-  v_user_id := auth.uid();
-  
-  -- Check if user is member of the group
-  IF NOT public.check_group_membership(p_group_id, v_user_id) THEN
-    RAISE EXCEPTION 'You are not a member of this group';
-  END IF;
-  
-  -- Insert the message
-  INSERT INTO public.group_messages(
-    group_id,
-    user_id,
-    content
-  )
-  VALUES (
-    p_group_id,
-    v_user_id,
-    p_content
-  )
-  RETURNING id INTO v_result;
-  
-  -- Get the message with profile info
-  SELECT jsonb_build_object(
-    'id', gm.id,
-    'content', gm.content,
-    'created_at', gm.created_at,
-    'user_id', gm.user_id,
-    'profile', jsonb_build_object(
-      'username', p.username,
-      'avatar_url', p.avatar_url
-    )
-  )
-  FROM public.group_messages gm
-  JOIN public.profiles p ON p.id = gm.user_id
-  WHERE gm.id = (v_result->>'id')::uuid
-  INTO v_result;
-  
-  RETURN v_result;
-END;
-$$;
-
--- Get group chat messages
-CREATE OR REPLACE FUNCTION public.get_group_messages(p_group_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_user_id UUID;
-  v_messages JSONB;
-BEGIN
-  -- Get current user ID
-  v_user_id := auth.uid();
-  
-  -- Check if user is member of the group
-  IF NOT public.check_group_membership(p_group_id, v_user_id) THEN
-    RAISE EXCEPTION 'You are not a member of this group';
-  END IF;
-  
-  -- Get messages with profile information
-  SELECT jsonb_agg(jsonb_build_object(
-    'id', gm.id,
-    'content', gm.content,
-    'created_at', gm.created_at,
-    'user_id', gm.user_id,
-    'profile', jsonb_build_object(
-      'username', p.username,
-      'avatar_url', p.avatar_url
-    )
-  ) ORDER BY gm.created_at DESC)
-  FROM public.group_messages gm
-  JOIN public.profiles p ON p.id = gm.user_id
-  WHERE gm.group_id = p_group_id
-  INTO v_messages;
-  
-  -- Handle case when no messages exist
-  IF v_messages IS NULL THEN
-    v_messages := '[]'::jsonb;
-  END IF;
-  
-  RETURN v_messages;
+  RETURN EXISTS (
+    SELECT 1 FROM public.shopping_lists 
+    WHERE id = list_id_param AND user_id = user_id_param
+  );
 END;
 $$;

@@ -1,15 +1,6 @@
 
 import { nanoid } from 'nanoid';
-import { supabase, checkAuthStatus } from "@/integrations/supabase/client";
-
-// Helper function to ensure we have a valid session
-const ensureAuthenticated = async () => {
-  const { session } = await checkAuthStatus();
-  if (!session) {
-    throw new Error('Not authenticated');
-  }
-  return session;
-};
+import { supabase } from "@/integrations/supabase/client";
 
 export const createGroup = async (name: string) => {
   const inviteCode = nanoid(8);
@@ -17,12 +8,18 @@ export const createGroup = async (name: string) => {
   try {
     console.log('Creating group with name:', name, 'and invite code:', inviteCode);
     
-    // Ensure user is authenticated
-    const session = await ensureAuthenticated();
-    const userId = session.user.id;
+    // Get current session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw sessionError;
+    }
+    
+    const userId = sessionData.session?.user?.id;
     
     if (!userId) {
-      console.error('User ID not found in session');
+      console.error('User is not authenticated');
       throw new Error('User not authenticated');
     }
     
@@ -64,9 +61,14 @@ export const createGroup = async (name: string) => {
 
 export const joinGroup = async (inviteCode: string) => {
   try {
-    // Ensure user is authenticated
-    const session = await ensureAuthenticated();
-    const userId = session.user.id;
+    // Get current session
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) {
+      console.error('User is not authenticated');
+      throw new Error('No user ID found');
+    }
     
     // Find group by invite code
     const { data: group, error: groupError } = await supabase
@@ -122,16 +124,62 @@ export const joinGroup = async (inviteCode: string) => {
 
 export const fetchUserGroups = async () => {
   try {
-    // Ensure user is authenticated
-    const { session } = await checkAuthStatus();
+    console.log('Starting fetchUserGroups function');
+    // Get current session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
-    if (!session) {
-      console.log('No active session found, cannot fetch groups');
-      return [];
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      throw sessionError;
     }
     
-    const userId = session.user.id;
-    console.log('Fetching groups for user:', userId);
+    const userId = sessionData.session?.user?.id;
+    
+    if (!userId) {
+      console.log('No user ID found, returning empty groups array');
+      throw new Error('User ID not found. Please check if you are logged in.');
+    }
+    
+    console.log('Fetching groups for user ID:', userId);
+    
+    // First check if the user exists in profiles
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+      
+    if (profileError) {
+      console.log('User profile not found. Error:', profileError);
+      console.log('This might indicate the user profile needs to be created.');
+      
+      // Attempt to create profile if missing
+      try {
+        const email = sessionData.session?.user?.email;
+        if (email) {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: userId, email })
+            .single();
+            
+          if (insertError) {
+            console.error('Failed to create user profile:', insertError);
+          } else {
+            console.log('Created new user profile for:', userId);
+          }
+        }
+      } catch (e) {
+        console.error('Error creating user profile:', e);
+      }
+    }
+    
+    // Debug: Direct query to check all groups to see if RLS is working
+    const { data: allGroups, error: allGroupsError } = await supabase
+      .from('groups')
+      .select('*')
+      .limit(20);
+      
+    console.log('Direct groups query (check RLS):', { allGroups, allGroupsError });
     
     // Get user's groups using the database function
     const { data: groups, error } = await supabase
@@ -140,27 +188,30 @@ export const fetchUserGroups = async () => {
       });
     
     if (error) {
-      console.error('Error fetching user groups:', error);
-      // Try direct query as fallback
-      const { data: fallbackGroups, error: fallbackError } = await supabase
+      // Try a direct query if the RPC fails
+      console.error('Error fetching user groups with RPC:', error);
+      console.log('Attempting direct query as fallback...');
+      
+      const { data: directGroups, error: directError } = await supabase
         .from('groups')
         .select('*')
-        .eq('created_by', userId);
+        .or(`created_by.eq.${userId},id.in.(select group_id from group_members where user_id = '${userId}')`)
+        .order('created_at', { ascending: false });
         
-      if (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
-        throw error; // Throw original error if fallback also fails
+      if (directError) {
+        console.error('Fallback query also failed:', directError);
+        throw directError;
       }
       
-      console.log('Fetched groups via fallback:', fallbackGroups);
-      return fallbackGroups || [];
+      console.log('Fallback query succeeded, found groups:', directGroups?.length || 0);
+      return directGroups || [];
     }
     
-    console.log('Fetched user groups:', groups);
+    console.log('Fetched user groups successfully:', groups?.length || 0);
     return groups || [];
   } catch (error) {
-    console.error('Error fetching groups:', error);
-    return [];
+    console.error('Error in fetchUserGroups:', error);
+    throw error; // Let the component handle the error
   }
 };
 
@@ -271,124 +322,6 @@ export const createGroupList = async (groupId: string, name: string, date?: stri
   } catch (error) {
     console.error('Error creating group list:', error);
     throw error;
-  }
-};
-
-// Wish functionality - using placeholder methods
-// These will need database setup once implemented
-export const createWishItem = async (groupId: string, name: string, description?: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) throw new Error('User not authenticated');
-    
-    // This functionality would need the wish_items table to be created
-    // For now, just return a mock result
-    return {
-      id: nanoid(),
-      group_id: groupId,
-      name,
-      description,
-      created_by: userId,
-      status: 'available'
-    };
-  } catch (error) {
-    console.error('Error creating wish item:', error);
-    throw error;
-  }
-};
-
-// Fetch group wish items - placeholder
-export const fetchGroupWishItems = async (groupId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) return [];
-    
-    // This would need the wish_items table
-    console.log('Fetching wish items for group:', groupId);
-    return [];
-  } catch (error) {
-    console.error('Error fetching wish items:', error);
-    return [];
-  }
-};
-
-// Claim wish item - placeholder
-export const claimWishItem = async (itemId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) throw new Error('User not authenticated');
-    
-    // This would need the wish_items table
-    console.log('Claiming wish item:', itemId);
-    return {
-      id: itemId,
-      claimed_by: userId,
-      claimed_at: new Date().toISOString(),
-      status: 'claimed'
-    };
-  } catch (error) {
-    console.error('Error claiming wish item:', error);
-    throw error;
-  }
-};
-
-// Unclaim wish item - placeholder
-export const unclaimWishItem = async (itemId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    
-    // This would need the wish_items table
-    console.log('Unclaiming wish item:', itemId);
-    return {
-      id: itemId,
-      status: 'available'
-    };
-  } catch (error) {
-    console.error('Error unclaiming wish item:', error);
-    throw error;
-  }
-};
-
-// Group chat functionality - placeholder
-export const sendGroupChatMessage = async (groupId: string, content: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    
-    if (!userId) throw new Error('User not authenticated');
-    
-    // This would need the group_messages table
-    console.log('Sending message to group:', groupId);
-    return {
-      id: nanoid(),
-      content,
-      group_id: groupId,
-      user_id: userId,
-      created_at: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('Error sending message:', error);
-    throw error;
-  }
-};
-
-// Fetch group chat messages - placeholder
-export const fetchGroupChatMessages = async (groupId: string) => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    
-    // This would need the group_messages table
-    console.log('Fetching messages for group:', groupId);
-    return [];
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return [];
   }
 };
 
