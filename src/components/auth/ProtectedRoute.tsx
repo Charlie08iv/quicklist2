@@ -11,8 +11,28 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isLoading, initialized } = useAuth();
 
-  // Show loader only when auth is still initializing
-  if (isLoading || !initialized) {
+  // Only show loader if we're loading and haven't initialized yet
+  // Added a timeout to avoid infinite loading
+  const [showTimeout, setShowTimeout] = React.useState(false);
+
+  React.useEffect(() => {
+    // If still loading after 3 seconds, show timeout message
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        setShowTimeout(true);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // If we have a user, just render the children immediately
+  if (user) {
+    return <>{children}</>;
+  }
+
+  // Only show loading state if still loading and less than 3 seconds have passed
+  if (isLoading && !showTimeout) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -23,12 +43,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // If auth is initialized but no user found, redirect to auth page
-  if (!user) {
-    return <Navigate to="/auth" replace />;
+  // Show timeout message after 3 seconds of loading
+  if (showTimeout) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-2">Authentication is taking longer than expected.</p>
+          <p className="text-muted-foreground">You may need to <a href="/auth" className="text-primary underline">log in again</a>.</p>
+        </div>
+      </div>
+    );
   }
 
-  return <>{children}</>;
+  // If not logged in and not loading, redirect to auth
+  return <Navigate to="/auth" replace />;
 };
 
 export default ProtectedRoute;

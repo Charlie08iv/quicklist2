@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase, checkAuthStatus } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   session: Session | null;
@@ -9,7 +9,7 @@ type AuthContextType = {
   isLoggedIn: boolean;
   isLoading: boolean;
   isGuest: boolean;
-  initialized: boolean; // Add flag to track initialization
+  initialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -35,8 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
+        
+        // Update state with the new session information
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        setInitialized(true);
+        setIsLoading(false);
         
         // Check guest mode after auth state changes
         const path = window.location.pathname;
@@ -50,22 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log("Checking for existing session...");
         const { data } = await supabase.auth.getSession();
-        console.log("Session check result:", data.session ? "Session found" : "No session");
         
+        // Important: set the user state right away based on what we found
         setSession(data.session);
         setUser(data.session?.user ?? null);
+        
+        console.log("Session check result:", data.session ? "Session found" : "No session");
         
         // Check initial guest mode
         const path = window.location.pathname;
         const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
         setIsGuest(!data.session && isGuestAccessiblePath);
-        
-        console.log('Initial session:', data.session?.user?.id || 'No session');
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {
+        // Mark as initialized and not loading whether we got a session or not
+        setInitialized(true);
         setIsLoading(false);
-        setInitialized(true); // Mark auth as initialized regardless of outcome
         console.log("Auth initialization complete");
       }
     };

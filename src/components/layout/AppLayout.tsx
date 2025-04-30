@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "../ui/button";
 
 const AppLayout = () => {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isLoggedIn, isLoading, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -14,6 +14,11 @@ const AppLayout = () => {
   const publicPaths = ['/lists', '/recipes'];
   const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
   const showLoginButton = !isLoggedIn && !isLoading && isPublicPath;
+
+  // Debug user state
+  React.useEffect(() => {
+    console.log("AppLayout - Auth state:", { isLoggedIn, isLoading, hasUser: !!user, path: location.pathname });
+  }, [isLoggedIn, isLoading, user, location.pathname]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">

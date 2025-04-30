@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { User, Mail, Lock, Trash2, ArrowLeft, LogOut, Save } from "lucide-react";
@@ -10,41 +11,76 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "@/hooks/use-translation";
 
 const Account = () => {
-  const { user, signOut } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState(user?.user_metadata?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // Initialize user data when the component mounts
   useEffect(() => {
     if (user) {
+      // Set email from user data immediately
+      setEmail(user.email || "");
+      setName(user.user_metadata?.name || "");
       loadProfile();
+      
+      console.log("Account page - User loaded:", user.id);
+    } else {
+      console.log("Account page - No user found");
     }
   }, [user]);
 
   const loadProfile = async () => {
+    if (!user?.id) return;
+    
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('avatar_url, username')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading profile:', error.message);
+        return;
+      }
       
       if (data) {
         setAvatarUrl(data.avatar_url);
-        setName(data.username || name);
+        if (data.username) setName(data.username);
       }
     } catch (error: any) {
       console.error('Error loading profile:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle sign out
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      await supabase.auth.signOut();
+      navigate("/auth");
+    } catch (error: any) {
+      toast({
+        title: t("Error signing out"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
     setLoading(true);
     try {
       const { error: updateError } = await supabase.auth.updateUser({
@@ -60,7 +96,7 @@ const Account = () => {
           username: name,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
       
@@ -145,14 +181,12 @@ const Account = () => {
   const handleDeleteAccount = async () => {
     if (window.confirm(t("Are you sure you want to delete your account? This action cannot be undone."))) {
       try {
-        const { error } = await supabase.auth.admin.deleteUser(user?.id || "");
-        if (error) throw error;
-        
-        await signOut();
-        navigate("/auth");
+        // This would typically call a secure server endpoint
+        // Direct admin API calls are not secure from the client
         toast({
-          title: t("Account deleted"),
-          description: t("Your account has been successfully deleted."),
+          title: t("Feature not available"),
+          description: t("Account deletion requires server-side implementation for security."),
+          variant: "destructive",
         });
       } catch (error: any) {
         toast({
@@ -164,21 +198,17 @@ const Account = () => {
     }
   };
 
-  const handleNameClick = () => {
-    const nameInput = document.getElementById('name-input') as HTMLInputElement;
-    if (nameInput) {
-      nameInput.focus();
-      nameInput.select();
-    }
-  };
-
-  const handleEmailClick = () => {
-    const emailInput = document.getElementById('email-input') as HTMLInputElement;
-    if (emailInput) {
-      emailInput.focus();
-      emailInput.select();
-    }
-  };
+  // If no user is found at all (after loading completes)
+  if (!user) {
+    return (
+      <div className="p-4 text-center">
+        <p className="mb-4">You need to be logged in to view this page.</p>
+        <Button onClick={() => navigate('/auth')}>
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 bg-[#092211]">
