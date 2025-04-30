@@ -4,14 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { User, Mail, Lock, Trash2, ArrowLeft, LogOut, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "@/hooks/use-translation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Account = () => {
-  const { user, session } = useAuth();
+  const { user, isLoggedIn, isLoading } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -28,10 +29,10 @@ const Account = () => {
       loadProfile();
       
       console.log("Account page - User loaded:", user.id);
-    } else {
+    } else if (!isLoading) {
       console.log("Account page - No user found");
     }
-  }, [user]);
+  }, [user, isLoading]);
 
   const loadProfile = async () => {
     if (!user?.id) return;
@@ -67,10 +68,8 @@ const Account = () => {
       await supabase.auth.signOut();
       navigate("/auth");
     } catch (error: any) {
-      toast({
-        title: t("Error signing out"),
+      toast(t("Error signing out"), {
         description: error.message,
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -100,15 +99,12 @@ const Account = () => {
 
       if (profileError) throw profileError;
       
-      toast({
-        title: t("Profile updated"),
+      toast(t("Profile updated"), {
         description: t("Your profile has been successfully updated."),
       });
     } catch (error: any) {
-      toast({
-        title: t("Error"),
+      toast(t("Error"), {
         description: error.message,
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -143,15 +139,12 @@ const Account = () => {
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      toast({
-        title: t("Profile picture updated"),
+      toast(t("Profile picture updated"), {
         description: t("Your profile picture has been updated successfully."),
       });
     } catch (error: any) {
-      toast({
-        title: t("Error"),
+      toast(t("Error"), {
         description: error.message,
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -165,15 +158,12 @@ const Account = () => {
       });
       if (error) throw error;
       
-      toast({
-        title: t("Password reset email sent"),
+      toast(t("Password reset email sent"), {
         description: t("Check your email for the password reset link."),
       });
     } catch (error: any) {
-      toast({
-        title: t("Error"),
+      toast(t("Error"), {
         description: error.message,
-        variant: "destructive",
       });
     }
   };
@@ -182,26 +172,49 @@ const Account = () => {
     if (window.confirm(t("Are you sure you want to delete your account? This action cannot be undone."))) {
       try {
         // This would typically call a secure server endpoint
-        // Direct admin API calls are not secure from the client
-        toast({
-          title: t("Feature not available"),
+        toast(t("Feature not available"), {
           description: t("Account deletion requires server-side implementation for security."),
-          variant: "destructive",
         });
       } catch (error: any) {
-        toast({
-          title: t("Error"),
+        toast(t("Error"), {
           description: error.message,
-          variant: "destructive",
         });
       }
     }
   };
 
-  // If no user is found at all (after loading completes)
-  if (!user) {
+  // If still loading
+  if (isLoading) {
     return (
-      <div className="p-4 text-center">
+      <div className="min-h-screen pt-4 pb-20 px-4 max-w-md mx-auto flex flex-col space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{t("account")}</h1>
+          <div className="w-8" />
+        </div>
+        
+        <div className="flex justify-center mb-8">
+          <Skeleton className="h-24 w-24 rounded-full" />
+        </div>
+        
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If no user is found after loading completes
+  if (!isLoggedIn && !isLoading) {
+    return (
+      <div className="min-h-screen p-4 flex flex-col items-center justify-center">
         <p className="mb-4">You need to be logged in to view this page.</p>
         <Button onClick={() => navigate('/auth')}>
           Go to Login
@@ -211,27 +224,26 @@ const Account = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-[#092211]">
+    <div className="min-h-screen p-4">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between mb-6">
           <Button 
-            variant="ghost" 
-            className="text-white hover:bg-[#1a472a]"
+            variant="ghost"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">{t("account")}</h1>
+          <h1 className="text-2xl font-bold">{t("account")}</h1>
           <div className="w-8" />
         </div>
 
         <form onSubmit={updateProfile} className="space-y-6">
           <div className="flex justify-center mb-8">
             <div className="relative">
-              <Avatar className="h-24 w-24 border-4 border-[#1a472a] bg-[#1a472a]">
+              <Avatar className="h-24 w-24 border-4 border-primary/20">
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback>
-                  <User className="h-12 w-12 text-white/60" />
+                  <User className="h-12 w-12 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
               <input
@@ -244,7 +256,7 @@ const Account = () => {
               />
               <label
                 htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 p-1.5 bg-[#1a472a] rounded-full cursor-pointer hover:bg-[#2a573a] transition-colors"
+                className="absolute bottom-0 right-0 p-1.5 bg-primary rounded-full cursor-pointer hover:bg-primary/90 transition-colors"
               >
                 <User className="h-4 w-4 text-white" />
               </label>
@@ -253,7 +265,7 @@ const Account = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-white mb-1 block">
+              <label className="text-sm font-medium mb-1 block">
                 {t("Name")}
               </label>
               <Input
@@ -261,13 +273,12 @@ const Account = () => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-[#1a472a] border-[#2a573a] text-white"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-white mb-1 block">
+              <label className="text-sm font-medium mb-1 block">
                 {t("Email")}
               </label>
               <Input
@@ -275,14 +286,13 @@ const Account = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-[#1a472a] border-[#2a573a] text-white"
                 disabled={loading}
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-[#1a472a] hover:bg-[#2a573a] text-white"
+              className="w-full"
               disabled={loading}
             >
               <Save className="mr-2 h-5 w-5" />
@@ -293,8 +303,8 @@ const Account = () => {
 
         <div className="space-y-4 pt-6">
           <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
+            variant="outline" 
+            className="w-full justify-start text-lg"
             onClick={handlePasswordReset}
             disabled={loading}
           >
@@ -303,8 +313,8 @@ const Account = () => {
           </Button>
 
           <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
+            variant="outline" 
+            className="w-full justify-start text-lg"
             onClick={signOut}
             disabled={loading}
           >
@@ -313,14 +323,27 @@ const Account = () => {
           </Button>
 
           <Button
-            variant="ghost"
-            className="w-full justify-start text-red-500 text-lg bg-[#1a472a] hover:bg-[#2a573a]"
+            variant="destructive"
+            className="w-full justify-start text-lg"
             onClick={handleDeleteAccount}
             disabled={loading}
           >
             <Trash2 className="mr-2 h-5 w-5" />
             {t("Delete Account")}
           </Button>
+        </div>
+
+        {/* Debug information */}
+        <div className="mt-6 p-3 border border-dashed rounded-md">
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer">Debug Information</summary>
+            <div className="pt-2 space-y-1">
+              <p>User ID: {user?.id || "None"}</p>
+              <p>Email: {user?.email || "None"}</p>
+              <p>Auth Loading: {isLoading ? "Yes" : "No"}</p>
+              <p>Page Loading: {loading ? "Yes" : "No"}</p>
+            </div>
+          </details>
         </div>
       </div>
     </div>

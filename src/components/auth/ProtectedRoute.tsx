@@ -11,8 +11,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isLoading, initialized } = useAuth();
 
-  // Only show loader if we're loading and haven't initialized yet
-  // Added a timeout to avoid infinite loading
+  // Timeout handling for better UX
   const [showTimeout, setShowTimeout] = React.useState(false);
 
   React.useEffect(() => {
@@ -26,12 +25,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
-  // If we have a user, just render the children immediately
+  // Early return if we have a user - no need to wait
   if (user) {
     return <>{children}</>;
   }
 
-  // Only show loading state if still loading and less than 3 seconds have passed
+  // Show loading state only if we're still loading and haven't timed out
   if (isLoading && !showTimeout) {
     return (
       <div className="flex items-center justify-center h-screen">

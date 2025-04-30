@@ -39,12 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update state with the new session information
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        setInitialized(true);
         setIsLoading(false);
+        setInitialized(true);
         
         // Check guest mode after auth state changes
         const path = window.location.pathname;
-        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+        const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
         setIsGuest(!currentSession && isGuestAccessiblePath);
       }
     );
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Check initial guest mode
         const path = window.location.pathname;
-        const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+        const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
         setIsGuest(!data.session && isGuestAccessiblePath);
       } catch (error) {
         console.error("Error getting session:", error);
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Monitor URL changes for guest mode
     const handleRouteChange = () => {
       const path = window.location.pathname;
-      const isGuestAccessiblePath = ['/lists', '/recipes'].includes(path);
+      const isGuestAccessiblePath = ['/lists', '/recipes'].some(p => path.startsWith(p));
       setIsGuest(!session && isGuestAccessiblePath);
     };
     
