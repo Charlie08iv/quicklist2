@@ -9,7 +9,7 @@ import { getListById, addItemToList, removeItemFromList, updateShoppingItem, upd
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ListOptionsMenu from "@/components/lists/ListOptionsMenu";
-import ShareOptions from "./ShareOptionsDialog";
+import ShareOptions from "@/components/lists/ShareOptionsDialog";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
