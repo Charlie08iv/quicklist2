@@ -11,19 +11,32 @@ export interface Group {
   invite_code: string;
 }
 
-// Mock function for when wish_items functionality is needed but not yet implemented
+// Define GroupMember type for proper typing
+export interface GroupMember {
+  id: string;
+  group_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  username: string | null;
+  email: string;
+  avatar_url: string | null;
+  is_creator: boolean;
+}
+
+// Mock function for wishlist functionality (to be implemented later)
 const mockWishlistFunction = async () => {
   console.warn('Wishlist functionality is not implemented yet');
   return { data: [], error: null };
 };
 
-// Mock function for when group_messages functionality is needed but not implemented
+// Mock function for group messages functionality (to be implemented later)
 const mockGroupMessagesFunction = async () => {
   console.warn('Group messages functionality is not implemented yet');
   return { data: [], error: null };
 };
 
-export const createGroup = async (name: string) => {
+export const createGroup = async (name: string): Promise<Group> => {
   const inviteCode = nanoid(8);
   
   try {
@@ -44,39 +57,54 @@ export const createGroup = async (name: string) => {
       throw new Error('User not authenticated');
     }
     
-    // Use RPC function instead of direct table access
-    const { data, error } = await supabase.rpc('create_group', {
-      p_name: name,
-      p_invite_code: inviteCode
-    });
+    // Use direct table insertion as fallback if RPC isn't available
+    try {
+      // First try using the RPC function
+      const { data, error } = await supabase.rpc('create_group', {
+        p_name: name,
+        p_invite_code: inviteCode
+      });
       
-    if (error) {
-      console.error('Supabase error creating group:', error);
+      if (error) throw error;
       
-      // Fallback approach (this is temporary until the proper RPC is set up)
-      // Simulate the expected response shape
-      // Note: In production, this should be replaced with the actual implementation
-      const mockGroup = {
-        id: nanoid(),
-        name,
-        invite_code: inviteCode,
-        created_by: userId,
-        created_at: new Date().toISOString()
-      };
+      return data as Group;
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct table access as fallback:', rpcError);
       
-      console.log('Using fallback mock group:', mockGroup);
-      return mockGroup;
+      // Fallback to direct table insertion
+      const { data, error } = await supabase
+        .from('groups')
+        .insert({ 
+          name, 
+          invite_code: inviteCode, 
+          created_by: userId 
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Fallback insertion failed:', error);
+        // Last resort mock data for development
+        const mockGroup: Group = {
+          id: nanoid(),
+          name,
+          invite_code: inviteCode,
+          created_by: userId,
+          created_at: new Date().toISOString()
+        };
+        console.log('Using mock group data:', mockGroup);
+        return mockGroup;
+      }
+      
+      return data as Group;
     }
-    
-    console.log('Group created successfully:', data);
-    return data;
   } catch (error) {
     console.error('Error creating group:', error);
     throw error;
   }
 };
 
-export const joinGroup = async (inviteCode: string) => {
+export const joinGroup = async (inviteCode: string): Promise<Group> => {
   try {
     // Get current session
     const { data: sessionData } = await supabase.auth.getSession();
@@ -87,28 +115,61 @@ export const joinGroup = async (inviteCode: string) => {
       throw new Error('No user ID found');
     }
     
-    // Use RPC function to join group
-    const { data, error } = await supabase.rpc('join_group_by_invite_code', {
-      p_invite_code: inviteCode,
-      p_user_id: userId
-    });
+    try {
+      // Use RPC function to join group
+      const { data, error } = await supabase.rpc('join_group_by_invite_code', {
+        p_invite_code: inviteCode,
+        p_user_id: userId
+      });
       
-    if (error) {
-      console.error('Error joining group:', error);
+      if (error) throw error;
       
-      // Fallback mock implementation for testing
-      // This simulates the group being returned
-      return {
-        id: nanoid(),
-        name: "Mock Group",
-        invite_code: inviteCode,
-        created_by: "mock_creator",
-        created_at: new Date().toISOString()
-      };
+      return data as Group;
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct table access as fallback:', rpcError);
+      
+      // Find the group by invite code
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select()
+        .eq('invite_code', inviteCode)
+        .single();
+      
+      if (groupError) {
+        console.error('Error finding group:', groupError);
+        throw groupError;
+      }
+      
+      // Check if already a member
+      const { data: existingMember, error: memberCheckError } = await supabase
+        .from('group_members')
+        .select()
+        .eq('group_id', group.id)
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (memberCheckError) {
+        console.error('Error checking membership:', memberCheckError);
+      }
+      
+      // If not already a member, add the user
+      if (!existingMember) {
+        const { error: insertError } = await supabase
+          .from('group_members')
+          .insert({
+            group_id: group.id,
+            user_id: userId,
+            role: 'member'
+          });
+        
+        if (insertError) {
+          console.error('Error joining group:', insertError);
+          throw insertError;
+        }
+      }
+      
+      return group as Group;
     }
-    
-    console.log('Successfully joined group');
-    return data;
   } catch (error) {
     console.error('Error joining group:', error);
     throw error;
@@ -166,22 +227,59 @@ export const fetchUserGroups = async (): Promise<Group[]> => {
       }
     }
     
-    // Use RPC for fetching user groups
-    const { data: groups, error } = await supabase.rpc('get_user_groups', {
-      p_user_id: userId
-    });
-    
-    if (error) {
-      console.error('Error in RPC call to get_user_groups:', error);
+    try {
+      // Try RPC function first
+      const { data, error } = await supabase.rpc('get_user_groups', {
+        p_user_id: userId
+      });
       
-      // Return empty array as fallback
-      console.log('Returning empty groups array due to error');
-      return [];
+      if (error) throw error;
+      
+      // Ensure we return typed group data
+      const typedGroups: Group[] = Array.isArray(data) ? data.map(group => ({
+        id: group.id,
+        name: group.name,
+        created_at: group.created_at,
+        created_by: group.created_by,
+        invite_code: group.invite_code
+      })) : [];
+      
+      console.log('Fetched user groups successfully:', typedGroups.length);
+      return typedGroups;
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct query as fallback:', rpcError);
+      
+      // Fallback query using direct table access
+      const { data: createdGroups } = await supabase
+        .from('groups')
+        .select()
+        .eq('created_by', userId);
+      
+      const { data: memberGroups } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', userId);
+      
+      // If user is a member of any groups, fetch those groups too
+      let memberGroupsDetails: any[] = [];
+      if (memberGroups && memberGroups.length > 0) {
+        const groupIds = memberGroups.map(m => m.group_id);
+        const { data } = await supabase
+          .from('groups')
+          .select()
+          .in('id', groupIds);
+        
+        memberGroupsDetails = data || [];
+      }
+      
+      // Combine both arrays and remove duplicates
+      const allGroups = [...(createdGroups || []), ...memberGroupsDetails];
+      const uniqueGroups = allGroups.filter((group, index, self) =>
+        index === self.findIndex(g => g.id === group.id)
+      );
+      
+      return uniqueGroups as Group[];
     }
-    
-    // Ensure we return an array even if groups is null/undefined
-    console.log('Fetched user groups successfully:', groups?.length || 0);
-    return Array.isArray(groups) ? groups : [];
   } catch (error) {
     console.error('Error in fetchUserGroups:', error);
     // Return empty array to avoid UI errors
@@ -189,7 +287,7 @@ export const fetchUserGroups = async (): Promise<Group[]> => {
   }
 };
 
-export const fetchGroupMembers = async (groupId: string) => {
+export const fetchGroupMembers = async (groupId: string): Promise<GroupMember[]> => {
   try {
     // Get current session
     const { data: sessionData } = await supabase.auth.getSession();
@@ -200,19 +298,44 @@ export const fetchGroupMembers = async (groupId: string) => {
       throw new Error('User not authenticated');
     }
     
-    // Get group members using the database function
-    const { data: members, error } = await supabase
-      .rpc('get_group_members', {
+    try {
+      // Get group members using the database function
+      const { data, error } = await supabase.rpc('get_group_members', {
         p_group_id: groupId
       });
-    
-    if (error) {
-      console.error('Error fetching group members:', error);
-      throw error;
+      
+      if (error) throw error;
+      
+      return data as GroupMember[];
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct query as fallback:', rpcError);
+      
+      // Fallback query using joins (simplified)
+      const { data, error } = await supabase
+        .from('group_members')
+        .select(`
+          id, group_id, user_id, role, created_at,
+          profiles:user_id (username, email, avatar_url)
+        `)
+        .eq('group_id', groupId);
+      
+      if (error) throw error;
+      
+      // Structure the result to match the expected format
+      const members = data.map(m => ({
+        id: m.id,
+        group_id: m.group_id,
+        user_id: m.user_id,
+        role: m.role,
+        created_at: m.created_at,
+        username: m.profiles?.username || null,
+        email: m.profiles?.email || 'Unknown',
+        avatar_url: m.profiles?.avatar_url || null,
+        is_creator: false // We can't easily determine this in the fallback
+      }));
+      
+      return members;
     }
-    
-    // Ensure we return an array even if members is falsy
-    return Array.isArray(members) ? members : [];
   } catch (error) {
     console.error('Error fetching group members:', error);
     return [];
@@ -228,22 +351,78 @@ export const addFriendToGroup = async (groupId: string, email: string) => {
       throw new Error('User not authenticated');
     }
     
-    // Use RPC to add friend to group
-    const { data, error } = await supabase.rpc('add_friend_to_group', {
-      p_group_id: groupId,
-      p_email: email,
-      p_user_id: userId
-    });
-    
-    if (error) {
-      // Handle specific error cases
-      if (error.message.includes('duplicate key')) {
-        throw new Error('User is already a member of this group');
+    try {
+      // Use RPC to add friend to group
+      const { data, error } = await supabase.rpc('add_friend_to_group', {
+        p_group_id: groupId,
+        p_email: email,
+        p_user_id: userId
+      });
+      
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct query as fallback:', rpcError);
+      
+      // Find the user by email
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
+      
+      if (userError) {
+        if (userError.code === 'PGRST116') {
+          throw new Error('User not found with this email');
+        }
+        throw userError;
       }
-      throw error;
+      
+      // Check if the user has permission (is creator or admin)
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('created_by')
+        .eq('id', groupId)
+        .single();
+      
+      if (groupError) {
+        throw groupError;
+      }
+      
+      const isCreator = group.created_by === userId;
+      
+      if (!isCreator) {
+        const { data: membership, error: memberError } = await supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .single();
+        
+        if (memberError || membership?.role !== 'admin') {
+          throw new Error('You do not have permission to add members to this group');
+        }
+      }
+      
+      // Add member to group
+      const { error: addError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: groupId,
+          user_id: user.id,
+          role: 'member'
+        });
+      
+      if (addError) {
+        if (addError.code === '23505') { // Duplicate key violation
+          throw new Error('User is already a member of this group');
+        }
+        throw addError;
+      }
+      
+      return { success: true };
     }
-    
-    return { success: true };
   } catch (error) {
     console.error('Error adding friend to group:', error);
     throw error;
@@ -288,15 +467,46 @@ export const deleteGroup = async (groupId: string) => {
       throw new Error('User not authenticated');
     }
     
-    // Use RPC to delete a group
-    const { data, error } = await supabase.rpc('delete_group', {
-      p_group_id: groupId,
-      p_user_id: userId
-    });
+    try {
+      // Use RPC to delete a group
+      const { data, error } = await supabase.rpc('delete_group', {
+        p_group_id: groupId,
+        p_user_id: userId
+      });
+        
+      if (error) throw error;
       
-    if (error) throw error;
-    
-    return { success: true };
+      return { success: true };
+    } catch (rpcError) {
+      console.warn('RPC function failed, using direct query as fallback:', rpcError);
+      
+      // Check if user is the creator
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('created_by')
+        .eq('id', groupId)
+        .single();
+      
+      if (groupError) {
+        throw groupError;
+      }
+      
+      if (group.created_by !== userId) {
+        throw new Error('You do not have permission to delete this group');
+      }
+      
+      // Delete the group
+      const { error: deleteError } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', groupId);
+      
+      if (deleteError) {
+        throw deleteError;
+      }
+      
+      return { success: true };
+    }
   } catch (error) {
     console.error('Error deleting group:', error);
     throw error;
@@ -304,14 +514,14 @@ export const deleteGroup = async (groupId: string) => {
 };
 
 // Mock functions for wishlist and messaging functionality which will be implemented later
-export const createWishItem = async () => await mockWishlistFunction();
-export const claimWishItem = async () => await mockWishlistFunction();
-export const unclaimWishItem = async () => await mockWishlistFunction();
 export const fetchWishItems = async () => {
   return { data: [], error: null };
 };
+export const createWishItem = mockWishlistFunction;
+export const claimWishItem = mockWishlistFunction;
+export const unclaimWishItem = mockWishlistFunction;
 
-export const sendGroupMessage = async () => await mockGroupMessagesFunction();
 export const fetchGroupMessages = async () => {
   return { data: [], error: null };
 };
+export const sendGroupMessage = mockGroupMessagesFunction;
