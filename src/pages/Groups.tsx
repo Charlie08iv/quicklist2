@@ -7,7 +7,7 @@ import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups, Group } from "@/services/groupService";
+import { fetchUserGroups, type Group } from "@/services/groupService";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,14 +15,6 @@ import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Group {
-  id: string;
-  name: string;
-  created_at: string;
-  created_by: string;
-  invite_code: string;
-}
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
@@ -97,17 +89,19 @@ const Groups: React.FC = () => {
       
       console.log('Starting group fetch for user:', activeSession?.user?.id);
 
-      // Use the service function - make sure we get an array back
+      // Use the service function
       const fetchedGroups = await fetchUserGroups();
       console.log('Groups fetch result:', fetchedGroups);
       
       // Ensure we always set an array to state
-      setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : []);
-      setFetchAttempted(true);
-      
-      if (!fetchedGroups || fetchedGroups.length === 0) {
-        console.log('No groups found for user');
+      if (Array.isArray(fetchedGroups)) {
+        setGroups(fetchedGroups);
+      } else {
+        console.error('Expected array of groups but got:', typeof fetchedGroups);
+        setGroups([]);
       }
+      
+      setFetchAttempted(true);
     } catch (error: any) {
       console.error("Error loading groups:", error);
       setError(error.message || "Failed to load groups. Please try again.");

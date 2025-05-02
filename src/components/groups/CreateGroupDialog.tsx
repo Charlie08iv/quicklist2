@@ -56,8 +56,13 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     setIsLoading(true);
     try {
       console.log('Creating group with name:', groupName);
+      
       // Call the createGroup function with the group name
       const group = await createGroup(groupName);
+      
+      if (!group) {
+        throw new Error("Failed to create group");
+      }
       
       console.log('Group created:', group);
       toast.success(t("groupCreated"));
