@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups } from "@/services/groupService";
+import { fetchUserGroups, Group } from "@/services/groupService";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,10 +97,12 @@ const Groups: React.FC = () => {
       
       console.log('Starting group fetch for user:', activeSession?.user?.id);
 
-      // Use the service function
+      // Use the service function - make sure we get an array back
       const fetchedGroups = await fetchUserGroups();
       console.log('Groups fetch result:', fetchedGroups);
-      setGroups(fetchedGroups || []);
+      
+      // Ensure we always set an array to state
+      setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : []);
       setFetchAttempted(true);
       
       if (!fetchedGroups || fetchedGroups.length === 0) {

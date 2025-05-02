@@ -11,6 +11,13 @@ import { createGroup } from "@/services/groupService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Link, Users } from "lucide-react";
 
+// Define the appropriate Group type
+interface GroupData {
+  id: string;
+  name: string;
+  invite_code: string;
+}
+
 interface CreateGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,7 +32,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
   
   // Group creation flow states
   const [step, setStep] = useState<"naming" | "sharing">("naming");
-  const [createdGroup, setCreatedGroup] = useState<{id: string, name: string, invite_code: string} | null>(null);
+  const [createdGroup, setCreatedGroup] = useState<GroupData | null>(null);
   const [activeTab, setActiveTab] = useState<"code" | "link">("code");
   
   // Reset form when dialog opens
@@ -59,8 +66,15 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
       console.log('Group created:', group);
       toast.success(t("groupCreated"));
       
+      // Ensure proper type for the created group
+      const typedGroup: GroupData = {
+        id: group.id,
+        name: group.name,
+        invite_code: group.invite_code
+      };
+      
       // Move to sharing step
-      setCreatedGroup(group);
+      setCreatedGroup(typedGroup);
       setStep("sharing");
       
       // Don't close the dialog yet, allow sharing first

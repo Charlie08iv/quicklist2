@@ -1,298 +1,168 @@
-import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { User, Mail, Lock, Trash2, ArrowLeft, LogOut, Save } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useTranslation } from "@/hooks/use-translation";
 
-const Account = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "@/hooks/use-translation";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+
+const Account: React.FC = () => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [name, setName] = useState(user?.user_metadata?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { user, isLoggedIn, isLoading } = useAuth();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [directSessionCheck, setDirectSessionCheck] = useState<{loading: boolean, valid: boolean}>({
+    loading: true,
+    valid: false
+  });
 
   useEffect(() => {
-    if (user) {
-      loadProfile();
-    }
-  }, [user]);
-
-  const loadProfile = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('avatar_url, username')
-        .eq('id', user?.id)
-        .single();
-      
-      if (error) throw error;
-      
-      if (data) {
-        setAvatarUrl(data.avatar_url);
-        setName(data.username || name);
-      }
-    } catch (error: any) {
-      console.error('Error loading profile:', error.message);
-    }
-  };
-
-  const updateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        email: email,
-        data: { name: name }
-      });
-
-      if (updateError) throw updateError;
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          username: name,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user?.id);
-
-      if (profileError) throw profileError;
-      
-      toast({
-        title: t("Profile updated"),
-        description: t("Your profile has been successfully updated."),
-      });
-    } catch (error: any) {
-      toast({
-        title: t("Error"),
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    try {
-      setLoading(true);
-      
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${Math.random()}.${fileExt}`;
-      
-      const { error: uploadError, data } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(publicUrl);
-      toast({
-        title: t("Profile picture updated"),
-        description: t("Your profile picture has been updated successfully."),
-      });
-    } catch (error: any) {
-      toast({
-        title: t("Error"),
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(user?.email || "", {
-        redirectTo: `${window.location.origin}/account`,
-      });
-      if (error) throw error;
-      
-      toast({
-        title: t("Password reset email sent"),
-        description: t("Check your email for the password reset link."),
-      });
-    } catch (error: any) {
-      toast({
-        title: t("Error"),
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (window.confirm(t("Are you sure you want to delete your account? This action cannot be undone."))) {
+    // Direct session check for added reliability
+    const checkSession = async () => {
       try {
-        const { error } = await supabase.auth.admin.deleteUser(user?.id || "");
-        if (error) throw error;
+        const { data, error } = await supabase.auth.getSession();
+        setDirectSessionCheck({
+          loading: false,
+          valid: !!data.session
+        });
         
-        await signOut();
-        navigate("/auth");
-        toast({
-          title: t("Account deleted"),
-          description: t("Your account has been successfully deleted."),
-        });
-      } catch (error: any) {
-        toast({
-          title: t("Error"),
-          description: error.message,
-          variant: "destructive",
-        });
+        if (data.session?.user) {
+          setEmail(data.session.user.email || "");
+          
+          // Try to fetch profile data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', data.session.user.id)
+            .maybeSingle();
+            
+          if (profile?.username) {
+            setUsername(profile.username);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking session:", err);
+        setDirectSessionCheck({loading: false, valid: false});
       }
-    }
-  };
+    };
+    
+    checkSession();
+  }, []);
 
-  const handleNameClick = () => {
-    const nameInput = document.getElementById('name-input') as HTMLInputElement;
-    if (nameInput) {
-      nameInput.focus();
-      nameInput.select();
-    }
-  };
+  if (isLoading || directSessionCheck.loading) {
+    return (
+      <div className="container max-w-lg mx-auto p-4">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">{t("verifyingAuthentication")}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleEmailClick = () => {
-    const emailInput = document.getElementById('email-input') as HTMLInputElement;
-    if (emailInput) {
-      emailInput.focus();
-      emailInput.select();
+  // Double-check authentication to ensure account page only loads for authenticated users
+  if (!isLoggedIn && !directSessionCheck.valid) {
+    toast.error(t("pleaseLoginToAccessAccount"));
+    return <Navigate to="/auth" />;
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!user?.id) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          username 
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast.success(t("profileUpdated"));
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || t("errorUpdatingProfile"));
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen p-4 bg-[#092211]">
-      <div className="max-w-md mx-auto space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          <Button 
-            variant="ghost" 
-            className="text-white hover:bg-[#1a472a]"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold text-white">{t("account")}</h1>
-          <div className="w-8" />
-        </div>
-
-        <form onSubmit={updateProfile} className="space-y-6">
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <Avatar className="h-24 w-24 border-4 border-[#1a472a] bg-[#1a472a]">
-                <AvatarImage src={avatarUrl || undefined} />
-                <AvatarFallback>
-                  <User className="h-12 w-12 text-white/60" />
-                </AvatarFallback>
-              </Avatar>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                id="avatar-upload"
-                onChange={handleFileChange}
-                disabled={loading}
-              />
-              <label
-                htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 p-1.5 bg-[#1a472a] rounded-full cursor-pointer hover:bg-[#2a573a] transition-colors"
-              >
-                <User className="h-4 w-4 text-white" />
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">
-                {t("Name")}
-              </label>
-              <Input
-                id="name-input"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-[#1a472a] border-[#2a573a] text-white"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">
-                {t("Email")}
-              </label>
-              <Input
-                id="email-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-[#1a472a] border-[#2a573a] text-white"
-                disabled={loading}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-[#1a472a] hover:bg-[#2a573a] text-white"
-              disabled={loading}
-            >
-              <Save className="mr-2 h-5 w-5" />
-              {t("Save Changes")}
-            </Button>
-          </div>
-        </form>
-
-        <div className="space-y-4 pt-6">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={handlePasswordReset}
-            disabled={loading}
-          >
-            <Lock className="mr-2 h-5 w-5" />
-            {t("Change Password")}
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={signOut}
-            disabled={loading}
-          >
-            <LogOut className="mr-2 h-5 w-5" />
-            {t("Log Out")}
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-red-500 text-lg bg-[#1a472a] hover:bg-[#2a573a]"
-            onClick={handleDeleteAccount}
-            disabled={loading}
-          >
-            <Trash2 className="mr-2 h-5 w-5" />
-            {t("Delete Account")}
-          </Button>
-        </div>
-      </div>
+    <div className="container max-w-lg mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">{t("account")}</h1>
+      
+      <Tabs defaultValue="profile">
+        <TabsList className="grid grid-cols-2 w-full mb-6">
+          <TabsTrigger value="profile">{t("profile")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("settings")}</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profileInfo")}</CardTitle>
+              <CardDescription>
+                {t("updateYourPersonalDetails")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">{t("username")}</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={t("enterUsername")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">{t("email")}</Label>
+                <Input
+                  id="email"
+                  value={email}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">{t("emailCannotBeChanged")}</p>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleUpdateProfile} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("saving")}
+                  </>
+                ) : t("saveChanges")}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("accountSettings")}</CardTitle>
+              <CardDescription>
+                {t("manageYourAccountSettings")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Settings content will be added here */}
+              <p className="text-muted-foreground">{t("settingsFutureFeature")}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
