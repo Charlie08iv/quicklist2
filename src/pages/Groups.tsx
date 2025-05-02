@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { JoinGroupDialog } from "@/components/groups/JoinGroupDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchUserGroups, type Group } from "@/services/groupService";
+import { fetchUserGroups } from "@/services/groupService";
+import type { Group } from "@/services/groupService"; // Import only the type to avoid conflict
 import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";

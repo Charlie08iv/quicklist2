@@ -24,14 +24,16 @@ export interface GroupMember {
   is_creator: boolean;
 }
 
-// Type guard to verify if a value is a Group
-const isGroup = (value: any): value is Group => {
-  return (
-    value &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.invite_code === 'string'
-  );
+// Helper function to parse JSON response from RPC functions
+const parseJsonResponse = (data: any): any => {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return data;
+    }
+  }
+  return data;
 };
 
 export const createGroup = async (name: string): Promise<Group> => {
@@ -55,11 +57,15 @@ export const createGroup = async (name: string): Promise<Group> => {
       throw new Error('User not authenticated');
     }
     
-    // Use the RPC function to create the group
-    const { data, error } = await supabase.rpc('create_group', {
-      p_name: name,
-      p_invite_code: inviteCode
-    });
+    // Call the create_group RPC function with the current parameters
+    // This RPC needs to be called directly via rpc() because it's not in the type definition
+    const { data, error } = await supabase.rpc(
+      'create_group', 
+      { 
+        p_name: name,
+        p_invite_code: inviteCode
+      }
+    );
     
     if (error) {
       console.error('Error creating group with RPC:', error);
@@ -70,13 +76,16 @@ export const createGroup = async (name: string): Promise<Group> => {
       throw new Error('Failed to create group');
     }
     
-    // Convert the JSONB result to a properly typed Group
+    // Parse the JSON result returned by the RPC function
+    const parsedData = parseJsonResponse(data);
+    
+    // Convert the result to a properly typed Group
     const group: Group = {
-      id: data.id,
-      name: data.name,
-      created_at: data.created_at,
-      created_by: data.created_by,
-      invite_code: data.invite_code
+      id: parsedData.id,
+      name: parsedData.name,
+      created_at: parsedData.created_at,
+      created_by: parsedData.created_by,
+      invite_code: parsedData.invite_code
     };
     
     return group;
@@ -113,10 +122,13 @@ export const joinGroup = async (inviteCode: string): Promise<Group> => {
     }
     
     // Use RPC function to join group
-    const { data, error } = await supabase.rpc('join_group_by_invite_code', {
-      p_invite_code: inviteCode,
-      p_user_id: userId
-    });
+    const { data, error } = await supabase.rpc(
+      'join_group_by_invite_code', 
+      {
+        p_invite_code: inviteCode,
+        p_user_id: userId
+      }
+    );
     
     if (error) {
       console.error('Error joining group with RPC:', error);
@@ -127,13 +139,16 @@ export const joinGroup = async (inviteCode: string): Promise<Group> => {
       throw new Error('Failed to join group');
     }
     
-    // Convert the JSONB result to a properly typed Group
+    // Parse the JSON result returned by the RPC function
+    const parsedData = parseJsonResponse(data);
+    
+    // Convert the result to a properly typed Group
     const group: Group = {
-      id: data.id,
-      name: data.name,
-      created_at: data.created_at,
-      created_by: data.created_by,
-      invite_code: data.invite_code
+      id: parsedData.id,
+      name: parsedData.name,
+      created_at: parsedData.created_at,
+      created_by: parsedData.created_by,
+      invite_code: parsedData.invite_code
     };
     
     return group;
@@ -194,9 +209,12 @@ export const fetchUserGroups = async (): Promise<Group[]> => {
     }
     
     // Use the RPC function to get user groups
-    const { data, error } = await supabase.rpc('get_user_groups', {
-      p_user_id: userId
-    });
+    const { data, error } = await supabase.rpc(
+      'get_user_groups', 
+      {
+        p_user_id: userId
+      }
+    );
     
     if (error) {
       console.error('Error fetching groups with RPC:', error);
@@ -239,9 +257,12 @@ export const fetchGroupMembers = async (groupId: string): Promise<GroupMember[]>
     }
     
     // Get group members using the database function
-    const { data, error } = await supabase.rpc('get_group_members', {
-      p_group_id: groupId
-    });
+    const { data, error } = await supabase.rpc(
+      'get_group_members', 
+      {
+        p_group_id: groupId
+      }
+    );
     
     if (error) {
       console.error('Error fetching group members with RPC:', error);
@@ -269,11 +290,14 @@ export const addFriendToGroup = async (groupId: string, email: string) => {
     }
     
     // Use RPC to add friend to group
-    const { data, error } = await supabase.rpc('add_friend_to_group', {
-      p_group_id: groupId,
-      p_email: email,
-      p_user_id: userId
-    });
+    const { data, error } = await supabase.rpc(
+      'add_friend_to_group', 
+      {
+        p_group_id: groupId,
+        p_email: email,
+        p_user_id: userId
+      }
+    );
     
     if (error) {
       console.error('Error adding friend to group with RPC:', error);
@@ -326,10 +350,13 @@ export const deleteGroup = async (groupId: string) => {
     }
     
     // Use RPC to delete a group
-    const { data, error } = await supabase.rpc('delete_group', {
-      p_group_id: groupId,
-      p_user_id: userId
-    });
+    const { data, error } = await supabase.rpc(
+      'delete_group', 
+      {
+        p_group_id: groupId,
+        p_user_id: userId
+      }
+    );
       
     if (error) {
       console.error('Error deleting group with RPC:', error);

@@ -60,6 +60,62 @@ export type Database = {
         }
         Relationships: []
       }
+      group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       meals: {
         Row: {
           created_at: string
@@ -202,6 +258,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_friend_to_group: {
+        Args: { p_group_id: string; p_email: string; p_user_id: string }
+        Returns: boolean
+      }
       add_group_member: {
         Args: { p_group_id: string; p_user_id: string; p_role?: string }
         Returns: undefined
@@ -211,6 +271,14 @@ export type Database = {
         Returns: boolean
       }
       check_group_membership: {
+        Args: { p_group_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      create_group: {
+        Args: { p_name: string; p_invite_code: string }
+        Returns: Json
+      }
+      delete_group: {
         Args: { p_group_id: string; p_user_id: string }
         Returns: boolean
       }
@@ -227,6 +295,20 @@ export type Database = {
           avatar_url: string
           is_creator: boolean
         }[]
+      }
+      get_user_groups: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+          name: string
+        }[]
+      }
+      join_group_by_invite_code: {
+        Args: { p_invite_code: string; p_user_id: string }
+        Returns: Json
       }
       user_can_claim_wish_item: {
         Args: { item_id_param: string; user_id_param: string }
