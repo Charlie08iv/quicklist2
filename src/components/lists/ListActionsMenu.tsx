@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -23,7 +22,7 @@ import {
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
 import { renameShoppingList, archiveShoppingList, deleteShoppingList } from "@/services/listService";
-import ShareOptionsDialog from "./ShareOptionsDialog";
+import ShareOptions from "./ShareOptionsDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,7 +39,7 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [newName, setNewName] = useState(list.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleRename = async (e?: React.FormEvent) => {
@@ -171,7 +170,7 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
             e.preventDefault();
             e.stopPropagation();
             setMenuOpen(false);
-            setShowShareDialog(true);
+            setIsSharing(true);
           }}>
             <Share className="mr-2 h-4 w-4" />
             {t("Share")}
@@ -298,17 +297,13 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
         </DialogContent>
       </Dialog>
       
-      {/* Share Dialog */}
-      {showShareDialog && (
-        <ShareOptionsDialog 
+      {/* Share functionality */}
+      {isSharing && (
+        <ShareOptions 
           listId={list.id} 
-          onOpenChange={(open) => {
-            setShowShareDialog(open);
-            if (!open) {
-              setTimeout(() => {
-                onListUpdated();
-              }, 100);
-            }
+          onComplete={() => {
+            setIsSharing(false);
+            onListUpdated();
           }} 
         />
       )}

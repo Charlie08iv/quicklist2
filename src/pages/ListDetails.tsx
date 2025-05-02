@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
 import TranslatedListItemManager from "@/components/lists/TranslatedListItemManager";
 import { ShoppingList, ShoppingItem } from "@/types/lists";
-import { getListById, addItemToList, removeItemFromList, updateShoppingItem, updateItemOrder } from "@/services/listService";
+import { getListById, addItemToList, removeItemFromList, updateShoppingItem, updateItemOrder, shareList } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ListOptionsMenu from "@/components/lists/ListOptionsMenu";
-import ShareOptionsDialog from "@/components/lists/ShareOptionsDialog";
+import ShareOptions from "./ShareOptionsDialog";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
@@ -20,7 +20,7 @@ const ListDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [showPrices, setShowPrices] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [sortType, setSortType] = useState("category"); // Default sort by category
 
   const loadList = useCallback(async () => {
@@ -173,28 +173,10 @@ const ListDetails: React.FC = () => {
     }
   };
 
-  const handleShare = useCallback(() => {
-    // Check if native sharing is available first
-    if (navigator.share) {
-      // If we have the list and it has an id, generate the share URL
-      if (list && list.id) {
-        const shareUrl = `${window.location.origin}/shared-list/${list.id}`;
-        
-        // Try to use the native share dialog
-        navigator.share({
-          title: list.name || 'Shopping List',
-          text: 'Check out this shopping list',
-          url: shareUrl,
-        }).catch(error => {
-          // If native sharing fails or is cancelled, show our custom dialog
-          console.log('Error sharing:', error);
-          setShowShareDialog(true);
-        });
-      }
-    } else {
-      // Fall back to our custom dialog if Web Share API is not available
-      setShowShareDialog(true);
-    }
+  const handleShare = useCallback(async () => {
+    if (!list || !list.id) return;
+    
+    setIsSharing(true);
   }, [list]);
 
   const handleSort = useCallback((type: string) => {
@@ -394,15 +376,11 @@ const ListDetails: React.FC = () => {
           onReorderItems={handleReorderItems}
         />
 
-        {showShareDialog && (
-          <ShareOptionsDialog 
+        {isSharing && (
+          <ShareOptions 
             listId={list.id} 
-            onOpenChange={(open) => {
-              if (!open) {
-                setTimeout(() => {
-                  setShowShareDialog(false);
-                }, 50);
-              }
+            onComplete={() => {
+              setIsSharing(false);
             }}
           />
         )}

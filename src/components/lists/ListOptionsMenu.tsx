@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
@@ -8,8 +7,6 @@ import {
   ArrowDownAZ, 
   DollarSign, 
   CheckCheck,
-  MessageSquare,
-  Contact,
   ListOrdered
 } from "lucide-react";
 import {
@@ -24,7 +21,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import ShareOptionsDialog from "./ShareOptionsDialog";
+import ShareOptions from "./ShareOptionsDialog";
 
 interface ListOptionsMenuProps {
   listId: string;
@@ -41,7 +38,7 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
 }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Use useCallback to memoize event handlers
@@ -51,7 +48,7 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
       e.stopPropagation();
     }
     setIsMenuOpen(false);
-    setShareDialogOpen(true);
+    setIsSharing(true);
   }, []);
 
   const handleSort = useCallback((sortType: string) => (e: React.MouseEvent) => {
@@ -170,17 +167,10 @@ const ListOptionsMenu: React.FC<ListOptionsMenuProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {shareDialogOpen && (
-        <ShareOptionsDialog 
+      {isSharing && (
+        <ShareOptions 
           listId={listId} 
-          onOpenChange={(open) => {
-            if (!open) {
-              // Use a longer setTimeout to defer state update and prevent freezing
-              setTimeout(() => {
-                setShareDialogOpen(false);
-              }, 50);
-            }
-          }} 
+          onComplete={() => setIsSharing(false)} 
         />
       )}
     </>
