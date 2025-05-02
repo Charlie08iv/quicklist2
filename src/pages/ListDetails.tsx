@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
@@ -175,8 +174,28 @@ const ListDetails: React.FC = () => {
   };
 
   const handleShare = useCallback(() => {
-    setShowShareDialog(true);
-  }, []);
+    // Check if native sharing is available first
+    if (navigator.share) {
+      // If we have the list and it has an id, generate the share URL
+      if (list && list.id) {
+        const shareUrl = `${window.location.origin}/shared-list/${list.id}`;
+        
+        // Try to use the native share dialog
+        navigator.share({
+          title: list.name || 'Shopping List',
+          text: 'Check out this shopping list',
+          url: shareUrl,
+        }).catch(error => {
+          // If native sharing fails or is cancelled, show our custom dialog
+          console.log('Error sharing:', error);
+          setShowShareDialog(true);
+        });
+      }
+    } else {
+      // Fall back to our custom dialog if Web Share API is not available
+      setShowShareDialog(true);
+    }
+  }, [list]);
 
   const handleSort = useCallback((type: string) => {
     setSortType(type);

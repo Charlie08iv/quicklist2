@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { shareList } from "@/services/listService";
-import { Loader2, Copy, Check, Share, Facebook, Twitter, Mail, Link as LinkIcon, MessageSquare, Contact } from "lucide-react";
+import { Loader2, Copy, Check, Share2 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,8 +21,12 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [canUseWebShare, setCanUseWebShare] = useState(false);
 
   useEffect(() => {
+    // Check if Web Share API is available
+    setCanUseWebShare(!!navigator.share);
+    
     if (open && !shareLink && !isSubmitting) {
       handleShare();
     }
@@ -63,6 +68,11 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
           title: "Link generated",
           description: "Share link has been created successfully."
         });
+        
+        // If Web Share API is available and we're on mobile, trigger it automatically
+        if (canUseWebShare && window.innerWidth < 768) {
+          handleNativeShare();
+        }
       }
     } catch (error) {
       console.error("Failed to share list:", error);
@@ -73,6 +83,36 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleNativeShare = async () => {
+    if (!shareLink) return;
+    
+    const title = "Check out this shopping list";
+    const text = "I wanted to share this shopping list with you";
+    
+    try {
+      await navigator.share({
+        title,
+        text,
+        url: shareLink
+      });
+      
+      // Close dialog after successful share on mobile
+      handleOpenChange(false);
+      
+    } catch (error) {
+      // User cancelled or share failed
+      console.error("Sharing failed:", error);
+      // Only show error if it's not a user cancellation
+      if (error.name !== 'AbortError') {
+        toast({
+          title: "Sharing failed",
+          description: "Could not open sharing options.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -90,40 +130,6 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
     setTimeout(() => {
       setIsCopied(false);
     }, 2000);
-  };
-
-  const handleShareVia = (platform: string) => {
-    if (!shareLink) return;
-    
-    let shareUrl = '';
-    const subject = encodeURIComponent('Check out this shopping list');
-    const body = encodeURIComponent(`I wanted to share this shopping list with you: ${shareLink}`);
-    
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`;
-        break;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareLink)}&text=${subject}`;
-        break;
-      case 'email':
-        shareUrl = `mailto:?subject=${subject}&body=${body}`;
-        break;
-      case 'imessage':
-        shareUrl = `sms:&body=${body}`;
-        break;
-      case 'contacts':
-        navigator.clipboard.writeText(shareLink);
-        toast({
-          title: "Ready to share with contacts",
-          description: "Link copied. You can now paste it in your contacts app."
-        });
-        return;
-      default:
-        return;
-    }
-    
-    window.open(shareUrl, '_blank');
   };
 
   return (
@@ -161,7 +167,7 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
                 onClick={handleShare} 
                 className="w-full mt-4 flex items-center gap-2"
               >
-                <Share className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
                 {t("Try Again")}
               </Button>
             </div>
@@ -187,58 +193,21 @@ const ShareOptionsDialog: React.FC<ShareOptionsDialogProps> = ({ listId, onOpenC
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label className="text-primary">{t("Share via")}</Label>
-                <div className="flex justify-center space-x-3 pt-2">
+              <div className="flex flex-col space-y-3 items-center justify-center pt-2">
+                {canUseWebShare ? (
                   <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                    onClick={() => handleShareVia('facebook')}
+                    variant="default" 
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={handleNativeShare}
                   >
-                    <Facebook className="h-5 w-5 text-blue-600" />
+                    <Share2 className="h-5 w-5" />
+                    {t("Share")}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                    onClick={() => handleShareVia('twitter')}
-                  >
-                    <Twitter className="h-5 w-5 text-blue-400" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                    onClick={() => handleShareVia('email')}
-                  >
-                    <Mail className="h-5 w-5 text-gray-600" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full hover:bg-green-100 dark:hover:bg-green-900/30"
-                    onClick={() => handleShareVia('imessage')}
-                  >
-                    <MessageSquare className="h-5 w-5 text-green-500" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                    onClick={() => handleShareVia('contacts')}
-                  >
-                    <Contact className="h-5 w-5 text-blue-700" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="rounded-full"
-                    onClick={copyToClipboard}
-                  >
-                    <LinkIcon className="h-5 w-5 text-primary" />
-                  </Button>
-                </div>
+                ) : (
+                  <div className="text-center text-sm text-muted-foreground">
+                    {t("Copy the link and share it with others")}
+                  </div>
+                )}
               </div>
             </div>
           )}
