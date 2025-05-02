@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { shareList } from "@/services/listService";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
@@ -10,30 +10,27 @@ interface ShareOptionsProps {
   onComplete?: () => void;
 }
 
-// This component no longer renders a dialog UI
-// Instead, it triggers the native share sheet directly
+// This component triggers the native share sheet
 const ShareOptions: React.FC<ShareOptionsProps> = ({ listId, onComplete }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
 
-  useEffect(() => {
-    // Trigger share automatically when component mounts
+  // Immediately trigger share when component mounts
+  React.useEffect(() => {
     handleShare();
   }, []);
 
   const handleShare = async () => {
     if (!listId) {
       toast({
-        title: "No list selected",
-        description: "Please select a list to share.",
+        title: t("No list selected"),
+        description: t("Please select a list to share."),
         variant: "destructive"
       });
       if (onComplete) onComplete();
       return;
     }
-    
-    setIsProcessing(true);
     
     try {
       const shareLink = await shareList(listId);
@@ -43,7 +40,8 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ listId, onComplete }) => {
       
       const title = t("Check out this shopping list");
       const text = t("I wanted to share this shopping list with you");
-      
+
+      // Check if the Web Share API is available (iOS, Android, newer browsers)
       if (navigator.share) {
         try {
           await navigator.share({
@@ -67,8 +65,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ listId, onComplete }) => {
           }
         }
       } else {
-        // Fallback if Web Share API is not available
-        // Copy to clipboard instead
+        // Fallback for browsers that don't support Web Share API
         await navigator.clipboard.writeText(shareLink);
         toast({
           title: t("Link copied!"),
@@ -88,6 +85,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ listId, onComplete }) => {
     }
   };
 
+  // Return a loader while processing, but it will be very brief
   return isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null;
 };
 
