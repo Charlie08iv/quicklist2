@@ -47,6 +47,9 @@ const App = () => (
                   <Route path=":listId" element={<ListDetails />} />
                 </Route>
                 <Route path="/list/:listId" element={<Navigate to="/lists/:listId" replace />} />
+                <Route path="/shared-list/:listId" element={<AppLayout />}>
+                  <Route index element={<ListDetails />} />
+                </Route>
                 <Route path="/recipes" element={<AppLayout />}>
                   <Route index element={<Recipes />} />
                 </Route>

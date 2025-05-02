@@ -221,6 +221,7 @@ export const shareList = async (listId: string): Promise<string | null> => {
       return null;
     }
 
+    // Use shared-list path instead of list to match our new route
     const shareableLink = `${window.location.origin}/shared-list/${listId}`;
     return shareableLink;
   } catch (error) {

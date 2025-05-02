@@ -60,94 +60,6 @@ export type Database = {
         }
         Relationships: []
       }
-      group_members: {
-        Row: {
-          created_at: string
-          group_id: string | null
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          group_id?: string | null
-          id?: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          group_id?: string | null
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      group_messages: {
-        Row: {
-          content: string
-          created_at: string
-          group_id: string | null
-          id: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          group_id?: string | null
-          id?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          group_id?: string | null
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_messages_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      groups: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          invite_code: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          invite_code: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          invite_code?: string
-          name?: string
-        }
-        Relationships: []
-      }
       meals: {
         Row: {
           created_at: string
@@ -285,50 +197,6 @@ export type Database = {
         }
         Relationships: []
       }
-      wish_items: {
-        Row: {
-          claimed_at: string | null
-          claimed_by: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          group_id: string | null
-          id: string
-          name: string
-          status: string | null
-        }
-        Insert: {
-          claimed_at?: string | null
-          claimed_by?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          group_id?: string | null
-          id?: string
-          name: string
-          status?: string | null
-        }
-        Update: {
-          claimed_at?: string | null
-          claimed_by?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          group_id?: string | null
-          id?: string
-          name?: string
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wish_items_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -358,16 +226,6 @@ export type Database = {
           email: string
           avatar_url: string
           is_creator: boolean
-        }[]
-      }
-      get_user_groups: {
-        Args: { p_user_id: string }
-        Returns: {
-          created_at: string
-          created_by: string
-          id: string
-          invite_code: string
-          name: string
         }[]
       }
       user_can_claim_wish_item: {

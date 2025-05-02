@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { BottomNavigation } from "./BottomNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "../ui/button";
@@ -9,9 +9,13 @@ const AppLayout = () => {
   const { isLoggedIn, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
+  
+  // Check if this is a shared list view
+  const isSharedList = location.pathname.startsWith('/shared-list/');
   
   // List of paths that can be accessed without authentication
-  const publicPaths = ['/lists', '/recipes'];
+  const publicPaths = ['/lists', '/recipes', '/shared-list'];
   const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
   const showLoginButton = !isLoggedIn && !isLoading && isPublicPath;
 
