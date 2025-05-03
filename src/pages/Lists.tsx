@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -121,7 +122,6 @@ const Lists: React.FC = () => {
               <RefreshCcw className="h-4 w-4" />
             </Button>
           )}
-          <CreateListDialog onListCreated={handleListUpdated} />
         </div>
       </div>
 
@@ -203,27 +203,32 @@ const Lists: React.FC = () => {
                       </div>
                     </Card>
                   ) : (
-                    <motion.div
-                      variants={containerVariants}
-                      initial="hidden"
-                      animate="visible"
-                      className="space-y-4"
-                    >
-                      {lists.map((list) => (
-                        <motion.div
-                          key={list.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ 
-                            duration: 0.3,
-                            type: "spring", 
-                            stiffness: 100 
-                          }}
-                        >
-                          <ShoppingListCard key={list.id} list={list} onListUpdated={handleListUpdated} />
-                        </motion.div>
-                      ))}
-                    </motion.div>
+                    <>
+                      <div className="flex justify-end mb-4">
+                        <CreateListDialog onListCreated={handleListUpdated} />
+                      </div>
+                      <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                      >
+                        {lists.map((list) => (
+                          <motion.div
+                            key={list.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ 
+                              duration: 0.3,
+                              type: "spring", 
+                              stiffness: 100 
+                            }}
+                          >
+                            <ShoppingListCard key={list.id} list={list} onListUpdated={handleListUpdated} />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    </>
                   )}
                 </>
               ) : (
