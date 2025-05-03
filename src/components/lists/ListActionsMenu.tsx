@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -84,14 +85,19 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     setMenuOpen(false);
     
     try {
-      await archiveShoppingList(list.id);
-      toast({
-        title: "List archived",
-        description: "Your list has been moved to archives",
-      });
-      setTimeout(() => {
-        onListUpdated();
-      }, 100);
+      const success = await archiveShoppingList(list.id);
+      if (success) {
+        toast({
+          title: "List archived",
+          description: "Your list has been moved to archives",
+        });
+        // Force a refresh of the lists by waiting a moment before triggering onListUpdated
+        setTimeout(() => {
+          onListUpdated();
+        }, 100);
+      } else {
+        throw new Error("Failed to archive list");
+      }
     } catch (error) {
       console.error("Failed to archive list:", error);
       toast({

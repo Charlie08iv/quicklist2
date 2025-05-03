@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
@@ -18,7 +17,7 @@ const Lists: React.FC = () => {
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [archivedLists, setArchivedLists] = useState<ShoppingList[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -32,7 +31,7 @@ const Lists: React.FC = () => {
       return;
     }
     
-    const isInitialLoad = !lists.length && !archivedLists.length;
+    const isInitialLoad = lists.length === 0 && archivedLists.length === 0;
     if (isInitialLoad) setIsLoading(true);
     if (!isInitialLoad) setIsRefreshing(true);
     setHasError(false);
@@ -45,23 +44,18 @@ const Lists: React.FC = () => {
       
       const allLists = [...listsData, ...unscheduledListsData] as ShoppingList[];
       
-      // Use functional updates to avoid race conditions
-      setLists(prevLists => {
-        // Only update if there's actual new data
-        if (allLists.filter(list => !list.archived).length === 0 && prevLists.length > 0) {
-          return prevLists;
-        }
-        return allLists.filter(list => !list.archived);
+      // Filter active and archived lists correctly
+      const activeLists = allLists.filter(list => !list.archived);
+      const archived = allLists.filter(list => list.archived);
+      
+      console.log('Fetched lists:', { 
+        total: allLists.length, 
+        active: activeLists.length, 
+        archived: archived.length 
       });
       
-      setArchivedLists(prevArchivedLists => {
-        // Only update if there's actual new data
-        if (allLists.filter(list => list.archived).length === 0 && prevArchivedLists.length > 0) {
-          return prevArchivedLists;
-        }
-        return allLists.filter(list => list.archived);
-      });
-      
+      setLists(activeLists);
+      setArchivedLists(archived);
       setRetryCount(0);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -74,7 +68,7 @@ const Lists: React.FC = () => {
         setIsRefreshing(false);
       }, 300);
     }
-  }, [lists.length, archivedLists.length, retryCount]);
+  }, [retryCount]);
 
   useEffect(() => {
     loadData();
@@ -85,6 +79,7 @@ const Lists: React.FC = () => {
   }, [loadData]);
 
   const handleListUpdated = useCallback(() => {
+    console.log("List updated, refreshing data");
     loadData();
   }, [loadData]);
   
