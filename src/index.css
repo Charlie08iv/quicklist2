@@ -35,12 +35,12 @@
 
     --radius: 0.75rem;
     
-    /* Light mode form fields - new custom properties */
-    --form-field-bg: 150 37% 94%;
-    --form-field-border: 145 30% 85%;
-    --form-field-placeholder: 145 15% 50%;
-    --form-field-focus: 145 40% 97%;
-    --form-field-hover: 150 40% 92%;
+    /* Light mode form fields - using a lighter green */
+    --form-field-bg: 84 67% 94%;
+    --form-field-border: 84 30% 85%;
+    --form-field-placeholder: 84 10% 40%;
+    --form-field-focus: 84 67% 97%;
+    --form-field-hover: 84 67% 92%;
   }
 
   .dark {

@@ -36,8 +36,9 @@ export function ThemeProvider({
     
     // Apply any additional theme-specific customizations
     if (theme === "light") {
-      root.style.setProperty("--form-field-bg-color", "#f8fcf9");
-      root.style.setProperty("--form-field-border-color", "#e4f0e8");
+      // Lighter green for form fields in light mode
+      root.style.setProperty("--form-field-bg-color", "#f2fce2");
+      root.style.setProperty("--form-field-border-color", "#d9ecc0");
     } else {
       root.style.setProperty("--form-field-bg-color", "hsl(145, 30%, 18%)");
       root.style.setProperty("--form-field-border-color", "hsl(145, 30%, 22%)");
