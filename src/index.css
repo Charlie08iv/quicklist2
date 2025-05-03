@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,6 +34,13 @@
     --ring: 145 40% 20%;
 
     --radius: 0.75rem;
+    
+    /* Light mode form fields - new custom properties */
+    --form-field-bg: 150 37% 94%;
+    --form-field-border: 145 30% 85%;
+    --form-field-placeholder: 145 15% 50%;
+    --form-field-focus: 145 40% 97%;
+    --form-field-hover: 150 40% 92%;
   }
 
   .dark {
@@ -63,6 +71,13 @@
     --border: 145 30% 20%;
     --input: 145 30% 20%;
     --ring: 150 40% 35%;
+    
+    /* Dark mode form fields */
+    --form-field-bg: 145 30% 18%;
+    --form-field-border: 145 30% 22%;
+    --form-field-placeholder: 145 15% 60%;
+    --form-field-focus: 145 30% 22%;
+    --form-field-hover: 145 30% 20%;
   }
 }
 
@@ -142,4 +157,27 @@
 
 .shimmer {
   @apply relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent;
+}
+
+/* Custom form styling for light/dark mode compatibility */
+.form-input {
+  @apply bg-[hsl(var(--form-field-bg))] border-[hsl(var(--form-field-border))] rounded-md px-3 py-2 transition-all;
+  @apply hover:bg-[hsl(var(--form-field-hover))] focus:bg-[hsl(var(--form-field-focus))];
+  @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50;
+}
+
+.form-input::placeholder {
+  @apply text-[hsl(var(--form-field-placeholder))];
+}
+
+.form-select {
+  @apply bg-[hsl(var(--form-field-bg))] border-[hsl(var(--form-field-border))] rounded-md px-3 py-2;
+  @apply hover:bg-[hsl(var(--form-field-hover))];
+  @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50;
+}
+
+.form-button {
+  @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md px-4 py-2;
+  @apply transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30;
+  @apply disabled:opacity-70 disabled:cursor-not-allowed;
 }
