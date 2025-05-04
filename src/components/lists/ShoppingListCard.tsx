@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ShoppingList } from "@/types/lists";
 import { Calendar, ClipboardList, ArchiveRestore } from "lucide-react";
@@ -42,7 +41,7 @@ export default function ShoppingListCard({
   const handleUnarchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onUnarchive) {
-      onUnarchive(); // Call without passing any arguments
+      onUnarchive();
     }
   };
 
