@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { joinGroup } from "@/services/groupService";
+import { useNavigate } from "react-router-dom";
 
 interface JoinGroupDialogProps {
   open: boolean;
@@ -17,7 +18,8 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { user, isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -28,11 +30,18 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
     }
   }, [open]);
 
+  const handleLoginRedirect = () => {
+    // Close dialog and redirect to login
+    onOpenChange(false);
+    navigate("/auth", { state: { returnTo: "/groups" } });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
+      handleLoginRedirect();
       return;
     }
     
@@ -70,21 +79,33 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
             {t("enterInviteCodeToJoin")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
-            <Input
-              id="inviteCode"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder={t("enterInviteCode")}
-              required
-            />
+        
+        {!isLoggedIn ? (
+          <div className="space-y-4">
+            <p className="text-center">{t("loginToJoinGroup")}</p>
+            <div className="flex justify-center">
+              <Button onClick={handleLoginRedirect}>
+                {t("login")}
+              </Button>
+            </div>
           </div>
-          <Button type="submit" disabled={isLoading || !inviteCode.trim()}>
-            {isLoading ? t("joining") : t("joinGroup")}
-          </Button>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
+              <Input
+                id="inviteCode"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder={t("enterInviteCode")}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isLoading || !inviteCode.trim()}>
+              {isLoading ? t("joining") : t("joinGroup")}
+            </Button>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

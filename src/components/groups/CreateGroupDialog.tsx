@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -21,7 +22,7 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { user, isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   

@@ -58,7 +58,6 @@ export const createGroup = async (name: string): Promise<Group> => {
     }
     
     // Call the create_group RPC function with the current parameters
-    // This RPC needs to be called directly via rpc() because it's not in the type definition
     const { data, error } = await supabase.rpc(
       'create_group', 
       { 
@@ -91,22 +90,7 @@ export const createGroup = async (name: string): Promise<Group> => {
     return group;
   } catch (error) {
     console.error('Error creating group:', error);
-    // Create a mock group for development if needed
-    const mockGroup: Group = {
-      id: nanoid(),
-      name,
-      invite_code: inviteCode,
-      created_by: 'mock-user-id',
-      created_at: new Date().toISOString()
-    };
-    
-    // In production, rethrow the error
-    if (process.env.NODE_ENV !== 'development') {
-      throw error;
-    }
-    
-    console.warn('Using mock group data in development mode:', mockGroup);
-    return mockGroup;
+    throw error;
   }
 };
 
@@ -160,7 +144,6 @@ export const joinGroup = async (inviteCode: string): Promise<Group> => {
 
 export const fetchUserGroups = async (): Promise<Group[]> => {
   try {
-    console.log('Starting fetchUserGroups function');
     // Get current session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
@@ -174,38 +157,6 @@ export const fetchUserGroups = async (): Promise<Group[]> => {
     if (!userId) {
       console.log('No user ID found, returning empty groups array');
       throw new Error('User ID not found. Please check if you are logged in.');
-    }
-    
-    console.log('Fetching groups for user ID:', userId);
-    
-    // First check if the user exists in profiles
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (profileError) {
-      console.log('User profile not found. Error:', profileError);
-      
-      // Attempt to create profile if missing
-      try {
-        const email = sessionData.session?.user?.email;
-        if (email) {
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({ id: userId, email })
-            .single();
-            
-          if (insertError) {
-            console.error('Failed to create user profile:', insertError);
-          } else {
-            console.log('Created new user profile for:', userId);
-          }
-        }
-      } catch (e) {
-        console.error('Error creating user profile:', e);
-      }
     }
     
     // Use the RPC function to get user groups
@@ -235,13 +186,11 @@ export const fetchUserGroups = async (): Promise<Group[]> => {
       invite_code: g.invite_code
     })) : [];
     
-    console.log('Fetched user groups successfully:', typedGroups.length);
     return typedGroups;
     
   } catch (error) {
     console.error('Error in fetchUserGroups:', error);
-    // Return empty array to avoid UI errors
-    return [];
+    throw error;
   }
 };
 

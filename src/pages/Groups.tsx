@@ -9,18 +9,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserGroups } from "@/services/groupService";
-import type { Group } from "@/services/groupService"; // Import only the type to avoid conflict
+import type { Group } from "@/services/groupService"; 
 import { GroupCard } from "@/components/groups/GroupCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 
 const Groups: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('code');
@@ -32,7 +31,6 @@ const Groups: React.FC = () => {
   const [activeTab, setActiveTab] = useState("groups");
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Open join dialog with code if provided in URL
   useEffect(() => {
@@ -42,58 +40,17 @@ const Groups: React.FC = () => {
   }, [inviteCode, joinDialogOpen]);
 
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn && !authLoading) {
+    if (!isLoggedIn) {
       console.log('Not logged in, skipping group fetch');
       setLoading(false);
       return;
     }
     
-    console.log('Loading groups - Auth state:', {
-      isLoggedIn,
-      authLoading,
-      userId: user?.id
-    });
-    
     setLoading(true);
     setError(null);
     
     try {
-      // Get current auth session directly to verify
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      console.log("Current session check:", {
-        hasSession: !!sessionData.session,
-        userId: sessionData.session?.user?.id,
-        error: sessionError
-      });
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        setError("Session error: " + sessionError.message);
-        setLoading(false);
-        return;
-      }
-      
-      const activeSession = sessionData.session;
-      if (!activeSession && isLoggedIn) {
-        console.log("Session mismatch: isLoggedIn true but no active session");
-        setError("Session verification failed. Please try logging in again.");
-        setLoading(false);
-        return;
-      }
-      
-      if (!activeSession) {
-        console.log("No active session, showing empty groups");
-        setGroups([]);
-        setLoading(false);
-        setFetchAttempted(true);
-        return;
-      }
-      
-      console.log('Starting group fetch for user:', activeSession?.user?.id);
-
-      // Use the service function
       const fetchedGroups = await fetchUserGroups();
-      console.log('Groups fetch result:', fetchedGroups);
       
       // Ensure we always set an array to state
       if (Array.isArray(fetchedGroups)) {
@@ -111,20 +68,14 @@ const Groups: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, authLoading, user, t]);
+  }, [isLoggedIn, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
-    console.log('Groups component useEffect triggered - Auth state:', {
-      isLoggedIn,
-      authLoading,
-      userId: user?.id
-    });
-    
     if (!authLoading) {
       loadGroups();
     }
-  }, [loadGroups, authLoading]);
+  }, [loadGroups, authLoading, isLoggedIn]);
 
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -228,12 +179,6 @@ const Groups: React.FC = () => {
               <AlertTitle>{t("error")}</AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>{error}</p>
-                {debugInfo && (
-                  <div className="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-40">
-                    <p>Debug info:</p>
-                    <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                  </div>
-                )}
                 <Button size="sm" variant="outline" onClick={handleRetry}>
                   {t("retry")}
                 </Button>
