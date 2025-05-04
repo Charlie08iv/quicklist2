@@ -18,7 +18,7 @@ interface JoinGroupDialogProps {
 
 export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroupDialogProps) {
   const { t } = useTranslation();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +38,11 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (authLoading) {
+      // Wait for auth check to complete
+      return;
+    }
     
     if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
@@ -80,7 +85,11 @@ export function JoinGroupDialog({ open, onOpenChange, onGroupJoined }: JoinGroup
           </DialogDescription>
         </DialogHeader>
         
-        {!isLoggedIn ? (
+        {authLoading ? (
+          <div className="text-center py-4">
+            <p>{t("loading")}</p>
+          </div>
+        ) : !isLoggedIn ? (
           <div className="space-y-4">
             <p className="text-center">{t("loginToJoinGroup")}</p>
             <div className="flex justify-center">

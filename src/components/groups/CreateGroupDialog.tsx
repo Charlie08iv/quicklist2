@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { createGroup } from "@/services/groupService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Link, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Use GroupData interface defined in groupService
 import type { Group } from "@/services/groupService";
@@ -22,7 +23,8 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: CreateGroupDialogProps) {
   const { t } = useTranslation();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -40,11 +42,23 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
     }
   }, [open]);
 
+  const handleLoginRedirect = () => {
+    // Close dialog and redirect to login
+    onOpenChange(false);
+    navigate("/auth", { state: { returnTo: "/groups" } });
+  };
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (authLoading) {
+      // Wait for auth check to complete
+      return;
+    }
+    
     if (!isLoggedIn) {
       toast.error(t("mustBeLoggedIn"));
+      handleLoginRedirect();
       return;
     }
     
@@ -116,7 +130,20 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }: Create
           </DialogDescription>
         </DialogHeader>
         
-        {step === "naming" ? (
+        {authLoading ? (
+          <div className="text-center py-4">
+            <p>{t("loading")}</p>
+          </div>
+        ) : !isLoggedIn ? (
+          <div className="space-y-4">
+            <p className="text-center">{t("loginToCreateGroup")}</p>
+            <div className="flex justify-center">
+              <Button onClick={handleLoginRedirect}>
+                {t("login")}
+              </Button>
+            </div>
+          </div>
+        ) : step === "naming" ? (
           <form onSubmit={handleCreateGroup} className="space-y-4">
             <div>
               <Label htmlFor="groupName">{t("groupName")}</Label>

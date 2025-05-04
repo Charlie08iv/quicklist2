@@ -40,17 +40,27 @@ const Groups: React.FC = () => {
   }, [inviteCode, joinDialogOpen]);
 
   const loadGroups = useCallback(async () => {
-    if (!isLoggedIn) {
-      console.log('Not logged in, skipping group fetch');
-      setLoading(false);
+    // Don't try to fetch if we're still checking authentication
+    if (authLoading) {
+      console.log('Auth still loading, deferring group fetch');
       return;
     }
     
+    // If not logged in, we can stop here
+    if (!isLoggedIn) {
+      console.log('Not logged in, skipping group fetch');
+      setLoading(false);
+      setFetchAttempted(true);
+      return;
+    }
+    
+    console.log('Loading groups for authenticated user');
     setLoading(true);
     setError(null);
     
     try {
       const fetchedGroups = await fetchUserGroups();
+      console.log('Fetched groups:', fetchedGroups);
       
       // Ensure we always set an array to state
       if (Array.isArray(fetchedGroups)) {
@@ -68,10 +78,11 @@ const Groups: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, t]);
+  }, [isLoggedIn, authLoading, t]);
 
   // Load groups when component mounts or auth status changes
   useEffect(() => {
+    // Only load groups once auth state is settled
     if (!authLoading) {
       loadGroups();
     }
@@ -79,7 +90,7 @@ const Groups: React.FC = () => {
 
   // Handle login redirect
   const handleLoginRedirect = () => {
-    navigate("/auth");
+    navigate("/auth", { state: { returnTo: "/groups" } });
   };
 
   // Handle retry when error occurs
@@ -108,119 +119,105 @@ const Groups: React.FC = () => {
     </div>
   );
 
-  // Display login prompt if not logged in
-  if (!isLoggedIn && !authLoading) {
-    return (
-      <div className="min-h-screen pt-4 pb-20 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
-        
-        <MainActions />
-        
-        <Alert className="mb-4">
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle className="text-foreground">{t("notLoggedIn")}</AlertTitle>
-          <AlertDescription className="text-foreground">
-            {t("loginToAccessGroups")}
-          </AlertDescription>
-        </Alert>
-        <Button onClick={handleLoginRedirect}>
-          {t("login")}
-        </Button>
-        
-        <CreateGroupDialog 
-          open={createDialogOpen} 
-          onOpenChange={setCreateDialogOpen} 
-          onGroupCreated={loadGroups} 
-        />
-        
-        <JoinGroupDialog 
-          open={joinDialogOpen} 
-          onOpenChange={setJoinDialogOpen} 
-          onGroupJoined={loadGroups} 
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen pt-4 pb-20 px-4 bg-background max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("groups")}</h1>
       
       <MainActions />
 
-      <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 mb-4">
-          <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
-          <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
-          <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="groups" className="space-y-4">
-          {authLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-              <p>{t("loading")}</p>
-            </div>
-          )}
+      {/* Only show login prompt if we've confirmed user is not logged in */}
+      {!isLoggedIn && !authLoading && (
+        <>
+          <Alert className="mb-4">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle className="text-foreground">{t("notLoggedIn")}</AlertTitle>
+            <AlertDescription className="text-foreground">
+              {t("loginToAccessGroups")}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleLoginRedirect}>
+            {t("login")}
+          </Button>
+        </>
+      )}
+
+      {/* Show content area if logged in or checking auth */}
+      {(isLoggedIn || authLoading) && (
+        <Tabs defaultValue="groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="groups" className="text-foreground">{t("yourGroups")}</TabsTrigger>
+            <TabsTrigger value="shared" className="text-foreground">{t("sharedLists")}</TabsTrigger>
+            <TabsTrigger value="wishlist" className="text-foreground">{t("wishlist")}</TabsTrigger>
+          </TabsList>
           
-          {!authLoading && loading && (
-            <div className="space-y-3">
-              <Skeleton className="h-[100px] w-full" />
-              <Skeleton className="h-[100px] w-full" />
-              <div className="text-center pt-2">
-                <p className="text-sm text-muted-foreground">{t("loadingGroups")}</p>
+          <TabsContent value="groups" className="space-y-4">
+            {authLoading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                <p>{t("loading")}</p>
               </div>
-            </div>
-          )}
-          
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <InfoIcon className="h-4 w-4" />
-              <AlertTitle>{t("error")}</AlertTitle>
-              <AlertDescription className="space-y-2">
-                <p>{error}</p>
-                <Button size="sm" variant="outline" onClick={handleRetry}>
-                  {t("retry")}
+            )}
+            
+            {/* Show loading state only if we're past initial auth check */}
+            {!authLoading && loading && (
+              <div className="space-y-3">
+                <Skeleton className="h-[100px] w-full" />
+                <Skeleton className="h-[100px] w-full" />
+                <div className="text-center pt-2">
+                  <p className="text-sm text-muted-foreground">{t("loadingGroups")}</p>
+                </div>
+              </div>
+            )}
+            
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>{t("error")}</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>{error}</p>
+                  <Button size="sm" variant="outline" onClick={handleRetry}>
+                    {t("retry")}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!authLoading && !loading && !error && groups.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {groups.map(group => (
+                  <GroupCard key={group.id} group={group} onDeleted={loadGroups} />
+                ))}
+              </div>
+            )}
+            
+            {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
+              <div className="text-center py-12">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
+                <p className="text-foreground">{t("noGroupsYet")}</p>
+                <Button variant="outline" className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+                  {t("createYourFirstGroup")}
                 </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+              </div>
+            )}
+          </TabsContent>
           
-          {!authLoading && !loading && !error && groups.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {groups.map(group => (
-                <GroupCard key={group.id} group={group} onDeleted={loadGroups} />
-              ))}
+          <TabsContent value="shared">
+            <div className="flex flex-col items-center justify-center py-12">
+              <MessageSquare className="h-12 w-12 text-muted-foreground/60 mb-3" />
+              <p className="text-foreground">{t("noSharedListsYet")}</p>
+              <p className="text-sm mt-2 text-muted-foreground">{t("createGroupToShareLists")}</p>
             </div>
-          )}
+          </TabsContent>
           
-          {!authLoading && !loading && !error && groups.length === 0 && fetchAttempted && (
-            <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
-              <p className="text-foreground">{t("noGroupsYet")}</p>
-              <Button variant="outline" className="mt-4" onClick={() => setCreateDialogOpen(true)}>
-                {t("createYourFirstGroup")}
-              </Button>
+          <TabsContent value="wishlist">
+            <div className="flex flex-col items-center justify-center py-12">
+              <Heart className="h-12 w-12 text-muted-foreground/60 mb-3" />
+              <p className="text-foreground">{t("noWishListsYet")}</p>
+              <p className="text-sm mt-2 text-muted-foreground">{t("joinGroupToSeeWishLists")}</p>
             </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="shared">
-          <div className="flex flex-col items-center justify-center py-12">
-            <MessageSquare className="h-12 w-12 text-muted-foreground/60 mb-3" />
-            <p className="text-foreground">{t("noSharedListsYet")}</p>
-            <p className="text-sm mt-2 text-muted-foreground">{t("createGroupToShareLists")}</p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="wishlist">
-          <div className="flex flex-col items-center justify-center py-12">
-            <Heart className="h-12 w-12 text-muted-foreground/60 mb-3" />
-            <p className="text-foreground">{t("noWishListsYet")}</p>
-            <p className="text-sm mt-2 text-muted-foreground">{t("joinGroupToSeeWishLists")}</p>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      )}
 
       <CreateGroupDialog 
         open={createDialogOpen} 
