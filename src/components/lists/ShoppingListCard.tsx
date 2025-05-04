@@ -42,7 +42,7 @@ export default function ShoppingListCard({
   const handleUnarchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onUnarchive) {
-      onUnarchive(); // This is correct - onUnarchive takes no arguments
+      onUnarchive();
     }
   };
 
@@ -73,7 +73,7 @@ export default function ShoppingListCard({
               variant="outline"
               size="sm"
               className="flex items-center gap-1"
-              onClick={handleUnarchive} 
+              onClick={handleUnarchive}
               title={t("Unarchive list")}
             >
               <ArchiveRestore className="h-4 w-4" />
