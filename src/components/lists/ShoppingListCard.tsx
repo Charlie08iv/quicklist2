@@ -1,78 +1,86 @@
 
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Archive } from "lucide-react";
-import { useTranslation } from "@/hooks/use-translation";
+import { Card } from "@/components/ui/card";
 import { ShoppingList } from "@/types/lists";
-import ListActionsMenu from "./ListActionsMenu";
+import { Calendar, ClipboardList, ArchiveRestore } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/use-translation";
 import { useNavigate } from "react-router-dom";
+import ListActionsMenu from "./ListActionsMenu";
 
 interface ShoppingListCardProps {
   list: ShoppingList;
   onListUpdated: () => void;
+  showUnarchiveButton?: boolean;
+  onUnarchive?: () => void;
 }
 
-const ShoppingListCard: React.FC<ShoppingListCardProps> = ({ list, onListUpdated }) => {
+export default function ShoppingListCard({ 
+  list, 
+  onListUpdated,
+  showUnarchiveButton = false,
+  onUnarchive
+}: ShoppingListCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  const progress = list.items?.length > 0
-    ? (list.items.filter(item => item.checked).length / list.items.length) * 100
-    : 0;
-    
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleListClick = () => {
+    // Navigate to the list details page
     navigate(`/lists/${list.id}`);
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
-    <Card 
-      className="overflow-hidden shadow-md border-0 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 cursor-pointer" 
-      onClick={handleCardClick}
-    >
-      <CardHeader className="py-3 border-b bg-gradient-to-r from-secondary/30 to-secondary/10">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg font-medium">
-              {list.name}
-            </CardTitle>
-            {list.archived && (
-              <span className="inline-flex items-center text-xs text-muted-foreground">
-                <Archive className="h-3 w-3 mr-1" />
-                {t("Archived")}
-              </span>
+    <Card className="overflow-hidden shadow-md rounded-xl">
+      <div className="flex justify-between items-center p-4">
+        <div className="flex-1 cursor-pointer" onClick={handleListClick}>
+          <h3 className="text-lg font-medium text-foreground truncate">{list.name}</h3>
+          
+          <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex items-center text-xs gap-1 text-muted-foreground">
+              <ClipboardList className="w-3.5 h-3.5" />
+              <span>{t("listItems", { count: list.items.length })}</span>
+            </div>
+            
+            {list.date && (
+              <div className="flex items-center text-xs gap-1 text-muted-foreground">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{formatDate(list.date)}</span>
+              </div>
             )}
           </div>
+        </div>
+        
+        <div className="flex gap-2 items-center">
+          {showUnarchiveButton && onUnarchive && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnarchive();
+              }}
+              title={t("Unarchive list")}
+            >
+              <ArchiveRestore className="h-4 w-4" />
+              <span className="sr-only md:not-sr-only md:inline-block">
+                {t("Unarchive")}
+              </span>
+            </Button>
+          )}
           <ListActionsMenu list={list} onListUpdated={onListUpdated} />
         </div>
-        {list.date && (
-          <CardDescription className="flex items-center gap-1 mt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            {new Date(list.date).toLocaleDateString()}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="p-4">
-        {list.items?.length > 0 ? (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>
-                {list.items.filter(item => item.checked).length} of {list.items.length} {t("itemsCompleted")}
-              </span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
-              <div 
-                className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-in-out"
-                style={{ width: `${progress}%` }} 
-              />
-            </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">{t("emptyList")}</p>
-        )}
-      </CardContent>
+      </div>
     </Card>
   );
-};
-
-export default ShoppingListCard;
+}

@@ -260,6 +260,21 @@ export const archiveShoppingList = async (listId: string) => {
   }
 };
 
+export const unarchiveShoppingList = async (listId: string) => {
+  try {
+    const { error } = await supabase
+      .from('shopping_lists')
+      .update({ archived: false })
+      .eq('id', listId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error unarchiving shopping list:', error);
+    return false;
+  }
+};
+
 export const planShoppingList = async (listId: string, date: string) => {
   try {
     const { error } = await supabase
