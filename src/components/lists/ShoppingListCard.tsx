@@ -42,7 +42,7 @@ export default function ShoppingListCard({
   const handleUnarchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onUnarchive) {
-      onUnarchive();
+      onUnarchive(); // Fixed: removed any additional arguments
     }
   };
 
