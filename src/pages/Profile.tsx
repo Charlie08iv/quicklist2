@@ -86,7 +86,7 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-7 pb-20 px-2 bg-background max-w-md mx-auto flex flex-col">
+    <div className="min-h-screen pt-7 pb-20 px-2 bg-background max-w-md mx-auto flex flex-col text-foreground">
       <ProfileHeader
         username={username}
         avatarUrl={avatarUrl}
