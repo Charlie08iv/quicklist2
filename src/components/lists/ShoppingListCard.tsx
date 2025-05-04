@@ -39,6 +39,12 @@ export default function ShoppingListCard({
     });
   };
 
+  const handleUnarchive = () => {
+    if (onUnarchive) {
+      onUnarchive();
+    }
+  };
+
   return (
     <Card className="overflow-hidden shadow-md rounded-xl">
       <div className="flex justify-between items-center p-4">
@@ -68,7 +74,7 @@ export default function ShoppingListCard({
               className="flex items-center gap-1"
               onClick={(e) => {
                 e.stopPropagation();
-                onUnarchive();
+                handleUnarchive();
               }}
               title={t("Unarchive list")}
             >
