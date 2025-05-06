@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -18,14 +17,18 @@ import {
   Archive, 
   Loader2,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
-import { renameShoppingList, archiveShoppingList, deleteShoppingList } from "@/services/listService";
+import { renameShoppingList, archiveShoppingList, deleteShoppingList, planShoppingList } from "@/services/listService";
 import ShareOptions from "./ShareOptionsDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, isToday, addDays, differenceInDays } from "date-fns";
 
 interface ListActionsMenuProps {
   list: ShoppingList;
@@ -38,10 +41,14 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const { toast } = useToast();
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [newName, setNewName] = useState(list.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    list.date ? new Date(list.date) : undefined
+  );
 
   const handleRename = async (e?: React.FormEvent) => {
     if (e) {
@@ -143,6 +150,79 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     }
   };
 
+  const handlePlan = async (date?: Date) => {
+    if (!date) {
+      setIsPlanOpen(false);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setIsPlanOpen(false);
+    
+    try {
+      const dateString = format(date, 'yyyy-MM-dd');
+      const success = await planShoppingList(list.id, dateString);
+      
+      if (success) {
+        toast({
+          title: "List scheduled",
+          description: `Your list has been scheduled for ${format(date, 'MMMM d, yyyy')}`,
+        });
+        
+        // Force a refresh of the lists
+        setTimeout(() => {
+          onListUpdated();
+        }, 100);
+      } else {
+        throw new Error("Failed to schedule list");
+      }
+    } catch (error) {
+      console.error("Failed to schedule list:", error);
+      toast({
+        title: "Failed to schedule list",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveDate = async () => {
+    setIsSubmitting(true);
+    setIsPlanOpen(false);
+    
+    try {
+      // Pass null to remove the date
+      const success = await planShoppingList(list.id, null);
+      
+      if (success) {
+        toast({
+          title: "Date removed",
+          description: "Your list is now unscheduled",
+        });
+        
+        setSelectedDate(undefined);
+        
+        // Force a refresh of the lists
+        setTimeout(() => {
+          onListUpdated();
+        }, 100);
+      } else {
+        throw new Error("Failed to remove date from list");
+      }
+    } catch (error) {
+      console.error("Failed to remove date:", error);
+      toast({
+        title: "Failed to remove date",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleMenuItemClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -171,6 +251,16 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           }}>
             <Edit className="mr-2 h-4 w-4" />
             {t("Rename")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen(false);
+            setIsPlanOpen(true);
+            setSelectedDate(list.date ? new Date(list.date) : undefined);
+          }}>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {list.date ? t("Reschedule") : t("Plan")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => {
             e.preventDefault();
@@ -299,6 +389,82 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
                 t("Delete")
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Plan Dialog with Calendar */}
+      <Dialog open={isPlanOpen} onOpenChange={(open) => {
+        if (!isSubmitting) setIsPlanOpen(open);
+        if (open) setSelectedDate(list.date ? new Date(list.date) : undefined);
+      }}>
+        <DialogContent 
+          onClick={(e) => e.stopPropagation()}
+          onPointerDownOutside={(e) => {
+            if (isSubmitting) e.preventDefault();
+          }}
+          className="sm:max-w-[425px]"
+        >
+          <DialogHeader>
+            <DialogTitle>{list.date ? t("Reschedule List") : t("Plan List")}</DialogTitle>
+            <DialogDescription>
+              {t("Select a date for this shopping list")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 flex flex-col items-center justify-center space-y-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border shadow p-3 pointer-events-auto"
+              initialFocus
+            />
+            
+            <div className="flex justify-between w-full pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsPlanOpen(false);
+                }}
+                disabled={isSubmitting}
+              >
+                {t("Cancel")}
+              </Button>
+              
+              <div className="flex space-x-2">
+                {list.date && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRemoveDate}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("Removing")}
+                      </>
+                    ) : (
+                      t("Remove Date")
+                    )}
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={() => handlePlan(selectedDate)}
+                  disabled={isSubmitting || !selectedDate}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t("Saving")}
+                    </>
+                  ) : (
+                    list.date ? t("Update") : t("Set Date")
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
