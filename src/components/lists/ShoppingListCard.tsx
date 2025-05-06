@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ShoppingList } from "@/types/lists";
 import { Calendar, ClipboardList, ArchiveRestore } from "lucide-react";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/use-translation";
 import { useNavigate } from "react-router-dom";
 import ListActionsMenu from "./ListActionsMenu";
+import { formatDistanceToNow } from "date-fns";
 
 interface ShoppingListCardProps {
   list: ShoppingList;
@@ -38,6 +40,21 @@ export default function ShoppingListCard({
     });
   };
 
+  const getDueInText = (dateString?: string) => {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    // If the date is in the past
+    if (date < today) {
+      return t("Overdue");
+    }
+    
+    // Format as "Due in X days"
+    return t("Due in") + " " + formatDistanceToNow(date, { addSuffix: false });
+  };
+
   const handleUnarchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onUnarchive) {
@@ -58,10 +75,15 @@ export default function ShoppingListCard({
             </div>
             
             {list.date && (
-              <div className="flex items-center text-xs gap-1 text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{formatDate(list.date)}</span>
-              </div>
+              <>
+                <div className="flex items-center text-xs gap-1 text-muted-foreground">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{formatDate(list.date)}</span>
+                </div>
+                <div className="flex items-center text-xs gap-1 text-primary font-medium">
+                  <span>{getDueInText(list.date)}</span>
+                </div>
+              </>
             )}
           </div>
         </div>
