@@ -36,18 +36,12 @@ export function ThemeProvider({
     
     // Apply any additional theme-specific customizations
     if (theme === "light") {
-      // Ensure proper text contrast in light mode
+      // Lighter green for form fields in light mode
       root.style.setProperty("--form-field-bg-color", "#f2fce2");
       root.style.setProperty("--form-field-border-color", "#d9ecc0");
-      root.style.setProperty("--form-field-text-color", "#1a2e0d");
-      // Ensure better text visibility in light mode
-      document.body.classList.add('text-foreground');
     } else {
       root.style.setProperty("--form-field-bg-color", "hsl(145, 30%, 18%)");
       root.style.setProperty("--form-field-border-color", "hsl(145, 30%, 22%)");
-      root.style.setProperty("--form-field-text-color", "hsl(150, 30%, 98%)");
-      // Reset for dark mode
-      document.body.classList.remove('text-foreground');
     }
   }, [theme]);
 

@@ -66,8 +66,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         />
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-2xl font-bold text-foreground">
-          {t("Hello!")} <span className="font-light text-foreground">{username}</span>
+        <span className="text-2xl font-bold text-white">
+          {t("Hello!")} <span className="font-light text-foreground/60">{username}</span>
         </span>
         {email && (
           <span className="text-sm text-muted-foreground mt-0.5">{email}</span>

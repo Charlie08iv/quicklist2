@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader, RefreshCcw, ArchiveRestore } from "lucide-react";
-import { getListsByDate, getUnscheduledLists, unarchiveShoppingList } from "@/services/listService";
+import { Loader, RefreshCcw } from "lucide-react";
+import { getListsByDate, getUnscheduledLists } from "@/services/listService";
 import { ShoppingList } from "@/types/lists";
 import ShoppingListCard from "@/components/lists/ShoppingListCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,33 +86,6 @@ const Lists: React.FC = () => {
   const handleManualRefresh = () => {
     setRetryCount(0);
     loadData();
-  };
-
-  const handleUnarchive = async (listId: string) => {
-    try {
-      const success = await unarchiveShoppingList(listId);
-      if (success) {
-        toast({
-          title: t("List Unarchived"),
-          description: t("The list has been unarchived successfully"),
-        });
-        // Refresh the lists
-        loadData();
-      } else {
-        toast({
-          title: t("Error"),
-          description: t("Failed to unarchive the list"),
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error unarchiving list:", error);
-      toast({
-        title: t("Error"),
-        description: t("An unexpected error occurred"),
-        variant: "destructive",
-      });
-    }
   };
 
   const containerVariants = {
@@ -281,13 +254,7 @@ const Lists: React.FC = () => {
                             stiffness: 100 
                           }}
                         >
-                          <ShoppingListCard 
-                            key={list.id} 
-                            list={list} 
-                            onListUpdated={handleListUpdated} 
-                            showUnarchiveButton={true}
-                            onUnarchive={() => handleUnarchive(list.id)}
-                          />
+                          <ShoppingListCard key={list.id} list={list} onListUpdated={handleListUpdated} />
                         </motion.div>
                       ))}
                     </motion.div>

@@ -18,8 +18,7 @@ import {
   Archive, 
   Loader2,
   Trash2,
-  AlertTriangle,
-  Calendar
+  AlertTriangle
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { ShoppingList } from "@/types/lists";
@@ -27,7 +26,6 @@ import { renameShoppingList, archiveShoppingList, deleteShoppingList } from "@/s
 import ShareOptions from "./ShareOptionsDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import PlanListDialog from "./PlanListDialog";
 
 interface ListActionsMenuProps {
   list: ShoppingList;
@@ -40,7 +38,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
   const { toast } = useToast();
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [isPlanListOpen, setIsPlanListOpen] = useState(false);
   const [newName, setNewName] = useState(list.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -151,13 +148,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
     e.stopPropagation();
   };
 
-  const handlePlanList = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenuOpen(false);
-    setIsPlanListOpen(true);
-  };
-
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -190,10 +180,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           }}>
             <Share className="mr-2 h-4 w-4" />
             {t("Share")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handlePlanList}>
-            <Calendar className="mr-2 h-4 w-4" />
-            {list.date ? t("Change date") : t("Plan this list")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleArchive}>
@@ -316,17 +302,6 @@ const ListActionsMenu: React.FC<ListActionsMenuProps> = ({ list, onListUpdated }
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Plan List Dialog */}
-      {isPlanListOpen && (
-        <PlanListDialog
-          listId={list.id}
-          currentDate={list.date}
-          isOpen={isPlanListOpen}
-          onClose={() => setIsPlanListOpen(false)}
-          onListUpdated={onListUpdated}
-        />
-      )}
       
       {/* Share functionality */}
       {isSharing && (
