@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/use-translation";
 import { useNavigate } from "react-router-dom";
 import ListActionsMenu from "./ListActionsMenu";
-import { differenceInDays, format, isToday, isTomorrow, addDays } from "date-fns";
+import { differenceInDays, format, isToday, isTomorrow } from "date-fns";
 
 interface ShoppingListCardProps {
   list: ShoppingList;
