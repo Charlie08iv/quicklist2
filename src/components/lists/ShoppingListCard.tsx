@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { ShoppingList } from "@/types/lists";
-import { Calendar, ClipboardList, ArchiveRestore } from "lucide-react";
+import { Calendar, ClipboardList, ArchiveRestore, ListCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/use-translation";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +51,7 @@ export default function ShoppingListCard({
       return t("Overdue");
     }
     
-    // Format as "Due in X days"
+    // Format as "Due in X days" - Fix by providing only the date parameter
     return t("Due in") + " " + formatDistanceToNow(date);
   };
 
@@ -62,9 +62,17 @@ export default function ShoppingListCard({
     }
   };
 
+  // Calculate completed items count
+  const getCompletionStatus = () => {
+    if (!list.items || list.items.length === 0) return null;
+    
+    const checkedItems = list.items.filter(item => item.checked).length;
+    return `${checkedItems}/${list.items.length} ${t("itemsCompleted")}`;
+  };
+
   return (
     <Card className="overflow-hidden shadow-md rounded-xl">
-      <div className="flex justify-between items-center p-4">
+      <div className="flex justify-between items-start p-4">
         <div className="flex-1 cursor-pointer" onClick={handleListClick}>
           <h3 className="text-lg font-medium text-foreground truncate">{list.name}</h3>
           
@@ -73,6 +81,13 @@ export default function ShoppingListCard({
               <ClipboardList className="w-3.5 h-3.5" />
               <span>{t("listItems", { count: list.items.length })}</span>
             </div>
+            
+            {list.items && list.items.length > 0 && (
+              <div className="flex items-center text-xs gap-1 text-muted-foreground">
+                <ListCheck className="w-3.5 h-3.5" />
+                <span>{getCompletionStatus()}</span>
+              </div>
+            )}
             
             {list.date && (
               <>
