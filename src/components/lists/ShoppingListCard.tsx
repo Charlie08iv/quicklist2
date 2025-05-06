@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ShoppingList } from "@/types/lists";
 import { Calendar, ClipboardList, ArchiveRestore } from "lucide-react";
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/use-translation";
 import { useNavigate } from "react-router-dom";
 import ListActionsMenu from "./ListActionsMenu";
-import { differenceInDays, format, isToday, isTomorrow } from "date-fns";
 
 interface ShoppingListCardProps {
   list: ShoppingList;
@@ -40,31 +38,6 @@ export default function ShoppingListCard({
     });
   };
 
-  const getDateInfo = (dateString?: string) => {
-    if (!dateString) return null;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const date = new Date(dateString);
-    date.setHours(0, 0, 0, 0);
-    
-    if (isToday(date)) {
-      return t("Today");
-    } else if (isTomorrow(date)) {
-      return t("Tomorrow");
-    } else {
-      const daysUntil = differenceInDays(date, today);
-      if (daysUntil > 0) {
-        return t("In {{count}} days", { count: daysUntil });
-      } else if (daysUntil < 0) {
-        return t("{{count}} days ago", { count: Math.abs(daysUntil) });
-      }
-    }
-    
-    return formatDate(dateString);
-  };
-
   const handleUnarchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onUnarchive) {
@@ -87,9 +60,7 @@ export default function ShoppingListCard({
             {list.date && (
               <div className="flex items-center text-xs gap-1 text-muted-foreground">
                 <Calendar className="w-3.5 h-3.5" />
-                <span title={formatDate(list.date) || undefined}>
-                  {getDateInfo(list.date)}
-                </span>
+                <span>{formatDate(list.date)}</span>
               </div>
             )}
           </div>

@@ -275,7 +275,7 @@ export const unarchiveShoppingList = async (listId: string) => {
   }
 };
 
-export const planShoppingList = async (listId: string, date: string | null) => {
+export const planShoppingList = async (listId: string, date: string) => {
   try {
     const { error } = await supabase
       .from('shopping_lists')
