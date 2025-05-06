@@ -51,9 +51,8 @@ export default function ShoppingListCard({
       return t("Overdue");
     }
     
-    // Format as "Due in X days"
-    // The issue is here - we need to fix the translation call
-    return t("Due in") + " " + formatDistanceToNow(date, { addSuffix: false });
+    // Format as "Due in X days" - fixed by removing the second argument
+    return t("Due in") + " " + formatDistanceToNow(date);
   };
 
   const handleUnarchive = (e: React.MouseEvent) => {
