@@ -51,7 +51,7 @@ export default function ShoppingListCard({
       return t("Overdue");
     }
     
-    // Format as "Due in X days" - fixed by removing the second argument
+    // Format as "Due in X days"
     return t("Due in") + " " + formatDistanceToNow(date);
   };
 
