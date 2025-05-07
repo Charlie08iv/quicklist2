@@ -65,7 +65,8 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
     "items": t("Items"),
     "allItems": t("All Items"),
     "customOrder": t("Custom Order"),
-    "done": t("Done")
+    "done": t("Done"),
+    "addAnItem": t("Add an item...") // Added translation for placeholder here
   };
 
   return (
@@ -81,7 +82,6 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
       translatedTexts={translatedTexts}
       showPrices={showPrices}
       sortType={sortType}
-      placeholder={t("Add an item...")}
       readOnly={readOnly}
     />
   );
