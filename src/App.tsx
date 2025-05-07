@@ -18,7 +18,6 @@ import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import Privacy from "./pages/Privacy";
 import ListDetails from "./pages/ListDetails";
-import SharedListView from "./pages/SharedListView";
 import Account from "./pages/Account";
 
 const queryClient = new QueryClient({
@@ -48,10 +47,9 @@ const App = () => (
                   <Route path=":listId" element={<ListDetails />} />
                 </Route>
                 <Route path="/list/:listId" element={<Navigate to="/lists/:listId" replace />} />
-                
-                {/* New dedicated route for shared lists */}
-                <Route path="/shared-list/:listId" element={<SharedListView />} />
-                
+                <Route path="/shared-list/:listId" element={<AppLayout />}>
+                  <Route index element={<ListDetails />} />
+                </Route>
                 <Route path="/recipes" element={<AppLayout />}>
                   <Route index element={<Recipes />} />
                 </Route>

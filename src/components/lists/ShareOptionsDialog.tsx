@@ -53,7 +53,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ listId, onComplete }) => {
             title: t("Shared!"),
             description: t("List has been shared successfully")
           });
-        } catch (error: any) {
+        } catch (error) {
           // Only show error if it's not a user cancellation
           if (error.name !== 'AbortError') {
             console.error("Share failed:", error);

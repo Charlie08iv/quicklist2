@@ -1,30 +1,21 @@
-
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2 } from "lucide-react";
 import TranslatedListItemManager from "@/components/lists/TranslatedListItemManager";
 import { ShoppingList, ShoppingItem } from "@/types/lists";
-import { 
-  getListById, 
-  addItemToList, 
-  removeItemFromList, 
-  updateShoppingItem, 
-  updateItemOrder 
-} from "@/services/listService";
+import { getListById, addItemToList, removeItemFromList, updateShoppingItem, updateItemOrder, shareList } from "@/services/listService";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ListOptionsMenu from "@/components/lists/ListOptionsMenu";
 import ShareOptions from "@/components/lists/ShareOptionsDialog";
-import { useAuth } from "@/hooks/useAuth";
 
 const ListDetails: React.FC = () => {
   const { listId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { isLoggedIn } = useAuth();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -86,8 +77,8 @@ const ListDetails: React.FC = () => {
     navigate('/lists');
   }, [navigate]);
 
-  const handleAddItem = async (item: Omit<ShoppingItem, "id" | "checked">) => {
-    if (!listId || !isLoggedIn) return;
+  const handleAddItem = async (item) => {
+    if (!listId) return;
     setIsProcessingAction(true);
     
     try {
@@ -95,7 +86,7 @@ const ListDetails: React.FC = () => {
       // This avoids database errors since price column doesn't exist
       const itemToAdd = { ...item };
       if (!showPrices && 'price' in itemToAdd) {
-        delete (itemToAdd as any).price;
+        delete itemToAdd.price;
       }
       
       await addItemToList(listId, itemToAdd);
@@ -116,8 +107,7 @@ const ListDetails: React.FC = () => {
     }
   };
 
-  const handleRemoveItem = async (itemId: string) => {
-    if (!isLoggedIn) return;
+  const handleRemoveItem = async (itemId) => {
     setIsProcessingAction(true);
     try {
       await removeItemFromList(itemId);
@@ -138,8 +128,7 @@ const ListDetails: React.FC = () => {
     }
   };
 
-  const handleToggleItemCheck = async (itemId: string, checked: boolean) => {
-    if (!isLoggedIn) return;
+  const handleToggleItemCheck = async (itemId, checked) => {
     setIsProcessingAction(true);
     try {
       await updateShoppingItem(itemId, { checked });
@@ -156,15 +145,14 @@ const ListDetails: React.FC = () => {
     }
   };
 
-  const handleUpdateItem = async (itemId: string, updates: Partial<ShoppingItem>) => {
-    if (!isLoggedIn) return;
+  const handleUpdateItem = async (itemId, updates) => {
     setIsProcessingAction(true);
     try {
       // Remove the price property if using prices isn't enabled
       // This avoids database errors since price column doesn't exist
       const updatesToSend = { ...updates };
       if (!showPrices && 'price' in updatesToSend) {
-        delete (updatesToSend as any).price;
+        delete updatesToSend.price;
       }
       
       await updateShoppingItem(itemId, updatesToSend);
@@ -196,7 +184,7 @@ const ListDetails: React.FC = () => {
   }, []);
 
   const handleUncheckAll = async () => {
-    if (!list || !list.items || !isLoggedIn) return;
+    if (!list || !list.items) return;
     
     setIsProcessingAction(true);
     try {
@@ -226,7 +214,7 @@ const ListDetails: React.FC = () => {
 
   // Handle custom order movement
   const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
-    if (!listId || !list || sortType !== 'custom' || !isLoggedIn) return;
+    if (!listId || !list || sortType !== 'custom') return;
     
     setIsProcessingAction(true);
     
@@ -266,7 +254,7 @@ const ListDetails: React.FC = () => {
 
   // Add new handler for reordering items via drag and drop
   const handleReorderItems = async (reorderedItems: ShoppingItem[]) => {
-    if (!listId || !list || !isLoggedIn) return;
+    if (!listId || !list) return;
     
     setIsProcessingAction(true);
     
@@ -366,25 +354,14 @@ const ListDetails: React.FC = () => {
               {t("share")}
             </Button>
             
-            {isLoggedIn && (
-              <ListOptionsMenu 
-                listId={list.id}
-                onSort={handleSort} 
-                onUncheckAll={handleUncheckAll}
-                onTogglePrices={() => setShowPrices(!showPrices)}
-              />
-            )}
+            <ListOptionsMenu 
+              listId={list.id}
+              onSort={handleSort} 
+              onUncheckAll={handleUncheckAll}
+              onTogglePrices={() => setShowPrices(!showPrices)}
+            />
           </div>
         </div>
-
-        {!isLoggedIn && (
-          <div className="bg-muted/30 p-3 rounded-md text-sm flex items-center justify-between">
-            <div>{t("Sign in to edit this list")}</div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/auth">{t("Sign in")}</Link>
-            </Button>
-          </div>
-        )}
 
         <TranslatedListItemManager
           listId={list.id}
@@ -397,7 +374,6 @@ const ListDetails: React.FC = () => {
           sortType={sortType}
           onMoveItem={handleMoveItem}
           onReorderItems={handleReorderItems}
-          readOnly={!isLoggedIn}
         />
 
         {isSharing && (
