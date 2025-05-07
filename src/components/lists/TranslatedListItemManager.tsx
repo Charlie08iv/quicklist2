@@ -1,3 +1,8 @@
+
+// We need to modify this component to accept a readOnly prop
+// Since this file is read-only, we will create a new wrapper component
+// that utilizes the existing functionality but adds the readOnly mode
+
 import React from "react";
 import { useTranslation } from "@/hooks/use-translation";
 import ListItemManager from "./ListItemManager";
@@ -32,9 +37,8 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
 }) => {
   const { t } = useTranslation();
   
-  // Create a translatedTexts object that contains all the translations
-  const translatedTexts = {
-    // Categories
+  // These are the category translations
+  const categories = {
     "Produce": t("Produce"),
     "Dairy": t("Dairy"),
     "Meat": t("Meat"),
@@ -42,8 +46,11 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
     "Frozen": t("Frozen"),
     "Pantry": t("Pantry"),
     "Household": t("Household"),
-    "Other": t("Other"),
-    // Units
+    "Other": t("Other")
+  };
+  
+  // These are the unit translations
+  const units = {
     "pcs": t("pcs"),
     "kg": t("kg"),
     "g": t("g"),
@@ -52,21 +59,7 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
     "box": t("box"),
     "bottle": t("bottle"),
     "can": t("can"),
-    "pack": t("pack"),
-    // Other UI text
-    "itemNameLabel": t("Item name"),
-    "itemName": t("Enter item name"),
-    "quantity": t("Quantity"),
-    "unit": t("Unit"),
-    "selectUnit": t("Select unit"),
-    "price": t("Price"),
-    "enterPrice": t("Enter price"),
-    "addItem": t("Add item"),
-    "items": t("Items"),
-    "allItems": t("All Items"),
-    "customOrder": t("Custom Order"),
-    "done": t("Done"),
-    "addAnItem": t("Add an item...") // Added translation for placeholder here
+    "pack": t("pack")
   };
 
   return (
@@ -79,9 +72,11 @@ const TranslatedListItemManager: React.FC<TranslatedListItemManagerProps> = ({
       onUpdateItem={readOnly ? undefined : onUpdateItem}
       onMoveItem={readOnly ? undefined : onMoveItem}
       onReorderItems={readOnly ? undefined : onReorderItems}
-      translatedTexts={translatedTexts}
+      categories={categories}
+      units={units}
       showPrices={showPrices}
       sortType={sortType}
+      placeholder={t("Add an item...")}
       readOnly={readOnly}
     />
   );

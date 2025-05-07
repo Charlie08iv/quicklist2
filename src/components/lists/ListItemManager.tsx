@@ -38,7 +38,7 @@ interface ShoppingItemWithPrice extends ShoppingItem {
 interface ListItemManagerProps {
   listId: string;
   items: ShoppingItemWithPrice[];
-  onAddItem?: (item: Omit<ShoppingItemWithPrice, "id" | "checked">) => void;
+  onAddItem: (item: Omit<ShoppingItemWithPrice, "id" | "checked">) => void;
   onRemoveItem?: (itemId: string) => void;
   onToggleItemCheck?: (itemId: string, checked: boolean) => void;
   onUpdateItem?: (itemId: string, item: Partial<ShoppingItemWithPrice>) => void;
@@ -47,7 +47,6 @@ interface ListItemManagerProps {
   showPrices?: boolean;
   sortType?: string;
   translatedTexts?: Record<string, string>;
-  readOnly?: boolean;
 }
 
 const units = [
@@ -259,8 +258,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
   onReorderItems,
   showPrices = false,
   sortType = "category",
-  translatedTexts,
-  readOnly = false
+  translatedTexts
 }) => {
   const { t } = useTranslation();
   const [newItemName, setNewItemName] = useState("");
@@ -577,7 +575,7 @@ const ListItemManager: React.FC<ListItemManagerProps> = ({
             id="item-name"
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
-            placeholder={getText("addAnItem")}
+            placeholder={getText("itemName")}
             className="bg-[#14371F] text-white border-[#2D7A46]/30 focus:border-[#2D7A46]"
             required
           />
