@@ -221,11 +221,43 @@ export const shareList = async (listId: string): Promise<string | null> => {
       return null;
     }
 
-    // Use shared-list path instead of list to match our new route
+    // Use shared-list path to match our new route
     const shareableLink = `${window.location.origin}/shared-list/${listId}`;
     return shareableLink;
   } catch (error) {
     console.error("Error sharing list:", error);
+    return null;
+  }
+};
+
+// New function to get a shared list without requiring authentication
+export const getSharedList = async (listId: string): Promise<ShoppingList | null> => {
+  try {
+    const { data: list, error: listError } = await supabase
+      .from('shopping_lists')
+      .select('*')
+      .eq('id', listId)
+      .eq('is_shared', true) // Only fetch if it's marked as shared
+      .single();
+
+    if (listError) {
+      console.error("Error fetching shared list:", listError);
+      return null;
+    }
+
+    const { data: items, error: itemsError } = await supabase
+      .from('shopping_items')
+      .select('*')
+      .eq('list_id', listId);
+
+    if (itemsError) {
+      console.error("Error fetching shared items:", itemsError);
+      return mapShoppingListFromRow(list, []);
+    }
+
+    return mapShoppingListFromRow(list, items.map(item => mapShoppingItemFromRow(item)));
+  } catch (error) {
+    console.error("Error fetching shared list:", error);
     return null;
   }
 };
