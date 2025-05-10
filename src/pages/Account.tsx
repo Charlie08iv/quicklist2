@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "@/hooks/use-translation";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { Navigate } from "react-router-dom";
 
 const Account: React.FC = () => {
   const { t } = useTranslation();
-  const { user, isLoggedIn, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
@@ -56,7 +56,7 @@ const Account: React.FC = () => {
     checkSession();
   }, []);
 
-  if (isLoading || directSessionCheck.loading) {
+  if (loading || directSessionCheck.loading) {
     return (
       <div className="container max-w-lg mx-auto p-4">
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -68,8 +68,12 @@ const Account: React.FC = () => {
   }
 
   // Double-check authentication to ensure account page only loads for authenticated users
-  if (!isLoggedIn && !directSessionCheck.valid) {
-    toast.error(t("pleaseLoginToAccessAccount"));
+  if (!user && !directSessionCheck.valid) {
+    toast({
+      title: t("pleaseLoginToAccessAccount"),
+      description: t("You need to be logged in to access this page"),
+      variant: "destructive"
+    });
     return <Navigate to="/auth" />;
   }
 
@@ -87,10 +91,17 @@ const Account: React.FC = () => {
         
       if (error) throw error;
       
-      toast.success(t("profileUpdated"));
+      toast({
+        title: t("profileUpdated"),
+        description: t("Your profile has been updated successfully"),
+      });
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || t("errorUpdatingProfile"));
+      toast({
+        title: t("errorUpdatingProfile"),
+        description: error.message || t("There was an error updating your profile"),
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }

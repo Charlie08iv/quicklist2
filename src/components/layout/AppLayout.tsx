@@ -1,15 +1,14 @@
 
 import React from "react";
-import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BottomNavigation } from "./BottomNavigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "../ui/button";
 
 const AppLayout = () => {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams();
   
   // Check if this is a shared list view
   const isSharedList = location.pathname.startsWith('/shared-list/');
@@ -17,7 +16,7 @@ const AppLayout = () => {
   // List of paths that can be accessed without authentication
   const publicPaths = ['/lists', '/recipes', '/shared-list'];
   const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
-  const showLoginButton = !isLoggedIn && !isLoading && isPublicPath;
+  const showLoginButton = !user && !loading && isPublicPath;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -34,7 +33,7 @@ const AppLayout = () => {
         </div>
       )}
       
-      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in">
+      <main className="flex-1 container max-w-md mx-auto px-4 pb-20 animate-fade-in overflow-y-auto no-scrollbar">
         <Outlet />
       </main>
       <BottomNavigation />
