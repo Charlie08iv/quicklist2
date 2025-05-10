@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const [verifyingSession, setVerifyingSession] = useState(true);
   const [hasValidSession, setHasValidSession] = useState(false);
   const location = useLocation();
@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     verifySession();
   }, [location.pathname]);
 
-  if (isLoading || verifyingSession) {
+  if (loading || verifyingSession) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -47,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // Use both auth context and direct session check
-  if (!isLoggedIn && !hasValidSession) {
+  if (!user && !hasValidSession) {
     return <Navigate to="/auth" replace />;
   }
 
